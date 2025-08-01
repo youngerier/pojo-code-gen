@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.lang.model.element.Modifier;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Service实现类生成器
@@ -25,6 +26,8 @@ public class ServiceImplGenerator implements CodeGenerator {
         String entityName = pojoInfo.getClassName();
         // 创建实体类类型
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
+        // 创建DTO类型
+        ClassName dtoType = ClassName.get(pojoInfo.getPackageName().replace(".entity", ".dto"), entityName + "DTO");
         // 创建Service接口类型
         ClassName serviceType = ClassName.get(
                 pojoInfo.getPackageName().replace(".entity", ".service"),
@@ -33,6 +36,10 @@ public class ServiceImplGenerator implements CodeGenerator {
         ClassName repositoryType = ClassName.get(
                 pojoInfo.getPackageName().replace(".entity", ".repository"),
                 entityName + "Repository");
+        // 创建Mapstruct Mapper类型
+        ClassName mapperType = ClassName.get(
+                pojoInfo.getPackageName().replace(".entity", ".convertor"),
+                entityName + "Convertor");
 
         // 创建类构建器
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getClassName(pojoInfo))
@@ -47,11 +54,20 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .build();
         classBuilder.addField(repositoryField);
 
+        // 添加Mapper字段
+        String mapperFieldName = lowerFirstChar(entityName) + "Convertor";
+        FieldSpec mapperField = FieldSpec.builder(mapperType, mapperFieldName)
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .build();
+        classBuilder.addField(mapperField);
+
         // 添加构造函数
         MethodSpec constructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(repositoryType, repositoryFieldName)
+                .addParameter(mapperType, mapperFieldName)
                 .addStatement("this.$N = $N", repositoryFieldName, repositoryFieldName)
+                .addStatement("this.$N = $N", mapperFieldName, mapperFieldName)
                 .build();
         classBuilder.addMethod(constructor);
 
@@ -59,10 +75,11 @@ public class ServiceImplGenerator implements CodeGenerator {
         MethodSpec createMethod = MethodSpec.methodBuilder("create" + entityName)
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .addParameter(entityType, lowerFirstChar(entityName))
-                .returns(entityType)
-                .addStatement("$N.insert($N)", repositoryFieldName, lowerFirstChar(entityName))
-                .addStatement("return $N", lowerFirstChar(entityName))
+                .addParameter(dtoType, lowerFirstChar(entityName) + "DTO")
+                .returns(dtoType)
+                .addStatement("$T entity = $N.toEntity($N)", entityType, mapperFieldName, lowerFirstChar(entityName) + "DTO")
+                .addStatement("$N.insert(entity)", repositoryFieldName)
+                .addStatement("return $N.toDto(entity)", mapperFieldName)
                 .build();
         classBuilder.addMethod(createMethod);
 
@@ -70,20 +87,21 @@ public class ServiceImplGenerator implements CodeGenerator {
         MethodSpec getByIdMethod = MethodSpec.methodBuilder("get" + entityName + "ById")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .addParameter(long.class, "id")
-                .returns(entityType)
-                .addStatement("return $N.selectOneById(id)", repositoryFieldName)
+                .addParameter(TypeName.LONG, "id")
+                .returns(dtoType)
+                .addStatement("$T entity = $N.selectOneById(id)", entityType, repositoryFieldName)
+                .addStatement("return $N.toDto(entity)", mapperFieldName)
                 .build();
         classBuilder.addMethod(getByIdMethod);
 
         // 添加getAllXxx方法
-        ParameterizedTypeName listOfEntity = ParameterizedTypeName.get(
-                ClassName.get(List.class), entityType);
+        ParameterizedTypeName listOfDto = ParameterizedTypeName.get(
+                ClassName.get(List.class), dtoType);
         MethodSpec getAllMethod = MethodSpec.methodBuilder("getAll" + entityName + "s")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .returns(listOfEntity)
-                .addStatement("return $N.selectAll()", repositoryFieldName)
+                .returns(listOfDto)
+                .addStatement("return $N.selectAll().stream().map($N::toDto).collect($T.toList())", repositoryFieldName, mapperFieldName, Collectors.class)
                 .build();
         classBuilder.addMethod(getAllMethod);
 
@@ -91,10 +109,17 @@ public class ServiceImplGenerator implements CodeGenerator {
         MethodSpec updateMethod = MethodSpec.methodBuilder("update" + entityName)
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .addParameter(entityType, lowerFirstChar(entityName))
-                .returns(entityType)
-                .addStatement("$N.update($N)", repositoryFieldName, lowerFirstChar(entityName))
-                .addStatement("return $N", lowerFirstChar(entityName))
+                .addParameter(TypeName.LONG, "id")
+                .addParameter(dtoType, lowerFirstChar(entityName) + "DTO")
+                .returns(dtoType)
+                .addStatement("$T existingEntity = $N.selectOneById(id)", entityType, repositoryFieldName)
+                .beginControlFlow("if (existingEntity == null)")
+                .addStatement("return null")
+                .endControlFlow()
+                .addStatement("$T updatedEntity = $N.toEntity($N)", entityType, mapperFieldName, lowerFirstChar(entityName) + "DTO")
+                .addStatement("updatedEntity.setId(id)") // Ensure ID is set for update
+                .addStatement("$N.update(updatedEntity)", repositoryFieldName)
+                .addStatement("return $N.toDto(updatedEntity)", mapperFieldName)
                 .build();
         classBuilder.addMethod(updateMethod);
 

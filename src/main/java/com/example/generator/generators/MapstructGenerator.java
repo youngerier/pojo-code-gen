@@ -110,12 +110,12 @@ public class MapstructGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".mapper");
+        return pojoInfo.getPackageName().replace(".entity", ".convertor");
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "Mapper";
+        return pojoInfo.getClassName() + "Convertor";
     }
 
     /**

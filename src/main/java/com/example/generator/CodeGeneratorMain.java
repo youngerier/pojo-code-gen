@@ -1,7 +1,13 @@
 package com.example.generator;
 
+import com.example.generator.generators.*;
 import com.example.generator.generators.DtoGenerator;
 import com.example.generator.generators.ServiceGenerator;
+import com.example.generator.generators.ServiceImplGenerator;
+import com.example.generator.generators.RepositoryGenerator;
+import com.example.generator.generators.RequestGenerator;
+import com.example.generator.generators.ResponseGenerator;
+import com.example.generator.generators.MapstructGenerator;
 import com.example.generator.model.PojoInfo;
 
 import java.io.File;
@@ -55,8 +61,12 @@ public class CodeGeneratorMain {
             // 3. 定义需要生成的代码类型
             List<CodeGenerator> generators = Arrays.asList(
                     new DtoGenerator(),
-                    new ServiceGenerator()
-                    // 可以添加更多生成器: RequestGenerator, ResponseGenerator, etc.
+                    new ServiceGenerator(),
+                    new ServiceImplGenerator(),
+                    new RepositoryGenerator(),
+                    new RequestGenerator(),
+                    new ResponseGenerator(),
+                    new MapstructGenerator()
             );
 
             // 4. 生成所有代码

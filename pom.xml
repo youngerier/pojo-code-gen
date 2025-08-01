@@ -46,6 +46,28 @@
             <version>5.3.23</version>
             <optional>true</optional>
         </dependency>
+        
+        <!-- MyBatis Flex -->
+        <dependency>
+            <groupId>com.mybatis-flex</groupId>
+            <artifactId>mybatis-flex-core</artifactId>
+            <version>1.7.5</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- MapStruct -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>1.5.5.Final</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+            <version>1.5.5.Final</version>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <build>

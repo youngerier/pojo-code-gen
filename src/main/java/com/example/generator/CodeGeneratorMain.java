@@ -2,6 +2,7 @@ package com.example.generator;
 
 import com.example.generator.generators.DtoGenerator;
 import com.example.generator.generators.MapstructGenerator;
+import com.example.generator.generators.QueryGenerator;
 import com.example.generator.generators.RepositoryGenerator;
 import com.example.generator.generators.RequestGenerator;
 import com.example.generator.generators.ResponseGenerator;
@@ -67,7 +68,8 @@ public class CodeGeneratorMain {
                     new RepositoryGenerator(),
                     new RequestGenerator(),
                     new ResponseGenerator(),
-                    new MapstructGenerator()
+                    new MapstructGenerator(),
+                    new QueryGenerator()
             );
 
             // 4. 生成所有代码

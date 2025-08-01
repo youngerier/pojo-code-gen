@@ -9,6 +9,9 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import lombok.extern.slf4j.Slf4j;
+import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.query.QueryColumn;
+import static com.mybatisflex.core.query.QueryMethods.*;
 
 import javax.lang.model.element.Modifier;
 import java.util.List;
@@ -28,6 +31,8 @@ public class ServiceImplGenerator implements CodeGenerator {
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
         // 创建DTO类型
         ClassName dtoType = ClassName.get(pojoInfo.getPackageName().replace(".entity", ".dto"), entityName + "DTO");
+        // 创建Query类型
+        ClassName queryType = ClassName.get(pojoInfo.getPackageName().replace(".entity", ".model.query"), entityName + "Query");
         // 创建Service接口类型
         ClassName serviceType = ClassName.get(
                 pojoInfo.getPackageName().replace(".entity", ".service"),
@@ -105,6 +110,35 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .build();
         classBuilder.addMethod(getAllMethod);
 
+        // 添加带查询参数的getAllXxx方法
+        MethodSpec.Builder getAllByQueryMethodBuilder = MethodSpec.methodBuilder("getAll" + entityName + "s")
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .addParameter(queryType, lowerFirstChar(entityName) + "Query")
+                .returns(listOfDto)
+                .addStatement("$T queryWrapper = new $T()", QueryWrapper.class, QueryWrapper.class)
+                .beginControlFlow("if ($N != null)", lowerFirstChar(entityName) + "Query");
+
+        pojoInfo.getFields().forEach(field -> {
+            String fieldName = field.getName();
+            String queryFieldName = lowerFirstChar(entityName) + "Query";
+            String getterName = "get" + upperFirstChar(fieldName);
+
+            getAllByQueryMethodBuilder.beginControlFlow("if ($N.$L() != null)", queryFieldName, getterName)
+                    .addStatement("queryWrapper.and($T.$L.eq($N.$L()))",
+                            ClassName.get(pojoInfo.getPackageName() + ".table", entityName + "Table"),
+                            "DEFAULT",
+                            queryFieldName,
+                            getterName)
+                    .endControlFlow();
+        });
+
+        getAllByQueryMethodBuilder.endControlFlow();
+
+        getAllByQueryMethodBuilder.addStatement("return $N.selectListByQuery(queryWrapper).stream().map($N::toDto).collect($T.toList())", repositoryFieldName, mapperFieldName, Collectors.class);
+
+        classBuilder.addMethod(getAllByQueryMethodBuilder.build());
+
         // 添加updateXxx方法
         MethodSpec updateMethod = MethodSpec.methodBuilder("update" + entityName)
                 .addModifiers(Modifier.PUBLIC)
@@ -160,5 +194,15 @@ public class ServiceImplGenerator implements CodeGenerator {
             return str;
         }
         return Character.toLowerCase(str.charAt(0)) + str.substring(1);
+    }
+
+    /**
+     * 将字符串的首字母转为大写
+     */
+    private String upperFirstChar(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
     }
 }

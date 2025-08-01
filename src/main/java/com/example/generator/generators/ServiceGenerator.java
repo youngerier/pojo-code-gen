@@ -68,6 +68,21 @@ public class ServiceGenerator implements CodeGenerator {
                 .build();
         interfaceBuilder.addMethod(getAllMethod);
 
+        // 添加带查询参数的所有对象方法
+        String queryClassName = pojoInfo.getClassName() + "Query";
+        ClassName queryType = ClassName.get(getQueryPackage(pojoInfo), queryClassName);
+        MethodSpec getAllByQueryMethod = MethodSpec.methodBuilder("getAll" + pojoInfo.getClassName() + "s")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(listOfDto)
+                .addParameter(queryType, pojoInfo.getClassName().toLowerCase() + "Query")
+                .addJavadoc("根据查询参数查询所有$L\n", pojoInfo.getClassName())
+                .addJavadoc("@param $L $L查询参数对象\n",
+                        pojoInfo.getClassName().toLowerCase() + "Query",
+                        pojoInfo.getClassName())
+                .addJavadoc("@return $L对象列表\n", pojoInfo.getClassName())
+                .build();
+        interfaceBuilder.addMethod(getAllByQueryMethod);
+
         // 添加更新方法
         MethodSpec updateMethod = MethodSpec.methodBuilder("update" + pojoInfo.getClassName())
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
@@ -99,6 +114,10 @@ public class ServiceGenerator implements CodeGenerator {
 
     private String getDtoPackage(PojoInfo pojoInfo) {
         return pojoInfo.getPackageName().replace(".entity", ".dto");
+    }
+
+    private String getQueryPackage(PojoInfo pojoInfo) {
+        return pojoInfo.getPackageName().replace(".entity", ".model.query");
     }
 
     @Override

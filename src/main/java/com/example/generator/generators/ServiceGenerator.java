@@ -2,13 +2,20 @@ package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
 import com.example.generator.model.PojoInfo;
-import com.squareup.javapoet.*;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.lang.model.element.Modifier;
 import java.util.List;
 
 /**
  * Service接口生成器
  */
+@Slf4j
 public class ServiceGenerator implements CodeGenerator {
 
     @Override
@@ -34,8 +41,8 @@ public class ServiceGenerator implements CodeGenerator {
                 .returns(dtoType)
                 .addParameter(dtoType, pojoInfo.getClassName().toLowerCase() + "DTO")
                 .addJavadoc("创建$L\n", pojoInfo.getClassName())
-                .addJavadoc("@param $L $L数据传输对象\n", 
-                        pojoInfo.getClassName().toLowerCase() + "DTO", 
+                .addJavadoc("@param $L $L数据传输对象\n",
+                        pojoInfo.getClassName().toLowerCase() + "DTO",
                         pojoInfo.getClassName())
                 .addJavadoc("@return 创建的$L对象\n", pojoInfo.getClassName())
                 .build();
@@ -69,8 +76,8 @@ public class ServiceGenerator implements CodeGenerator {
                 .addParameter(dtoType, pojoInfo.getClassName().toLowerCase() + "DTO")
                 .addJavadoc("更新$L\n", pojoInfo.getClassName())
                 .addJavadoc("@param id 主键ID\n")
-                .addJavadoc("@param $L $L数据传输对象\n", 
-                        pojoInfo.getClassName().toLowerCase() + "DTO", 
+                .addJavadoc("@param $L $L数据传输对象\n",
+                        pojoInfo.getClassName().toLowerCase() + "DTO",
                         pojoInfo.getClassName())
                 .addJavadoc("@return 更新后的$L对象\n", pojoInfo.getClassName())
                 .build();

@@ -2,7 +2,11 @@ package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
 import com.example.generator.model.PojoInfo;
-import com.squareup.javapoet.*;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeSpec;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.lang.model.element.Modifier;
 import java.util.List;
@@ -10,6 +14,7 @@ import java.util.List;
 /**
  * MapStruct转换器生成器
  */
+@Slf4j
 public class MapstructGenerator implements CodeGenerator {
 
     @Override

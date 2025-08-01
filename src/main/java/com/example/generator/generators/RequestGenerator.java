@@ -2,9 +2,11 @@ package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
 import com.example.generator.model.PojoInfo;
-import com.squareup.javapoet.*;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.lang.model.element.Modifier;
 import java.util.Arrays;
@@ -14,6 +16,7 @@ import java.util.Set;
 /**
  * Request模型类生成器
  */
+@Slf4j
 public class RequestGenerator implements CodeGenerator {
 
     // 通常不需要包含在请求对象中的字段名
@@ -44,7 +47,7 @@ public class RequestGenerator implements CodeGenerator {
                 // 处理无法识别的类型（使用Object）
                 fieldType = TypeName.OBJECT;
             }
-            
+
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                     fieldType,
                     field.getName(),

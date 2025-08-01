@@ -2,15 +2,18 @@ package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
 import com.example.generator.model.PojoInfo;
-import com.squareup.javapoet.*;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.lang.model.element.Modifier;
 
 /**
  * Response模型类生成器
  */
+@Slf4j
 public class ResponseGenerator implements CodeGenerator {
 
     @Override
@@ -31,7 +34,7 @@ public class ResponseGenerator implements CodeGenerator {
                 // 处理无法识别的类型（使用Object）
                 fieldType = TypeName.OBJECT;
             }
-            
+
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                     fieldType,
                     field.getName(),

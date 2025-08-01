@@ -1,14 +1,14 @@
 package com.example.generator;
 
-import com.example.generator.generators.*;
 import com.example.generator.generators.DtoGenerator;
-import com.example.generator.generators.ServiceGenerator;
-import com.example.generator.generators.ServiceImplGenerator;
+import com.example.generator.generators.MapstructGenerator;
 import com.example.generator.generators.RepositoryGenerator;
 import com.example.generator.generators.RequestGenerator;
 import com.example.generator.generators.ResponseGenerator;
-import com.example.generator.generators.MapstructGenerator;
+import com.example.generator.generators.ServiceGenerator;
+import com.example.generator.generators.ServiceImplGenerator;
 import com.example.generator.model.PojoInfo;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +18,7 @@ import java.util.List;
 /**
  * 代码生成器主程序
  */
+@Slf4j
 public class CodeGeneratorMain {
 
     public static void codeGen(String pojoFilePath) {

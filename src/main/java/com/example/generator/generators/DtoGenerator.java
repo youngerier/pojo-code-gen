@@ -2,12 +2,18 @@ package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
 import com.example.generator.model.PojoInfo;
-import com.squareup.javapoet.*;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.lang.model.element.Modifier;
 
 /**
  * DTO类生成器
  */
+@Slf4j
 public class DtoGenerator implements CodeGenerator {
 
     @Override

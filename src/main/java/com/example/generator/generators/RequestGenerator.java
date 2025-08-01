@@ -39,14 +39,7 @@ public class RequestGenerator implements CodeGenerator {
             }
 
             // 创建字段类型
-            TypeName fieldType;
-            try {
-                // 处理基本类型和包装类型
-                fieldType = ClassName.bestGuess(field.getType());
-            } catch (IllegalArgumentException e) {
-                // 处理无法识别的类型（使用Object）
-                fieldType = TypeName.OBJECT;
-            }
+            TypeName fieldType = ClassName.bestGuess(field.getFullType());
 
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                     fieldType,

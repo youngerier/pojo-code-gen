@@ -7,6 +7,10 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.symbolsolver.JavaSymbolSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -27,15 +31,21 @@ public class PojoParser {
      * @throws IOException IO异常
      */
     public PojoInfo parse(String filePath) throws IOException {
+        // 配置符号解析器
+        CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
+        combinedTypeSolver.add(new ReflectionTypeSolver());
+        combinedTypeSolver.add(new JavaParserTypeSolver(new File("src/main/java")));
+
+        JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
+        StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
+
         File file = new File(filePath);
         CompilationUnit cu = StaticJavaParser.parse(new FileInputStream(file));
 
         PojoInfo pojoInfo = new PojoInfo();
 
         // 提取包名
-        cu.getPackageDeclaration().ifPresent(pkg ->
-                pojoInfo.setPackageName(pkg.getNameAsString())
-        );
+        cu.getPackageDeclaration().ifPresent(pkg -> pojoInfo.setPackageName(pkg.getNameAsString()));
 
         // 提取类信息
         cu.getClassByName(file.getName().replace(".java", "")).ifPresent(cls -> {
@@ -64,6 +74,14 @@ public class PojoParser {
                 fieldInfo.setName(var.getNameAsString());
                 fieldInfo.setType(var.getTypeAsString());
                 fieldInfo.setComment(extractComment(fieldDecl));
+
+                // 尝试解析并设置完整类型
+                try {
+                    fieldInfo.setFullType(var.getType().resolve().describe());
+                } catch (Exception e) {
+                    // 解析失败，回退到简单类型
+                    fieldInfo.setFullType(var.getTypeAsString());
+                }
 
                 // 判断是否为主键（简单判断：字段名是id或xxxId）
                 fieldInfo.setPrimaryKey(isPrimaryKey(fieldInfo.getName()));

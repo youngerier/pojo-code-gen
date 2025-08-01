@@ -22,6 +22,7 @@ public class PojoInfo {
     public static class FieldInfo {
         private String name;         // 字段名
         private String type;         // 字段类型
+        private String fullType;     // 字段完整类型
         private String comment;      // 字段注释
         private boolean isPrimaryKey; // 是否为主键
     }

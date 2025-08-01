@@ -41,8 +41,6 @@ public class FileGenerator {
         File outputDir = Paths.get(baseOutputDir, "src", "main", "java").toFile();
         javaFile.writeTo(outputDir);
 
-        System.out.println("生成文件: " +
-                codeGenerator.getPackageName(pojoInfo) + "." +
-                codeGenerator.getClassName(pojoInfo));
+        log.info("生成文件: {}.{}", codeGenerator.getPackageName(pojoInfo), codeGenerator.getClassName(pojoInfo));
     }
 }

@@ -36,7 +36,7 @@ public class CodeGeneratorMain {
         // 验证POJO文件是否存在
         File pojoFile = new File(pojoFilePath);
         if (!pojoFile.exists() || !pojoFile.isFile()) {
-            System.err.println("错误: POJO文件不存在 - " + pojoFilePath);
+            log.error("错误: POJO文件不存在 - {}", pojoFilePath);
             return;
         }
 
@@ -47,13 +47,13 @@ public class CodeGeneratorMain {
             // 1. 解析POJO文件
             PojoParser parser = new PojoParser();
             PojoInfo pojoInfo = parser.parse(pojoFilePath);
-            System.out.println("成功解析POJO: " + pojoInfo.getClassName());
+            log.info("成功解析POJO: {}", pojoInfo.getClassName());
 
             // 确保输出目录存在
             File outputDirFile = new File(outputDir);
             if (!outputDirFile.exists()) {
                 outputDirFile.mkdirs();
-                System.out.println("创建输出目录: " + outputDirFile.getAbsolutePath());
+                log.info("创建输出目录: {}", outputDirFile.getAbsolutePath());
             }
 
             // 2. 创建文件生成器
@@ -75,12 +75,12 @@ public class CodeGeneratorMain {
                 fileGenerator.generateFile(generator, pojoInfo);
             }
 
-            System.out.println("代码生成完成!");
-            System.out.println("生成的文件位置: " + new File(outputDir, "src/main/java").getAbsolutePath());
+            log.info("代码生成完成!");
+            log.info("生成的文件位置: {}", new File(outputDir, "src/main/java").getAbsolutePath());
 
         } catch (IOException e) {
-            System.err.println("代码生成失败: " + e.getMessage());
-            e.printStackTrace();
+            log.error("代码生成失败: {}", e.getMessage());
+
         }
     }
 

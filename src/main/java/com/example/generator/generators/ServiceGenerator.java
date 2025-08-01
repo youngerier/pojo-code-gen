@@ -1,0 +1,106 @@
+package com.example.generator.generators;
+
+import com.example.generator.CodeGenerator;
+import com.example.generator.model.PojoInfo;
+import com.squareup.javapoet.*;
+import javax.lang.model.element.Modifier;
+import java.util.List;
+
+/**
+ * Service接口生成器
+ */
+public class ServiceGenerator implements CodeGenerator {
+
+    @Override
+    public TypeSpec generate(PojoInfo pojoInfo) {
+        String dtoClassName = pojoInfo.getClassName() + "DTO";
+        ClassName dtoType = ClassName.get(getDtoPackage(pojoInfo), dtoClassName);
+        ClassName listType = ClassName.get(List.class);
+        ParameterizedTypeName listOfDto = ParameterizedTypeName.get(listType, dtoType);
+
+        // 创建接口构建器
+        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(getClassName(pojoInfo))
+                .addModifiers(Modifier.PUBLIC);
+
+        // 添加接口注释
+        if (pojoInfo.getClassComment() != null && !pojoInfo.getClassComment().isEmpty()) {
+            interfaceBuilder.addJavadoc(pojoInfo.getClassComment() + "\n");
+            interfaceBuilder.addJavadoc("服务接口\n");
+        }
+
+        // 添加创建方法
+        MethodSpec createMethod = MethodSpec.methodBuilder("create" + pojoInfo.getClassName())
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(dtoType)
+                .addParameter(dtoType, pojoInfo.getClassName().toLowerCase() + "DTO")
+                .addJavadoc("创建$L\n", pojoInfo.getClassName())
+                .addJavadoc("@param $L $L数据传输对象\n", 
+                        pojoInfo.getClassName().toLowerCase() + "DTO", 
+                        pojoInfo.getClassName())
+                .addJavadoc("@return 创建的$L对象\n", pojoInfo.getClassName())
+                .build();
+        interfaceBuilder.addMethod(createMethod);
+
+        // 添加查询单个对象方法
+        MethodSpec getByIdMethod = MethodSpec.methodBuilder("get" + pojoInfo.getClassName() + "ById")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(dtoType)
+                .addParameter(TypeName.LONG, "id")
+                .addJavadoc("根据ID查询$L\n", pojoInfo.getClassName())
+                .addJavadoc("@param id 主键ID\n")
+                .addJavadoc("@return 对应的$L对象\n", pojoInfo.getClassName())
+                .build();
+        interfaceBuilder.addMethod(getByIdMethod);
+
+        // 添加查询所有对象方法
+        MethodSpec getAllMethod = MethodSpec.methodBuilder("getAll" + pojoInfo.getClassName() + "s")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(listOfDto)
+                .addJavadoc("查询所有$L\n", pojoInfo.getClassName())
+                .addJavadoc("@return $L对象列表\n", pojoInfo.getClassName())
+                .build();
+        interfaceBuilder.addMethod(getAllMethod);
+
+        // 添加更新方法
+        MethodSpec updateMethod = MethodSpec.methodBuilder("update" + pojoInfo.getClassName())
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(dtoType)
+                .addParameter(TypeName.LONG, "id")
+                .addParameter(dtoType, pojoInfo.getClassName().toLowerCase() + "DTO")
+                .addJavadoc("更新$L\n", pojoInfo.getClassName())
+                .addJavadoc("@param id 主键ID\n")
+                .addJavadoc("@param $L $L数据传输对象\n", 
+                        pojoInfo.getClassName().toLowerCase() + "DTO", 
+                        pojoInfo.getClassName())
+                .addJavadoc("@return 更新后的$L对象\n", pojoInfo.getClassName())
+                .build();
+        interfaceBuilder.addMethod(updateMethod);
+
+        // 添加删除方法
+        MethodSpec deleteMethod = MethodSpec.methodBuilder("delete" + pojoInfo.getClassName())
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(TypeName.BOOLEAN)
+                .addParameter(TypeName.LONG, "id")
+                .addJavadoc("删除$L\n", pojoInfo.getClassName())
+                .addJavadoc("@param id 主键ID\n")
+                .addJavadoc("@return 是否删除成功\n")
+                .build();
+        interfaceBuilder.addMethod(deleteMethod);
+
+        return interfaceBuilder.build();
+    }
+
+    private String getDtoPackage(PojoInfo pojoInfo) {
+        return pojoInfo.getPackageName().replace(".pojo", ".dto");
+    }
+
+    @Override
+    public String getPackageName(PojoInfo pojoInfo) {
+        return pojoInfo.getPackageName().replace(".pojo", ".service");
+    }
+
+    @Override
+    public String getClassName(PojoInfo pojoInfo) {
+        return pojoInfo.getClassName() + "Service";
+    }
+}

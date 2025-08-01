@@ -1,0 +1,9 @@
+com\example\generator\PojoParser.class
+com\example\generator\FileGenerator.class
+com\example\generator\generators\DtoGenerator.class
+com\example\generator\model\PojoInfo.class
+com\example\generator\CodeGeneratorMain.class
+com\example\generator\generators\ServiceGenerator.class
+com\abc\entity\User.class
+com\example\generator\model\PojoInfo$FieldInfo.class
+com\example\generator\CodeGenerator.class

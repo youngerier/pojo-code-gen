@@ -23,14 +23,14 @@
             <artifactId>javaparser-core</artifactId>
             <version>${javaparser.version}</version>
         </dependency>
-        
+
         <!-- JavaPoet -->
         <dependency>
             <groupId>com.squareup</groupId>
             <artifactId>javapoet</artifactId>
             <version>${javapoet.version}</version>
         </dependency>
-        
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -38,7 +38,7 @@
             <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
-        
+
         <!-- Spring相关 -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -46,7 +46,7 @@
             <version>5.3.23</version>
             <optional>true</optional>
         </dependency>
-        
+
         <!-- MyBatis Flex -->
         <dependency>
             <groupId>com.mybatis-flex</groupId>
@@ -54,7 +54,7 @@
             <version>1.7.5</version>
             <optional>true</optional>
         </dependency>
-        
+
         <!-- MapStruct -->
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -68,6 +68,13 @@
             <version>1.5.5.Final</version>
             <optional>true</optional>
         </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.36</version>
+        </dependency>
+
     </dependencies>
 
     <build>

@@ -42,33 +42,33 @@ public class RepositoryGenerator implements CodeGenerator {
         }
 
         ClassName tableRefs = ClassName.get(pojoInfo.getPackageName() + ".table", pojoInfo.getClassName() + "TableRefs");
-        String tableVar = pojoInfo.getClassName().toLowerCase() + "Table";
-        String staticTableField = pojoInfo.getClassName().toUpperCase();
+        String tableVarName = pojoInfo.getClassName().toLowerCase() + "TableRefs";
+        String staticTableFieldName = pojoInfo.getClassName().toLowerCase();
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("selectListByQuery")
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                 .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
                 .returns(ParameterizedTypeName.get(ClassName.get(List.class), entityType));
 
-        methodBuilder.addStatement("var $L = $T.$L", tableVar, tableRefs, staticTableField);
+        methodBuilder.addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableFieldName);
 
         CodeBlock.Builder queryBuilder = CodeBlock.builder();
         queryBuilder.add("$T queryWrapper = $T.create()\n", QueryWrapper.class, QueryWrapper.class);
         queryBuilder.indent();
-        queryBuilder.add(".from($L)\n", tableVar);
+        queryBuilder.add(".from($L)\n", tableVarName);
 
         for (PojoInfo.FieldInfo field : pojoInfo.getFields()) {
-            queryBuilder.add(".where($L.$L.eq(query.get$L(), query.get$L() != null))\n",
-                    tableVar, field.getName().toUpperCase(), upperFirstChar(field.getName()), upperFirstChar(field.getName()));
+            queryBuilder.add(".where($L.$L.$L.eq(query.get$L()))\n",
+                    tableVarName, staticTableFieldName, field.getName(), upperFirstChar(field.getName()));
         }
         
         String idField = pojoInfo.getFields().stream()
             .map(PojoInfo.FieldInfo::getName)
             .filter(name -> "id".equalsIgnoreCase(name))
             .findFirst()
-            .orElse("id").toUpperCase();
+            .orElse("id").toLowerCase();
 
-        queryBuilder.add(".orderBy($L.$L.desc());\n", tableVar, idField);
+        queryBuilder.add(".orderBy($L.$L.$L.desc());\n", tableVarName, staticTableFieldName, idField);
         queryBuilder.unindent();
 
         methodBuilder.addCode(queryBuilder.build());

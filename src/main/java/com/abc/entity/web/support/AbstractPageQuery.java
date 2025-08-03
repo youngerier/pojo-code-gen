@@ -2,12 +2,14 @@ package com.abc.entity.web.support;
 
 import com.abc.entity.web.support.enums.QueryOrderType;
 import com.abc.entity.web.support.enums.QueryType;
+import lombok.Data;
 import org.springframework.lang.NonNull;
 
 import javax.validation.constraints.NotNull;
 import java.beans.Transient;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Data
 public abstract class AbstractPageQuery<OrderField extends QueryOrderField> implements PageQuery<OrderField> {
 
     /**

@@ -25,7 +25,7 @@ public class MapstructGenerator implements CodeGenerator {
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
         // 创建DTO类型
         ClassName dtoType = ClassName.get(
-                pojoInfo.getPackageName().replace(".entity", ".dto"),
+                pojoInfo.getPackageName().replace(".entity", ".model.dto"),
                 entityName + "DTO");
         // 创建Request类型
         ClassName requestType = ClassName.get(

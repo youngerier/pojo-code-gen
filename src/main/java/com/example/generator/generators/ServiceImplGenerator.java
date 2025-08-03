@@ -27,7 +27,7 @@ public class ServiceImplGenerator implements CodeGenerator {
         // 创建实体类类型
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
         // 创建DTO类型
-        ClassName dtoType = ClassName.get(pojoInfo.getPackageName().replace(".entity", ".dto"), entityName + "DTO");
+        ClassName dtoType = ClassName.get(pojoInfo.getPackageName().replace(".entity", ".model.dto"), entityName + "DTO");
         // 创建Service接口类型
         ClassName serviceType = ClassName.get(
                 pojoInfo.getPackageName().replace(".entity", ".service"),

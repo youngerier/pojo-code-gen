@@ -41,7 +41,7 @@ public class CodeGeneratorMain {
         }
 
         // 处理输出目录，默认为target/code-gen
-        String outputDir = "target/code-gen";
+        String outputDir = "target/generated-sources";
 
         try {
             // 1. 解析POJO文件

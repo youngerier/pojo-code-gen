@@ -98,7 +98,7 @@ public class ServiceGenerator implements CodeGenerator {
     }
 
     private String getDtoPackage(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".dto");
+        return pojoInfo.getPackageName().replace(".entity", ".model.dto");
     }
 
     @Override

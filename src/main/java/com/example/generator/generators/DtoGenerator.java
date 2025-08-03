@@ -55,8 +55,7 @@ public class DtoGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName(PojoInfo pojoInfo) {
-        // 假设DTO包在原实体包的同级dto目录
-        return pojoInfo.getPackageName().replace(".entity", ".dto");
+        return pojoInfo.getPackageName().replace(".entity", ".model.dto");
     }
 
     @Override

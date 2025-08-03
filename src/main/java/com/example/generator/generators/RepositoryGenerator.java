@@ -64,7 +64,7 @@ public class RepositoryGenerator implements CodeGenerator {
         
         String idField = pojoInfo.getFields().stream()
             .map(PojoInfo.FieldInfo::getName)
-            .filter(name -> "id".equalsIgnoreCase(name))
+            .filter("id"::equalsIgnoreCase)
             .findFirst()
             .orElse("id").toLowerCase();
 

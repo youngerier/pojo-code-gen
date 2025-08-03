@@ -66,9 +66,10 @@ public class ServiceGenerator implements CodeGenerator {
         interfaceBuilder.addMethod(getByIdMethod);
 
         // 添加查询所有对象方法
-        MethodSpec getAllMethod = MethodSpec.methodBuilder("getAll" + pojoInfo.getClassName() + "s")
+        MethodSpec getAllMethod = MethodSpec.methodBuilder("query" + pojoInfo.getClassName() + "s")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(listOfDto)
+                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
                 .addJavadoc("查询所有$L\n", pojoInfo.getClassName())
                 .addJavadoc("@return $L对象列表\n", pojoInfo.getClassName())
                 .build();

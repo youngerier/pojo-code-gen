@@ -101,16 +101,19 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .build();
         classBuilder.addMethod(getByIdMethod);
 
-        // 添加getAllXxx方法
+        
+
+        // 添加queryXxxs方法
         ParameterizedTypeName listOfDto = ParameterizedTypeName.get(
                 ClassName.get(List.class), dtoType);
-        MethodSpec getAllMethod = MethodSpec.methodBuilder("getAll" + entityName + "s")
+        MethodSpec queryMethod = MethodSpec.methodBuilder("query" + entityName + "s")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
+                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
                 .returns(listOfDto)
-                .addStatement("return $N.selectAll().stream().map($N::toDto).collect($T.toList())", repositoryFieldName, mapperFieldName, Collectors.class)
+                .addStatement("return $N.selectListByQuery(query).stream().map($N::toDto).collect($T.toList())", repositoryFieldName, mapperFieldName, Collectors.class)
                 .build();
-        classBuilder.addMethod(getAllMethod);
+        classBuilder.addMethod(queryMethod);
 
         // 添加updateXxx方法
         MethodSpec updateMethod = MethodSpec.methodBuilder("update" + entityName)

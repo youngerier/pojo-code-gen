@@ -3,6 +3,7 @@ package com.example.generator;
 import com.example.generator.generators.DtoGenerator;
 import com.example.generator.generators.MapstructGenerator;
 import com.example.generator.generators.RepositoryGenerator;
+import com.example.generator.generators.QueryGenerator;
 import com.example.generator.generators.RequestGenerator;
 import com.example.generator.generators.ResponseGenerator;
 import com.example.generator.generators.ServiceGenerator;
@@ -71,6 +72,7 @@ public class CodeGeneratorMain {
                     new ServiceImplGenerator(packageConfig),
                     new RepositoryGenerator(packageConfig),
                     new RequestGenerator(packageConfig),
+                    new QueryGenerator(packageConfig),
                     new ResponseGenerator(packageConfig),
                     new MapstructGenerator(packageConfig)
             );

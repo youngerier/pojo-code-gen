@@ -77,6 +77,6 @@ public class RequestGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "Request";
+        return packageConfig.getRequestClassName(pojoInfo.getClassName());
     }
 }

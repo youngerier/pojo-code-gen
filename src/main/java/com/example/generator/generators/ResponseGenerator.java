@@ -63,6 +63,6 @@ public class ResponseGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "Response";
+        return packageConfig.getResponseClassName(pojoInfo.getClassName());
     }
 }

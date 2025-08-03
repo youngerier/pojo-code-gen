@@ -26,8 +26,8 @@ public class ServiceGenerator implements CodeGenerator {
 
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
-        String dtoClassName = pojoInfo.getClassName() + "DTO";
-        ClassName dtoType = ClassName.get(getDtoPackage(), dtoClassName);
+        String dtoClassName = packageConfig.getDtoClassName(pojoInfo.getClassName());
+        ClassName dtoType = ClassName.get(packageConfig.getDtoPackage(), dtoClassName);
         ClassName listType = ClassName.get(List.class);
         ParameterizedTypeName listOfDto = ParameterizedTypeName.get(listType, dtoType);
 
@@ -69,7 +69,7 @@ public class ServiceGenerator implements CodeGenerator {
         MethodSpec getAllMethod = MethodSpec.methodBuilder("query" + pojoInfo.getClassName() + "s")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(listOfDto)
-                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
+                .addParameter(ClassName.get(packageConfig.getRequestPackage(), packageConfig.getQueryClassName(pojoInfo.getClassName())), "query")
                 .addJavadoc("查询所有$L\n", pojoInfo.getClassName())
                 .addJavadoc("@return $L对象列表\n", pojoInfo.getClassName())
                 .build();
@@ -104,10 +104,6 @@ public class ServiceGenerator implements CodeGenerator {
         return interfaceBuilder.build();
     }
 
-    private String getDtoPackage() {
-        return packageConfig.getDtoPackage();
-    }
-
     @Override
     public String getPackageName() {
         return packageConfig.getServicePackage();
@@ -115,6 +111,6 @@ public class ServiceGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "Service";
+        return packageConfig.getServiceClassName(pojoInfo.getClassName());
     }
 }

@@ -67,6 +67,6 @@ public class DtoGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "DTO";
+        return packageConfig.getDtoClassName(pojoInfo.getClassName());
     }
 }

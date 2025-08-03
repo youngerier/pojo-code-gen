@@ -34,19 +34,19 @@ public class ServiceImplGenerator implements CodeGenerator {
         // 创建实体类类型
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
         // 创建DTO类型
-        ClassName dtoType = ClassName.get(pojoInfo.getPackageName().replace(".entity", ".model.dto"), entityName + "DTO");
+        ClassName dtoType = ClassName.get(packageConfig.getDtoPackage(), packageConfig.getDtoClassName(entityName));
         // 创建Service接口类型
         ClassName serviceType = ClassName.get(
-                pojoInfo.getPackageName().replace(".entity", ".service"),
-                entityName + "Service");
+                packageConfig.getServicePackage(),
+                packageConfig.getServiceClassName(entityName));
         // 创建Repository接口类型
         ClassName repositoryType = ClassName.get(
-                pojoInfo.getPackageName().replace(".entity", ".repository"),
-                entityName + "Repository");
+                packageConfig.getRepositoryPackage(),
+                packageConfig.getRepositoryClassName(entityName));
         // 创建Mapstruct Mapper类型
         ClassName mapperType = ClassName.get(
-                pojoInfo.getPackageName().replace(".entity", ".convertor"),
-                entityName + "Convertor");
+                packageConfig.getConvertorPackage(),
+                packageConfig.getConvertorClassName(entityName));
 
         // 创建类构建器
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getClassName(pojoInfo))
@@ -159,7 +159,7 @@ public class ServiceImplGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "ServiceImpl";
+        return packageConfig.getServiceImplClassName(pojoInfo.getClassName());
     }
 
     /**

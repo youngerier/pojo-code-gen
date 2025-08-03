@@ -64,6 +64,6 @@ public class QueryGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "Query";
+        return packageConfig.getQueryClassName(pojoInfo.getClassName());
     }
 }

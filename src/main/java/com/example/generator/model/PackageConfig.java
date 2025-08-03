@@ -25,4 +25,36 @@ public class PackageConfig {
         this.responsePackage = basePackage + ".model.response";
         this.convertorPackage = basePackage + ".convertor";
     }
+
+    public String getDtoClassName(String entityName) {
+        return entityName + "DTO";
+    }
+
+    public String getRequestClassName(String entityName) {
+        return entityName + "Request";
+    }
+
+    public String getResponseClassName(String entityName) {
+        return entityName + "Response";
+    }
+
+    public String getConvertorClassName(String entityName) {
+        return entityName + "Convertor";
+    }
+
+    public String getQueryClassName(String entityName) {
+        return entityName + "Query";
+    }
+
+    public String getRepositoryClassName(String entityName) {
+        return entityName + "Repository";
+    }
+
+    public String getServiceClassName(String entityName) {
+        return entityName + "Service";
+    }
+
+    public String getServiceImplClassName(String entityName) {
+        return entityName + "ServiceImpl";
+    }
 }

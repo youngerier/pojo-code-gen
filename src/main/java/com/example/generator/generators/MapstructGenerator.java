@@ -31,11 +31,11 @@ public class MapstructGenerator implements CodeGenerator {
         // 创建实体类类型
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
         // 创建DTO类型
-        ClassName dtoType = ClassName.get(packageConfig.getDtoPackage(), entityName + "DTO");
+        ClassName dtoType = ClassName.get(packageConfig.getDtoPackage(), packageConfig.getDtoClassName(entityName));
         // 创建Request类型
-        ClassName requestType = ClassName.get(packageConfig.getRequestPackage(), entityName + "Request");
+        ClassName requestType = ClassName.get(packageConfig.getRequestPackage(), packageConfig.getRequestClassName(entityName));
         // 创建Response类型
-        ClassName responseType = ClassName.get(packageConfig.getResponsePackage(), entityName + "Response");
+        ClassName responseType = ClassName.get(packageConfig.getResponsePackage(), packageConfig.getResponseClassName(entityName));
 
         // 创建List<Entity>类型
         ParameterizedTypeName listOfEntity = ParameterizedTypeName.get(
@@ -116,7 +116,7 @@ public class MapstructGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "Convertor";
+        return packageConfig.getConvertorClassName(pojoInfo.getClassName());
     }
 
     /**

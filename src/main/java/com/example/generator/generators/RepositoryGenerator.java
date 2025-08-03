@@ -92,6 +92,6 @@ public class RepositoryGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "Repository";
+        return packageConfig.getRepositoryClassName(pojoInfo.getClassName());
     }
 }

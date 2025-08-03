@@ -1,6 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
+import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -15,7 +16,11 @@ import javax.lang.model.element.Modifier;
  */
 @Slf4j
 public class ResponseGenerator implements CodeGenerator {
+    private final PackageConfig packageConfig;
 
+    public ResponseGenerator(PackageConfig packageConfig) {
+        this.packageConfig = packageConfig;
+    }
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
         // 创建类构建器
@@ -53,7 +58,7 @@ public class ResponseGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".model.response");
+        return packageConfig.getResponsePackage();
     }
 
     @Override

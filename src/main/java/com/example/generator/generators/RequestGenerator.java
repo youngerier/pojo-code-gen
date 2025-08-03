@@ -1,6 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
+import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -18,6 +19,11 @@ import java.util.Set;
  */
 @Slf4j
 public class RequestGenerator implements CodeGenerator {
+    private final PackageConfig packageConfig;
+
+    public RequestGenerator(PackageConfig packageConfig) {
+        this.packageConfig = packageConfig;
+    }
 
     // 通常不需要包含在请求对象中的字段名
     private static final Set<String> EXCLUDED_FIELDS = new HashSet<>(Arrays.asList(
@@ -66,7 +72,7 @@ public class RequestGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".model.request");
+        return packageConfig.getRequestPackage();
     }
 
     @Override

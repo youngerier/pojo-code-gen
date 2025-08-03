@@ -1,6 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
+import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
@@ -17,11 +18,16 @@ import java.util.List;
  */
 @Slf4j
 public class ServiceGenerator implements CodeGenerator {
+    private final PackageConfig packageConfig;
+
+    public ServiceGenerator(PackageConfig packageConfig) {
+        this.packageConfig = packageConfig;
+    }
 
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
         String dtoClassName = pojoInfo.getClassName() + "DTO";
-        ClassName dtoType = ClassName.get(getDtoPackage(pojoInfo), dtoClassName);
+        ClassName dtoType = ClassName.get(getDtoPackage(), dtoClassName);
         ClassName listType = ClassName.get(List.class);
         ParameterizedTypeName listOfDto = ParameterizedTypeName.get(listType, dtoType);
 
@@ -97,13 +103,13 @@ public class ServiceGenerator implements CodeGenerator {
         return interfaceBuilder.build();
     }
 
-    private String getDtoPackage(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".model.dto");
+    private String getDtoPackage() {
+        return packageConfig.getDtoPackage();
     }
 
     @Override
     public String getPackageName(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".service");
+        return packageConfig.getServicePackage();
     }
 
     @Override

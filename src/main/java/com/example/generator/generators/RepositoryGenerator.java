@@ -1,6 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
+import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -14,6 +15,11 @@ import javax.lang.model.element.Modifier;
  */
 @Slf4j
 public class RepositoryGenerator implements CodeGenerator {
+    private final PackageConfig packageConfig;
+
+    public RepositoryGenerator(PackageConfig packageConfig) {
+        this.packageConfig = packageConfig;
+    }
 
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
@@ -42,7 +48,7 @@ public class RepositoryGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".repository");
+        return packageConfig.getRepositoryPackage();
     }
 
     @Override

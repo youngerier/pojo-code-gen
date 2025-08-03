@@ -1,6 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
+import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -20,6 +21,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ServiceImplGenerator implements CodeGenerator {
 
+
+    private final PackageConfig packageConfig;
+
+    public ServiceImplGenerator(PackageConfig packageConfig) {
+        this.packageConfig = packageConfig;
+    }
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
         // 获取实体类名
@@ -144,7 +151,7 @@ public class ServiceImplGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".service.impl");
+        return packageConfig.getServiceImplPackage();
     }
 
     @Override

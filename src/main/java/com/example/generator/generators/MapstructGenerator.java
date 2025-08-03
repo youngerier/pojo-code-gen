@@ -1,6 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
+import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
@@ -17,6 +18,12 @@ import java.util.List;
 @Slf4j
 public class MapstructGenerator implements CodeGenerator {
 
+    private final PackageConfig packageConfig;
+
+    public MapstructGenerator(PackageConfig packageConfig) {
+        this.packageConfig = packageConfig;
+    }
+
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
         // 获取实体类名
@@ -24,17 +31,11 @@ public class MapstructGenerator implements CodeGenerator {
         // 创建实体类类型
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
         // 创建DTO类型
-        ClassName dtoType = ClassName.get(
-                pojoInfo.getPackageName().replace(".entity", ".model.dto"),
-                entityName + "DTO");
+        ClassName dtoType = ClassName.get(packageConfig.getDtoPackage(), entityName + "DTO");
         // 创建Request类型
-        ClassName requestType = ClassName.get(
-                pojoInfo.getPackageName().replace(".entity", ".model.request"),
-                entityName + "Request");
+        ClassName requestType = ClassName.get(packageConfig.getRequestPackage(), entityName + "Request");
         // 创建Response类型
-        ClassName responseType = ClassName.get(
-                pojoInfo.getPackageName().replace(".entity", ".model.response"),
-                entityName + "Response");
+        ClassName responseType = ClassName.get(packageConfig.getResponsePackage(), entityName + "Response");
 
         // 创建List<Entity>类型
         ParameterizedTypeName listOfEntity = ParameterizedTypeName.get(
@@ -110,7 +111,7 @@ public class MapstructGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".convertor");
+        return packageConfig.getConvertorPackage();
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.abc.entity;
 
+import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.Table;
 import lombok.Data;
 
@@ -16,6 +17,7 @@ public class User {
     /**
      * 主键
      */
+    @Id
     private Long id;
 
     /**
@@ -26,6 +28,11 @@ public class User {
      * 密码
      */
     private String password;
+
+    /**
+     * 用户类型
+     */
+    private UserTypeEnum userType;
 
     /**
      * 创建时间

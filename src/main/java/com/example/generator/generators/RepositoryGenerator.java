@@ -47,7 +47,7 @@ public class RepositoryGenerator implements CodeGenerator {
     }
 
     @Override
-    public String getPackageName(PojoInfo pojoInfo) {
+    public String getPackageName() {
         return packageConfig.getRepositoryPackage();
     }
 

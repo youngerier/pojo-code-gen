@@ -33,7 +33,7 @@ public class FileGenerator {
         TypeSpec typeSpec = codeGenerator.generate(pojoInfo);
 
         // 创建JavaFile
-        JavaFile javaFile = JavaFile.builder(codeGenerator.getPackageName(pojoInfo), typeSpec)
+        JavaFile javaFile = JavaFile.builder(codeGenerator.getPackageName(), typeSpec)
                 .indent("    ") // 使用4个空格缩进
                 .build();
 
@@ -41,6 +41,6 @@ public class FileGenerator {
         File outputDir = Paths.get(baseOutputDir, "src", "main", "java").toFile();
         javaFile.writeTo(outputDir);
 
-        log.info("生成文件: {}.{}", codeGenerator.getPackageName(pojoInfo), codeGenerator.getClassName(pojoInfo));
+        log.info("生成文件: {}.{}", codeGenerator.getPackageName(), codeGenerator.getClassName(pojoInfo));
     }
 }

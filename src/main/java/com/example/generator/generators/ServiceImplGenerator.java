@@ -150,7 +150,7 @@ public class ServiceImplGenerator implements CodeGenerator {
     }
 
     @Override
-    public String getPackageName(PojoInfo pojoInfo) {
+    public String getPackageName() {
         return packageConfig.getServiceImplPackage();
     }
 

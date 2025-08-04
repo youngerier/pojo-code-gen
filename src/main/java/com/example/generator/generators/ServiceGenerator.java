@@ -1,5 +1,6 @@
 package com.example.generator.generators;
 
+import com.abc.entity.web.support.Pagination;
 import com.example.generator.CodeGenerator;
 import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
@@ -75,7 +76,17 @@ public class ServiceGenerator implements CodeGenerator {
                 .build();
         interfaceBuilder.addMethod(getAllMethod);
 
-        // 添加更新方法
+        // 添加分页查询方法
+        MethodSpec pageQueryMethod = MethodSpec.methodBuilder("pageQuery" + pojoInfo.getClassName() + "s")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(ParameterizedTypeName.get(ClassName.get(Pagination.class), dtoType))
+                .addParameter(ClassName.get(packageConfig.getRequestPackage(), packageConfig.getQueryClassName(pojoInfo.getClassName())), "query")
+                .addJavadoc("分页查询$L\n", pojoInfo.getClassName())
+                .addJavadoc("@return $L对象列表\n", pojoInfo.getClassName())
+                .build();
+        interfaceBuilder.addMethod(pageQueryMethod);
+ 
+         // 添加更新方法
         MethodSpec updateMethod = MethodSpec.methodBuilder("update" + pojoInfo.getClassName())
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(dtoType)

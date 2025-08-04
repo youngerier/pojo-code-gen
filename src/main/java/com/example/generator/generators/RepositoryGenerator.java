@@ -8,6 +8,7 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
+import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 
@@ -74,6 +75,31 @@ public class RepositoryGenerator implements CodeGenerator {
         methodBuilder.addCode(queryBuilder.build());
         methodBuilder.addStatement("return selectListByQuery(queryWrapper)");
         interfaceBuilder.addMethod(methodBuilder.build());
+
+        MethodSpec.Builder pageMethodBuilder = MethodSpec.methodBuilder("page")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
+                .returns(ParameterizedTypeName.get(ClassName.get(Page.class), entityType));
+
+        pageMethodBuilder.addStatement("$T<$T> page = new Page<>(query.getQueryPage(), query.getQuerySize())", Page.class, entityType);
+        pageMethodBuilder.addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableFieldName);
+
+        CodeBlock.Builder pageQueryBuilder = CodeBlock.builder();
+        pageQueryBuilder.add("$T queryWrapper = $T.create()\n", QueryWrapper.class, QueryWrapper.class);
+        pageQueryBuilder.indent();
+        pageQueryBuilder.add(".from($L)\n", tableVarName);
+
+        for (PojoInfo.FieldInfo field : pojoInfo.getFields()) {
+            pageQueryBuilder.add(".where($L.$L.$L.eq(query.get$L()))\n",
+                    tableVarName, staticTableFieldName, field.getName(), upperFirstChar(field.getName()));
+        }
+
+        pageQueryBuilder.add(".orderBy($L.$L.$L.desc());\n", tableVarName, staticTableFieldName, idField);
+        pageQueryBuilder.unindent();
+
+        pageMethodBuilder.addCode(pageQueryBuilder.build());
+        pageMethodBuilder.addStatement("return paginate(page, queryWrapper)");
+        interfaceBuilder.addMethod(pageMethodBuilder.build());
 
         return interfaceBuilder.build();
     }

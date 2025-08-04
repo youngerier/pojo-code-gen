@@ -1,5 +1,6 @@
 package com.example.generator.generators;
 
+import com.abc.entity.web.support.Pagination;
 import com.example.generator.CodeGenerator;
 import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
@@ -114,6 +115,16 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .addStatement("return $N.selectListByQuery(query).stream().map($N::toDto).collect($T.toList())", repositoryFieldName, mapperFieldName, Collectors.class)
                 .build();
         classBuilder.addMethod(queryMethod);
+
+        // 添加pageQueryXxxs方法
+        MethodSpec pageQueryMethod = MethodSpec.methodBuilder("pageQuery" + entityName + "s")
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
+                .returns(ParameterizedTypeName.get(ClassName.get(Pagination.class), dtoType))
+                .addStatement("return $N.page(query).map($N::toDto)", repositoryFieldName, mapperFieldName)
+                .build();
+        classBuilder.addMethod(pageQueryMethod);
 
         // 添加updateXxx方法
         MethodSpec updateMethod = MethodSpec.methodBuilder("update" + entityName)

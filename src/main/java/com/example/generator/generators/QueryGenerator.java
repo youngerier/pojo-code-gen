@@ -6,8 +6,12 @@ import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import lombok.extern.slf4j.Slf4j;
+
+import com.abc.entity.web.support.AbstractPageQuery;
+import com.abc.entity.web.support.enums.DefaultOrderField;
 
 import javax.lang.model.element.Modifier;
 
@@ -27,6 +31,7 @@ public class QueryGenerator implements CodeGenerator {
         // 创建类构建器
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getClassName(pojoInfo))
                 .addModifiers(Modifier.PUBLIC)
+                .superclass(ParameterizedTypeName.get(ClassName.get(AbstractPageQuery.class), ClassName.get(DefaultOrderField.class)))
                 .addAnnotation(ClassName.get("lombok", "Data"));
 
         // 添加字段

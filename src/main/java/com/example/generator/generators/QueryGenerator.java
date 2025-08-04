@@ -1,35 +1,33 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
+import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
-import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.lang.model.element.Modifier;
 
 /**
  * Query模型类生成器
  */
-@SuppressWarnings("all")
-@Data
-@NoArgsConstructor
-@EqualsAndHashCode(callSuper = false)
+@Slf4j
 public class QueryGenerator implements CodeGenerator {
+    private final PackageConfig packageConfig;
+
+    public QueryGenerator(PackageConfig packageConfig) {
+        this.packageConfig = packageConfig;
+    }
 
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
         // 创建类构建器
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getClassName(pojoInfo))
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(ClassName.get(Data.class))
-                .addAnnotation(ClassName.get(NoArgsConstructor.class))
-                .addAnnotation(AnnotationSpec.builder(EqualsAndHashCode.class).addMember("callSuper", "$L", false).build());
+                .addAnnotation(ClassName.get("lombok", "Data"));
 
         // 添加字段
         for (PojoInfo.FieldInfo field : pojoInfo.getFields()) {
@@ -60,12 +58,12 @@ public class QueryGenerator implements CodeGenerator {
     }
 
     @Override
-    public String getPackageName(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".model.query");
+    public String getPackageName() {
+        return packageConfig.getRequestPackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "Query";
+        return packageConfig.getQueryClassName(pojoInfo.getClassName());
     }
 }

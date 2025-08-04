@@ -1,6 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
+import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -15,6 +16,12 @@ import javax.lang.model.element.Modifier;
  */
 @Slf4j
 public class DtoGenerator implements CodeGenerator {
+
+    private final PackageConfig packageConfig;
+
+    public DtoGenerator(PackageConfig packageConfig) {
+        this.packageConfig = packageConfig;
+    }
 
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
@@ -54,13 +61,12 @@ public class DtoGenerator implements CodeGenerator {
     }
 
     @Override
-    public String getPackageName(PojoInfo pojoInfo) {
-        // 假设DTO包在原实体包的同级dto目录
-        return pojoInfo.getPackageName().replace(".entity", ".dto");
+    public String getPackageName() {
+        return packageConfig.getDtoPackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "DTO";
+        return packageConfig.getDtoClassName(pojoInfo.getClassName());
     }
 }

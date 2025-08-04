@@ -1,0 +1,15 @@
+package com.abc.entity.web.support.enums;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public enum QueryType {
+
+    COUNT_TOTAL("统计总数"),
+    QUERY_RESET("查询结果集"),
+    QUERY_BOTH("查询总数和结果集");
+
+    private final String desc;
+}

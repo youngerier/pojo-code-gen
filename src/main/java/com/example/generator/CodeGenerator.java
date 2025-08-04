@@ -19,10 +19,9 @@ public interface CodeGenerator {
     /**
      * 获取生成文件的包名
      *
-     * @param pojoInfo POJO信息
      * @return 包名
      */
-    String getPackageName(PojoInfo pojoInfo);
+    String getPackageName();
 
     /**
      * 获取生成文件的类名

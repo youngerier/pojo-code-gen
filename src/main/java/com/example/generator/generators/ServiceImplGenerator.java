@@ -1,6 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
+import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -9,9 +10,6 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import lombok.extern.slf4j.Slf4j;
-import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.core.query.QueryColumn;
-import static com.mybatisflex.core.query.QueryMethods.*;
 
 import javax.lang.model.element.Modifier;
 import java.util.List;
@@ -23,6 +21,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ServiceImplGenerator implements CodeGenerator {
 
+
+    private final PackageConfig packageConfig;
+
+    public ServiceImplGenerator(PackageConfig packageConfig) {
+        this.packageConfig = packageConfig;
+    }
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
         // 获取实体类名
@@ -30,21 +34,19 @@ public class ServiceImplGenerator implements CodeGenerator {
         // 创建实体类类型
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
         // 创建DTO类型
-        ClassName dtoType = ClassName.get(pojoInfo.getPackageName().replace(".entity", ".dto"), entityName + "DTO");
-        // 创建Query类型
-        ClassName queryType = ClassName.get(pojoInfo.getPackageName().replace(".entity", ".model.query"), entityName + "Query");
+        ClassName dtoType = ClassName.get(packageConfig.getDtoPackage(), packageConfig.getDtoClassName(entityName));
         // 创建Service接口类型
         ClassName serviceType = ClassName.get(
-                pojoInfo.getPackageName().replace(".entity", ".service"),
-                entityName + "Service");
+                packageConfig.getServicePackage(),
+                packageConfig.getServiceClassName(entityName));
         // 创建Repository接口类型
         ClassName repositoryType = ClassName.get(
-                pojoInfo.getPackageName().replace(".entity", ".repository"),
-                entityName + "Repository");
+                packageConfig.getRepositoryPackage(),
+                packageConfig.getRepositoryClassName(entityName));
         // 创建Mapstruct Mapper类型
         ClassName mapperType = ClassName.get(
-                pojoInfo.getPackageName().replace(".entity", ".convertor"),
-                entityName + "Convertor");
+                packageConfig.getConvertorPackage(),
+                packageConfig.getConvertorClassName(entityName));
 
         // 创建类构建器
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getClassName(pojoInfo))
@@ -99,45 +101,19 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .build();
         classBuilder.addMethod(getByIdMethod);
 
-        // 添加getAllXxx方法
+        
+
+        // 添加queryXxxs方法
         ParameterizedTypeName listOfDto = ParameterizedTypeName.get(
                 ClassName.get(List.class), dtoType);
-        MethodSpec getAllMethod = MethodSpec.methodBuilder("getAll" + entityName + "s")
+        MethodSpec queryMethod = MethodSpec.methodBuilder("query" + entityName + "s")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
+                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
                 .returns(listOfDto)
-                .addStatement("return $N.selectAll().stream().map($N::toDto).collect($T.toList())", repositoryFieldName, mapperFieldName, Collectors.class)
+                .addStatement("return $N.selectListByQuery(query).stream().map($N::toDto).collect($T.toList())", repositoryFieldName, mapperFieldName, Collectors.class)
                 .build();
-        classBuilder.addMethod(getAllMethod);
-
-        // 添加带查询参数的getAllXxx方法
-        MethodSpec.Builder getAllByQueryMethodBuilder = MethodSpec.methodBuilder("getAll" + entityName + "s")
-                .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(Override.class)
-                .addParameter(queryType, lowerFirstChar(entityName) + "Query")
-                .returns(listOfDto)
-                .addStatement("$T queryWrapper = new $T()", QueryWrapper.class, QueryWrapper.class)
-                .beginControlFlow("if ($N != null)", lowerFirstChar(entityName) + "Query");
-
-        pojoInfo.getFields().forEach(field -> {
-            String fieldName = field.getName();
-            String queryFieldName = lowerFirstChar(entityName) + "Query";
-            String getterName = "get" + upperFirstChar(fieldName);
-
-            getAllByQueryMethodBuilder.beginControlFlow("if ($N.$L() != null)", queryFieldName, getterName)
-                    .addStatement("queryWrapper.and($T.$L.eq($N.$L()))",
-                            ClassName.get(pojoInfo.getPackageName() + ".table", entityName + "Table"),
-                            "DEFAULT",
-                            queryFieldName,
-                            getterName)
-                    .endControlFlow();
-        });
-
-        getAllByQueryMethodBuilder.endControlFlow();
-
-        getAllByQueryMethodBuilder.addStatement("return $N.selectListByQuery(queryWrapper).stream().map($N::toDto).collect($T.toList())", repositoryFieldName, mapperFieldName, Collectors.class);
-
-        classBuilder.addMethod(getAllByQueryMethodBuilder.build());
+        classBuilder.addMethod(queryMethod);
 
         // 添加updateXxx方法
         MethodSpec updateMethod = MethodSpec.methodBuilder("update" + entityName)
@@ -177,13 +153,13 @@ public class ServiceImplGenerator implements CodeGenerator {
     }
 
     @Override
-    public String getPackageName(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".service.impl");
+    public String getPackageName() {
+        return packageConfig.getServiceImplPackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "ServiceImpl";
+        return packageConfig.getServiceImplClassName(pojoInfo.getClassName());
     }
 
     /**
@@ -194,15 +170,5 @@ public class ServiceImplGenerator implements CodeGenerator {
             return str;
         }
         return Character.toLowerCase(str.charAt(0)) + str.substring(1);
-    }
-
-    /**
-     * 将字符串的首字母转为大写
-     */
-    private String upperFirstChar(String str) {
-        if (str == null || str.isEmpty()) {
-            return str;
-        }
-        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
     }
 }

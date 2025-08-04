@@ -14,6 +14,9 @@
         <javaparser.version>3.25.4</javaparser.version>
         <javapoet.version>1.13.0</javapoet.version>
         <lombok.version>1.18.24</lombok.version>
+        <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
+        <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
+        <mybatis-flex.version>1.7.5</mybatis-flex.version>
     </properties>
 
     <dependencies>
@@ -106,6 +109,12 @@
             <artifactId>logback-classic</artifactId>
             <version>1.2.11</version>
         </dependency>
+
+        <dependency>
+            <groupId>javax.validation</groupId>
+            <artifactId>validation-api</artifactId>
+            <version>1.1.0.Final</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -117,6 +126,39 @@
                 <version>3.1.0</version>
                 <configuration>
                     <mainClass>com.example.generator.CodeGeneratorMain</mainClass>
+                </configuration>
+            </plugin>
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>${lombok-mapstruct-binding.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${org.mapstruct.version}</version>
+                        </path>
+                        <path>
+                            <groupId>com.mybatis-flex</groupId>
+                            <artifactId>mybatis-flex-processor</artifactId>
+                            <version>${mybatis-flex.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>

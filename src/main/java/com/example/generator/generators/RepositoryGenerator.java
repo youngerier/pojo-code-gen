@@ -1,52 +1,97 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
+import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
+import com.mybatisflex.core.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.lang.model.element.Modifier;
+import java.util.List;
 
 /**
  * Repository接口生成器 - 基于MyBatis Flex
  */
 @Slf4j
 public class RepositoryGenerator implements CodeGenerator {
+    private final PackageConfig packageConfig;
+
+    public RepositoryGenerator(PackageConfig packageConfig) {
+        this.packageConfig = packageConfig;
+    }
 
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
-        // 获取实体类名
         String entityName = pojoInfo.getClassName();
-        // 创建实体类类型
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
-        // 创建MyBatis Flex的BaseMapper接口类型
         ClassName baseMapperType = ClassName.get("com.mybatisflex.core", "BaseMapper");
-        // 创建参数化的BaseMapper类型
         ParameterizedTypeName baseMapperOfEntity = ParameterizedTypeName.get(baseMapperType, entityType);
 
-        // 创建接口构建器
         TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(getClassName(pojoInfo))
                 .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(baseMapperOfEntity);
 
-        // 添加接口注释
         if (pojoInfo.getClassComment() != null && !pojoInfo.getClassComment().isEmpty()) {
             interfaceBuilder.addJavadoc(pojoInfo.getClassComment() + "\n");
             interfaceBuilder.addJavadoc("数据访问层接口\n");
         }
 
+        ClassName tableRefs = ClassName.get(pojoInfo.getPackageName() + ".table", pojoInfo.getClassName() + "TableRefs");
+        String tableVarName = pojoInfo.getClassName().toLowerCase() + "TableRefs";
+        String staticTableFieldName = pojoInfo.getClassName().toLowerCase();
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("selectListByQuery")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
+                .returns(ParameterizedTypeName.get(ClassName.get(List.class), entityType));
+
+        methodBuilder.addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableFieldName);
+
+        CodeBlock.Builder queryBuilder = CodeBlock.builder();
+        queryBuilder.add("$T queryWrapper = $T.create()\n", QueryWrapper.class, QueryWrapper.class);
+        queryBuilder.indent();
+        queryBuilder.add(".from($L)\n", tableVarName);
+
+        for (PojoInfo.FieldInfo field : pojoInfo.getFields()) {
+            queryBuilder.add(".where($L.$L.$L.eq(query.get$L()))\n",
+                    tableVarName, staticTableFieldName, field.getName(), upperFirstChar(field.getName()));
+        }
+        
+        String idField = pojoInfo.getFields().stream()
+            .map(PojoInfo.FieldInfo::getName)
+            .filter("id"::equalsIgnoreCase)
+            .findFirst()
+            .orElse("id").toLowerCase();
+
+        queryBuilder.add(".orderBy($L.$L.$L.desc());\n", tableVarName, staticTableFieldName, idField);
+        queryBuilder.unindent();
+
+        methodBuilder.addCode(queryBuilder.build());
+        methodBuilder.addStatement("return selectListByQuery(queryWrapper)");
+        interfaceBuilder.addMethod(methodBuilder.build());
+
         return interfaceBuilder.build();
     }
 
+    private String upperFirstChar(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+    }
+
     @Override
-    public String getPackageName(PojoInfo pojoInfo) {
-        return pojoInfo.getPackageName().replace(".entity", ".repository");
+    public String getPackageName() {
+        return packageConfig.getRepositoryPackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return pojoInfo.getClassName() + "Repository";
+        return packageConfig.getRepositoryClassName(pojoInfo.getClassName());
     }
 }

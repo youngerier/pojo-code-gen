@@ -1,8 +1,8 @@
-package com.abc.entity.web.support;
+package com.abc.web.support;
 
 
-import com.abc.entity.web.exception.BaseException;
-import com.abc.entity.web.support.message.MessagePlaceholder;
+import com.abc.web.exception.BaseException;
+import com.abc.web.support.message.MessagePlaceholder;
 import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;

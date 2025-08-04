@@ -1,7 +1,7 @@
-package com.abc.entity.web.support;
+package com.abc.web.support;
 
-import com.abc.entity.web.support.enums.QueryOrderType;
-import com.abc.entity.web.support.enums.QueryType;
+import com.abc.web.support.enums.QueryOrderType;
+import com.abc.web.support.enums.QueryType;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 

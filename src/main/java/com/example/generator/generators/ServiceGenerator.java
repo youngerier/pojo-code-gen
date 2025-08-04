@@ -1,6 +1,6 @@
 package com.example.generator.generators;
 
-import com.abc.entity.web.support.Pagination;
+import com.abc.web.support.Pagination;
 import com.example.generator.CodeGenerator;
 import com.example.generator.model.PackageConfig;
 import com.example.generator.model.PojoInfo;

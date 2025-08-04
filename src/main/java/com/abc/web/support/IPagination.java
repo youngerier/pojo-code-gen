@@ -1,6 +1,6 @@
-package com.abc.entity.web.support;
+package com.abc.web.support;
 
-import com.abc.entity.web.support.enums.QueryType;
+import com.abc.web.support.enums.QueryType;
 
 import java.io.Serializable;
 import java.util.List;

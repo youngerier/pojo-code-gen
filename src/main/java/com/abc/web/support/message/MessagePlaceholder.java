@@ -1,4 +1,4 @@
-package com.abc.entity.web.support.message;
+package com.abc.web.support.message;
 
 
 import lombok.Getter;

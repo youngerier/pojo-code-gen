@@ -1,4 +1,4 @@
-package com.abc.entity.web.exception;
+package com.abc.web.exception;
 
 public class BusinessException extends RuntimeException {
 }

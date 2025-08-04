@@ -1,4 +1,4 @@
-package com.abc.entity.web.support.enums;
+package com.abc.web.support.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

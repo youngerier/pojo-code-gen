@@ -1,6 +1,6 @@
-package com.abc.entity.web.support.enums;
+package com.abc.web.support.enums;
 
-import com.abc.entity.web.support.ExceptionCode;
+import com.abc.web.support.ExceptionCode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

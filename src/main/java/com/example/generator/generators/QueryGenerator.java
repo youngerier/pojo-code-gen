@@ -10,8 +10,8 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import lombok.extern.slf4j.Slf4j;
 
-import com.abc.entity.web.support.AbstractPageQuery;
-import com.abc.entity.web.support.enums.DefaultOrderField;
+import com.abc.web.support.AbstractPageQuery;
+import com.abc.web.support.enums.DefaultOrderField;
 
 import javax.lang.model.element.Modifier;
 

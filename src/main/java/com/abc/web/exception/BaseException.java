@@ -1,10 +1,9 @@
-package com.abc.entity.web.exception;
+package com.abc.web.exception;
 
-import com.abc.entity.web.support.ExceptionCode;
-import com.abc.entity.web.support.MessageFormatter;
-import com.abc.entity.web.support.enums.DefaultExceptionCode;
-import com.abc.entity.web.support.message.MessagePlaceholder;
-import lombok.AllArgsConstructor;
+import com.abc.web.support.ExceptionCode;
+import com.abc.web.support.MessageFormatter;
+import com.abc.web.support.enums.DefaultExceptionCode;
+import com.abc.web.support.message.MessagePlaceholder;
 import lombok.Getter;
 
 @Getter

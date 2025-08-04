@@ -1,4 +1,4 @@
-package com.abc.entity.web.support;
+package com.abc.web.support;
 
 import lombok.Data;
 

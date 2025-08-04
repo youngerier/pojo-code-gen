@@ -117,12 +117,14 @@ public class ServiceImplGenerator implements CodeGenerator {
         classBuilder.addMethod(queryMethod);
 
         // 添加pageQueryXxxs方法
+        ClassName pageType = ClassName.get("com.mybatisflex.core.paginate", "Page");
         MethodSpec pageQueryMethod = MethodSpec.methodBuilder("pageQuery" + entityName + "s")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
                 .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
                 .returns(ParameterizedTypeName.get(ClassName.get(Pagination.class), dtoType))
-                .addStatement("return $N.page(query).map($N::toDto)", repositoryFieldName, mapperFieldName)
+                .addStatement("$T<$T> page = $N.page(query).map($N::toDto)", pageType, dtoType, repositoryFieldName, mapperFieldName)
+                .addStatement("return $T.of(page.getRecords(), query, page.getTotalRow())", Pagination.class)
                 .build();
         classBuilder.addMethod(pageQueryMethod);
 

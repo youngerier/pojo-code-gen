@@ -5,8 +5,8 @@ import com.example.generator.FileGenerator;
 import com.example.generator.PojoParser;
 import com.example.generator.generators.DtoGenerator;
 import com.example.generator.generators.MapstructGenerator;
-import com.example.generator.generators.RepositoryGenerator;
 import com.example.generator.generators.QueryGenerator;
+import com.example.generator.generators.RepositoryGenerator;
 import com.example.generator.generators.RequestGenerator;
 import com.example.generator.generators.ResponseGenerator;
 import com.example.generator.generators.ServiceGenerator;
@@ -34,7 +34,7 @@ public class CodeGeneratorMain {
             pojoFilePath = pojoFilePath.replace('.', File.separatorChar) + ".java";
             // 检查是否是相对路径，如果是则添加项目根路径
             if (!new File(pojoFilePath).isAbsolute()) {
-                pojoFilePath = new File(System.getProperty("user.dir"), "example" + File.separator + "src" + File.separator + "main" + File.separator + "java" + File.separator + pojoFilePath).getAbsolutePath();
+                pojoFilePath = new File(System.getProperty("user.dir"), "example/src/main/java" + File.separator + pojoFilePath).getAbsolutePath();
             }
         }
 
@@ -46,7 +46,7 @@ public class CodeGeneratorMain {
         }
 
         // 处理输出目录，默认为target/code-gen
-        String outputDir = "example" + File.separator + "target" + File.separator + "generated-sources";
+        String outputDir = "example/target/generated-sources";
 
         try {
             // 1. 解析POJO文件

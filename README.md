@@ -26,7 +26,7 @@ POJO Code Generator 是一个基于 Java 的代码生成工具，旨在简化和
 
 1.  **克隆仓库**:
     ```bash
-    git clone https://github.com/your-username/pojo-code-gen.git
+    git clone https://github.com/youngerier/pojo-code-gen.git
     cd pojo-code-gen
     ```
 2.  **使用 Maven 构建**:

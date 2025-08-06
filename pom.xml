@@ -11,6 +11,7 @@
 
     <modules>
         <module>generator-core</module>
+        <module>toolkit</module>
         <module>example</module>
     </modules>
 

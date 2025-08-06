@@ -10,18 +10,22 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>example</artifactId>
+    <artifactId>toolkit</artifactId>
 
     <dependencies>
+        <!-- Lombok -->
         <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>generator-core</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>toolkit</artifactId>
-            <version>${project.version}</version>
+            <groupId>com.mybatis-flex</groupId>
+            <artifactId>mybatis-flex-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mybatis-flex</groupId>
+            <artifactId>mybatis-flex-spring</artifactId>
         </dependency>
     </dependencies>
 </project>

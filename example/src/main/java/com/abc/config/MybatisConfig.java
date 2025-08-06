@@ -1,4 +1,4 @@
-package com.example.generator.config;
+package com.abc.config;
 
 
 import org.mybatis.spring.annotation.MapperScan;

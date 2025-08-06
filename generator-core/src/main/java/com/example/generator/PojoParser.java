@@ -34,7 +34,7 @@ public class PojoParser {
         // 配置符号解析器
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
-        combinedTypeSolver.add(new JavaParserTypeSolver(new File("src/main/java")));
+        combinedTypeSolver.add(new JavaParserTypeSolver(new File(System.getProperty("user.dir") + File.separator + "example" + File.separator + "src" + File.separator + "main" + File.separator + "java")));
 
         JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
         StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);

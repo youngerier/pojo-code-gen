@@ -16,12 +16,14 @@
         <dependency>
             <groupId>com.example</groupId>
             <artifactId>generator-core</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
             <artifactId>toolkit</artifactId>
-            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
         </dependency>
     </dependencies>
 </project>

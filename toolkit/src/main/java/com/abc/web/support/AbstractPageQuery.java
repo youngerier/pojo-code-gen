@@ -2,10 +2,10 @@ package com.abc.web.support;
 
 import com.abc.web.support.enums.QueryOrderType;
 import com.abc.web.support.enums.QueryType;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.springframework.lang.NonNull;
 
-import javax.validation.constraints.NotNull;
 import java.beans.Transient;
 import java.util.concurrent.atomic.AtomicInteger;
 

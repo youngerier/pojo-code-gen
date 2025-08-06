@@ -25,7 +25,7 @@
         <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
         <mybatis-flex.version>1.7.5</mybatis-flex.version>
         <spring.version>6.2.7</spring.version>
-        <slf4j.version>1.7.36</slf4j.version>
+        <slf4j.version>2.0.9</slf4j.version>
         <logback.version>1.5.13</logback.version>
         <validation-api.version>1.1.0.Final</validation-api.version>
     </properties>

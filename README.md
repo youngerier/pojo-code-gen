@@ -37,7 +37,7 @@ POJO Code Generator 是一个基于 Java 的代码生成工具，旨在简化和
 
 ## 如何使用
 
-项目的入口点是 `com.example.generator.CodeGeneratorMain` 类。您可以通过修改此类的 `main` 方法来配置代码生成。
+项目的入口点是 `com.abc.CodeGeneratorMain` 类。您可以通过修改此类的 `main` 方法来配置代码生成。
 
 ### 配置 `PackageConfig`
 

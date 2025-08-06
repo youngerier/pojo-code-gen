@@ -1,5 +1,8 @@
-package com.example.generator;
+package com.abc;
 
+import com.example.generator.CodeGenerator;
+import com.example.generator.FileGenerator;
+import com.example.generator.PojoParser;
 import com.example.generator.generators.DtoGenerator;
 import com.example.generator.generators.MapstructGenerator;
 import com.example.generator.generators.RepositoryGenerator;

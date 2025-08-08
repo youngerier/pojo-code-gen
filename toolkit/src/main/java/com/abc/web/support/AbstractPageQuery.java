@@ -46,7 +46,9 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> impl
 
     @Override
     public void setQuerySize(@NonNull Integer querySize) {
-        AssertUtils.isTrue(querySize <= getMaxQuerySize(), () -> String.format("查询大小不能超过：%d", MAX_QUERY_SIZE.get()));
+        if (querySize > MAX_QUERY_SIZE.get()) {
+            throw new IllegalArgumentException("查询大小不能超过" + MAX_QUERY_SIZE.get());
+        }
         this.querySize = querySize;
     }
 
@@ -73,7 +75,9 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> impl
      * @param querySize 查询大小
      */
     public static void configureMaxQuerySize(int querySize) {
-        AssertUtils.isTrue(querySize > 0, "查询大小必须大于 0");
+        if (querySize <= 0) {
+            throw new IllegalArgumentException("查询大小必须大于0");
+        }
         MAX_QUERY_SIZE.set(querySize);
     }
 

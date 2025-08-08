@@ -1,5 +1,6 @@
 package com.example.generator.generators;
 
+import com.abc.web.support.QueryWrapperHelper;
 import com.example.generator.CodeGenerator;
 import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
@@ -54,7 +55,7 @@ public class RepositoryGenerator implements CodeGenerator {
         methodBuilder.addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableFieldName);
 
         CodeBlock.Builder queryBuilder = CodeBlock.builder();
-        queryBuilder.add("$T queryWrapper = $T.create()\n", QueryWrapper.class, QueryWrapper.class);
+        queryBuilder.add("$T queryWrapper = $T.withOrder(query)\n", QueryWrapper.class, QueryWrapperHelper.class);
         queryBuilder.indent();
         queryBuilder.add(".from($L)\n", tableVarName);
 
@@ -65,13 +66,7 @@ public class RepositoryGenerator implements CodeGenerator {
 
         addTimeRangeConditions(queryBuilder, tableVarName, staticTableFieldName);
         
-        String idField = pojoInfo.getFields().stream()
-            .map(PojoInfo.FieldInfo::getName)
-            .filter("id"::equalsIgnoreCase)
-            .findFirst()
-            .orElse("id").toLowerCase();
-
-        queryBuilder.add(".orderBy($L.$L.$L.desc());\n", tableVarName, staticTableFieldName, idField);
+        queryBuilder.add(";\n");
         queryBuilder.unindent();
 
         methodBuilder.addCode(queryBuilder.build());
@@ -87,7 +82,7 @@ public class RepositoryGenerator implements CodeGenerator {
         pageMethodBuilder.addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableFieldName);
 
         CodeBlock.Builder pageQueryBuilder = CodeBlock.builder();
-        pageQueryBuilder.add("$T queryWrapper = $T.create()\n", QueryWrapper.class, QueryWrapper.class);
+        pageQueryBuilder.add("$T queryWrapper = $T.withOrder(query)\n", QueryWrapper.class, QueryWrapperHelper.class);
         pageQueryBuilder.indent();
         pageQueryBuilder.add(".from($L)\n", tableVarName);
 
@@ -98,7 +93,7 @@ public class RepositoryGenerator implements CodeGenerator {
 
         addTimeRangeConditions(pageQueryBuilder, tableVarName, staticTableFieldName);
 
-        pageQueryBuilder.add(".orderBy($L.$L.$L.desc());\n", tableVarName, staticTableFieldName, idField);
+        pageQueryBuilder.add(";\n");
         pageQueryBuilder.unindent();
 
         pageMethodBuilder.addCode(pageQueryBuilder.build());

@@ -1,101 +1,38 @@
 package com.abc;
 
-import com.example.generator.CodeGenerator;
-import com.example.generator.FileGenerator;
-import com.example.generator.PojoParser;
-import com.example.generator.generators.DtoGenerator;
-import com.example.generator.generators.MapstructGenerator;
-import com.example.generator.generators.QueryGenerator;
-import com.example.generator.generators.RepositoryGenerator;
-import com.example.generator.generators.RequestGenerator;
-import com.example.generator.generators.ResponseGenerator;
-import com.example.generator.generators.ServiceGenerator;
-import com.example.generator.generators.ServiceImplGenerator;
-import com.example.generator.model.PackageLayout;
-import com.example.generator.model.PojoInfo;
-import lombok.extern.slf4j.Slf4j;
+import com.example.generator.GeneratorConfig;
+import com.example.generator.GeneratorEngine;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
 
 /**
- * 代码生成器主程序
+ * 代码生成器主程序 - 示例
  */
-@Slf4j
 public class CodeGeneratorMain {
 
-    public static void codeGen(String pojoFilePath) {
-
+    public static void main(String[] args) {
+        // 1. 定义配置
         String moduleName = "example";
-        // 处理POJO类路径，支持类名格式（如com.abc.entity.User）
-        if (!pojoFilePath.endsWith(".java")) {
-            // 将类名格式转换为文件路径
-            pojoFilePath = pojoFilePath.replace('.', File.separatorChar) + ".java";
-            // 检查是否是相对路径，如果是则添加项目根路径
-            if (!new File(pojoFilePath).isAbsolute()) {
-                pojoFilePath = new File(System.getProperty("user.dir"), moduleName + File.separator + "src/main/java" + File.separator + pojoFilePath).getAbsolutePath();
-            }
-        }
+        String pojoClassName = "com.abc.entity.User";
 
-        // 验证POJO文件是否存在
-        File pojoFile = new File(pojoFilePath);
-        if (!pojoFile.exists() || !pojoFile.isFile()) {
-            log.error("错误: POJO文件不存在 - {}", pojoFilePath);
-            return;
-        }
+        // 2. 构建 GeneratorConfig
+        GeneratorConfig config = GeneratorConfig.builder()
+                .moduleName(moduleName)
+                .outputBaseDir(moduleName + File.separator + "target" + File.separator + "generated-sources")
+                .pojoPaths(Collections.singletonList(resolvePojoPath(pojoClassName, moduleName)))
+                .build();
 
-        // 处理输出目录，默认为target/code-gen
-        String outputDir = moduleName + "/target/generated-sources";
-
-        try {
-            // 1. 解析POJO文件
-            PojoParser parser = new PojoParser();
-            PojoInfo pojoInfo = parser.parse(pojoFilePath, moduleName);
-            log.info("成功解析POJO: {}", pojoInfo.getClassName());
-
-            // 确保输出目录存在
-            File outputDirFile = new File(outputDir);
-            if (!outputDirFile.exists()) {
-                outputDirFile.mkdirs();
-                log.info("创建输出目录: {}", outputDirFile.getAbsolutePath());
-            }
-
-            // 2. 创建包配置
-            String basePackage = pojoInfo.getPackageName().substring(0, pojoInfo.getPackageName().lastIndexOf("."));
-            PackageLayout packageLayout = new PackageLayout(basePackage);
-
-            // 3. 创建文件生成器
-            FileGenerator fileGenerator = new FileGenerator(outputDir);
-
-            // 4. 定义需要生成的代码类型
-            List<CodeGenerator> generators = Arrays.asList(
-                    new DtoGenerator(packageLayout),
-                    new ServiceGenerator(packageLayout),
-                    new ServiceImplGenerator(packageLayout),
-                    new RepositoryGenerator(packageLayout),
-                    new RequestGenerator(packageLayout),
-                    new QueryGenerator(packageLayout),
-                    new ResponseGenerator(packageLayout),
-                    new MapstructGenerator(packageLayout)
-            );
-
-            // 5. 生成所有代码
-            for (CodeGenerator generator : generators) {
-                fileGenerator.generateFile(generator, pojoInfo);
-            }
-
-            log.info("代码生成完成!");
-            log.info("生成的文件位置: {}", new File(outputDir, "src/main/java").getAbsolutePath());
-
-        } catch (IOException e) {
-            log.error("代码生成失败: {}", e.getMessage());
-
-        }
+        // 3. 创建并执行引擎
+        GeneratorEngine engine = new GeneratorEngine(config);
+        engine.execute();
     }
 
-    public static void main(String[] args) {
-        codeGen("com.abc.entity.User");
+    /**
+     * 将类名转换为项目内的完整文件路径。
+     */
+    private static String resolvePojoPath(String className, String moduleName) {
+        String filePath = className.replace('.', File.separatorChar) + ".java";
+        return new File(System.getProperty("user.dir"), moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java" + File.separator + filePath).getAbsolutePath();
     }
 }

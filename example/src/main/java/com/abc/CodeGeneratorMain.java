@@ -28,13 +28,14 @@ public class CodeGeneratorMain {
 
     public static void codeGen(String pojoFilePath) {
 
+        String moduleName = "example";
         // 处理POJO类路径，支持类名格式（如com.abc.entity.User）
         if (!pojoFilePath.endsWith(".java")) {
             // 将类名格式转换为文件路径
             pojoFilePath = pojoFilePath.replace('.', File.separatorChar) + ".java";
             // 检查是否是相对路径，如果是则添加项目根路径
             if (!new File(pojoFilePath).isAbsolute()) {
-                pojoFilePath = new File(System.getProperty("user.dir"), "example/src/main/java" + File.separator + pojoFilePath).getAbsolutePath();
+                pojoFilePath = new File(System.getProperty("user.dir"), moduleName + File.separator + "src/main/java" + File.separator + pojoFilePath).getAbsolutePath();
             }
         }
 
@@ -46,12 +47,12 @@ public class CodeGeneratorMain {
         }
 
         // 处理输出目录，默认为target/code-gen
-        String outputDir = "example/target/generated-sources";
+        String outputDir = moduleName + "/target/generated-sources";
 
         try {
             // 1. 解析POJO文件
             PojoParser parser = new PojoParser();
-            PojoInfo pojoInfo = parser.parse(pojoFilePath);
+            PojoInfo pojoInfo = parser.parse(pojoFilePath, moduleName);
             log.info("成功解析POJO: {}", pojoInfo.getClassName());
 
             // 确保输出目录存在

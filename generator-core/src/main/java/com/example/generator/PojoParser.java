@@ -30,11 +30,11 @@ public class PojoParser {
      * @return 解析后的POJO信息
      * @throws IOException IO异常
      */
-    public PojoInfo parse(String filePath) throws IOException {
+    public PojoInfo parse(String filePath,String moduleName) throws IOException {
         // 配置符号解析器
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
-        combinedTypeSolver.add(new JavaParserTypeSolver(new File(System.getProperty("user.dir") + File.separator + "example" + File.separator + "src" + File.separator + "main" + File.separator + "java")));
+        combinedTypeSolver.add(new JavaParserTypeSolver(new File(System.getProperty("user.dir") + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java")));
 
         JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
         StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);

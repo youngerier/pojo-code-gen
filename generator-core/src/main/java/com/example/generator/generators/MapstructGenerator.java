@@ -1,7 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageConfig;
+import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
@@ -18,10 +18,10 @@ import java.util.List;
 @Slf4j
 public class MapstructGenerator implements CodeGenerator {
 
-    private final PackageConfig packageConfig;
+    private final PackageLayout packageLayout;
 
-    public MapstructGenerator(PackageConfig packageConfig) {
-        this.packageConfig = packageConfig;
+    public MapstructGenerator(PackageLayout packageLayout) {
+        this.packageLayout = packageLayout;
     }
 
     @Override
@@ -31,11 +31,11 @@ public class MapstructGenerator implements CodeGenerator {
         // 创建实体类类型
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
         // 创建DTO类型
-        ClassName dtoType = ClassName.get(packageConfig.getDtoPackage(), packageConfig.getDtoClassName(entityName));
+        ClassName dtoType = ClassName.get(packageLayout.getDtoPackage(), packageLayout.getDtoClassName(entityName));
         // 创建Request类型
-        ClassName requestType = ClassName.get(packageConfig.getRequestPackage(), packageConfig.getRequestClassName(entityName));
+        ClassName requestType = ClassName.get(packageLayout.getRequestPackage(), packageLayout.getRequestClassName(entityName));
         // 创建Response类型
-        ClassName responseType = ClassName.get(packageConfig.getResponsePackage(), packageConfig.getResponseClassName(entityName));
+        ClassName responseType = ClassName.get(packageLayout.getResponsePackage(), packageLayout.getResponseClassName(entityName));
 
         // 创建List<Entity>类型
         ParameterizedTypeName listOfEntity = ParameterizedTypeName.get(
@@ -111,12 +111,12 @@ public class MapstructGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName() {
-        return packageConfig.getConvertorPackage();
+        return packageLayout.getConvertorPackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return packageConfig.getConvertorClassName(pojoInfo.getClassName());
+        return packageLayout.getConvertorClassName(pojoInfo.getClassName());
     }
 
     /**

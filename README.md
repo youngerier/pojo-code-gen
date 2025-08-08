@@ -45,7 +45,7 @@ POJO Code Generator 是一个基于 Java 的代码生成工具，旨在简化和
 
 ```java
 // CodeGeneratorMain.java 示例
-PackageConfig packageConfig = new PackageConfig("com.yourcompany.yourproject");
+PackageConfig packageLayout = new PackageConfig("com.yourcompany.yourproject");
 ```
 
 ### 配置 `PojoInfo`
@@ -74,13 +74,13 @@ userPojoInfo.addField(new PojoInfo.FieldInfo("email", "java.lang.String", "邮�
 // CodeGeneratorMain.java 示例
 import com.example.generator.CodeGenerator;
 import com.example.generator.FileGenerator;
-import com.example.generator.model.PackageConfig;
+import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.example.generator.generators.*;
 
 public class CodeGeneratorMain {
     public static void main(String[] args) {
-        PackageConfig packageConfig = new PackageConfig("com.yourcompany.yourproject");
+        PackageConfig packageLayout = new PackageConfig("com.yourcompany.yourproject");
 
         PojoInfo userPojoInfo = new PojoInfo();
         userPojoInfo.setClassName("User");
@@ -93,35 +93,35 @@ public class CodeGeneratorMain {
         FileGenerator fileGenerator = new FileGenerator("/path/to/your/output/directory"); // 指定输出目录
 
         // 生成 DTO
-        CodeGenerator dtoGenerator = new DtoGenerator(packageConfig);
+        CodeGenerator dtoGenerator = new DtoGenerator(packageLayout);
         fileGenerator.generateFile(dtoGenerator, userPojoInfo);
 
         // 生成 Request
-        CodeGenerator requestGenerator = new RequestGenerator(packageConfig);
+        CodeGenerator requestGenerator = new RequestGenerator(packageLayout);
         fileGenerator.generateFile(requestGenerator, userPojoInfo);
 
         // 生成 Response
-        CodeGenerator responseGenerator = new ResponseGenerator(packageConfig);
+        CodeGenerator responseGenerator = new ResponseGenerator(packageLayout);
         fileGenerator.generateFile(responseGenerator, userPojoInfo);
 
         // 生成 Query
-        CodeGenerator queryGenerator = new QueryGenerator(packageConfig);
+        CodeGenerator queryGenerator = new QueryGenerator(packageLayout);
         fileGenerator.generateFile(queryGenerator, userPojoInfo);
 
         // 生成 Service
-        CodeGenerator serviceGenerator = new ServiceGenerator(packageConfig);
+        CodeGenerator serviceGenerator = new ServiceGenerator(packageLayout);
         fileGenerator.generateFile(serviceGenerator, userPojoInfo);
 
         // 生成 ServiceImpl
-        CodeGenerator serviceImplGenerator = new ServiceImplGenerator(packageConfig);
+        CodeGenerator serviceImplGenerator = new ServiceImplGenerator(packageLayout);
         fileGenerator.generateFile(serviceImplGenerator, userPojoInfo);
 
         // 生成 Repository
-        CodeGenerator repositoryGenerator = new RepositoryGenerator(packageConfig);
+        CodeGenerator repositoryGenerator = new RepositoryGenerator(packageLayout);
         fileGenerator.generateFile(repositoryGenerator, userPojoInfo);
 
         // 生成 MapStruct Convertor
-        CodeGenerator mapstructGenerator = new MapstructGenerator(packageConfig);
+        CodeGenerator mapstructGenerator = new MapstructGenerator(packageLayout);
         fileGenerator.generateFile(mapstructGenerator, userPojoInfo);
 
         System.out.println("代码生成完成！");

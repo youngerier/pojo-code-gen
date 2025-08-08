@@ -1,7 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageConfig;
+import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -20,10 +20,10 @@ import javax.lang.model.element.Modifier;
  */
 @Slf4j
 public class QueryGenerator implements CodeGenerator {
-    private final PackageConfig packageConfig;
+    private final PackageLayout packageLayout;
 
-    public QueryGenerator(PackageConfig packageConfig) {
-        this.packageConfig = packageConfig;
+    public QueryGenerator(PackageLayout packageLayout) {
+        this.packageLayout = packageLayout;
     }
 
     @Override
@@ -64,11 +64,11 @@ public class QueryGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName() {
-        return packageConfig.getRequestPackage();
+        return packageLayout.getRequestPackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return packageConfig.getQueryClassName(pojoInfo.getClassName());
+        return packageLayout.getQueryClassName(pojoInfo.getClassName());
     }
 }

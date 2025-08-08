@@ -4,7 +4,7 @@ package com.example.generator.model;
 import lombok.Getter;
 
 @Getter
-public class PackageConfig {
+public class PackageLayout {
 
     private final String basePackage;
     private final String dtoPackage;
@@ -15,7 +15,7 @@ public class PackageConfig {
     private final String responsePackage;
     private final String convertorPackage;
 
-    public PackageConfig(String basePackage) {
+    public PackageLayout(String basePackage) {
         this.basePackage = basePackage;
         this.dtoPackage = basePackage + ".model.dto";
         this.servicePackage = basePackage + ".service";

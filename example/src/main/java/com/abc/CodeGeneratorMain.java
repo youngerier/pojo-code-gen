@@ -11,7 +11,7 @@ import com.example.generator.generators.RequestGenerator;
 import com.example.generator.generators.ResponseGenerator;
 import com.example.generator.generators.ServiceGenerator;
 import com.example.generator.generators.ServiceImplGenerator;
-import com.example.generator.model.PackageConfig;
+import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import lombok.extern.slf4j.Slf4j;
 
@@ -63,21 +63,21 @@ public class CodeGeneratorMain {
 
             // 2. 创建包配置
             String basePackage = pojoInfo.getPackageName().substring(0, pojoInfo.getPackageName().lastIndexOf("."));
-            PackageConfig packageConfig = new PackageConfig(basePackage);
+            PackageLayout packageLayout = new PackageLayout(basePackage);
 
             // 3. 创建文件生成器
             FileGenerator fileGenerator = new FileGenerator(outputDir);
 
             // 4. 定义需要生成的代码类型
             List<CodeGenerator> generators = Arrays.asList(
-                    new DtoGenerator(packageConfig),
-                    new ServiceGenerator(packageConfig),
-                    new ServiceImplGenerator(packageConfig),
-                    new RepositoryGenerator(packageConfig),
-                    new RequestGenerator(packageConfig),
-                    new QueryGenerator(packageConfig),
-                    new ResponseGenerator(packageConfig),
-                    new MapstructGenerator(packageConfig)
+                    new DtoGenerator(packageLayout),
+                    new ServiceGenerator(packageLayout),
+                    new ServiceImplGenerator(packageLayout),
+                    new RepositoryGenerator(packageLayout),
+                    new RequestGenerator(packageLayout),
+                    new QueryGenerator(packageLayout),
+                    new ResponseGenerator(packageLayout),
+                    new MapstructGenerator(packageLayout)
             );
 
             // 5. 生成所有代码

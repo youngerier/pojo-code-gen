@@ -19,7 +19,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageConfig;
+import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public abstract class AbstractBaseGenerator implements CodeGenerator {
 
-    protected final PackageConfig packageConfig;
+    protected final PackageConfig packageLayout;
 
     @Override
     public JavaFile generate(PojoInfo pojoInfo) {

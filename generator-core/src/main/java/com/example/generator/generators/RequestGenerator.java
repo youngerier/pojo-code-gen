@@ -1,7 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageConfig;
+import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -19,10 +19,10 @@ import java.util.Set;
  */
 @Slf4j
 public class RequestGenerator implements CodeGenerator {
-    private final PackageConfig packageConfig;
+    private final PackageLayout packageLayout;
 
-    public RequestGenerator(PackageConfig packageConfig) {
-        this.packageConfig = packageConfig;
+    public RequestGenerator(PackageLayout packageLayout) {
+        this.packageLayout = packageLayout;
     }
 
     // 通常不需要包含在请求对象中的字段名
@@ -72,11 +72,11 @@ public class RequestGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName() {
-        return packageConfig.getRequestPackage();
+        return packageLayout.getRequestPackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return packageConfig.getRequestClassName(pojoInfo.getClassName());
+        return packageLayout.getRequestClassName(pojoInfo.getClassName());
     }
 }

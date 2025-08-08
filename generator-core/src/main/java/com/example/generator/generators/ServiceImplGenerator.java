@@ -2,7 +2,7 @@ package com.example.generator.generators;
 
 import com.abc.web.support.Pagination;
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageConfig;
+import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -23,10 +23,10 @@ import java.util.stream.Collectors;
 public class ServiceImplGenerator implements CodeGenerator {
 
 
-    private final PackageConfig packageConfig;
+    private final PackageLayout packageLayout;
 
-    public ServiceImplGenerator(PackageConfig packageConfig) {
-        this.packageConfig = packageConfig;
+    public ServiceImplGenerator(PackageLayout packageLayout) {
+        this.packageLayout = packageLayout;
     }
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
@@ -35,19 +35,19 @@ public class ServiceImplGenerator implements CodeGenerator {
         // 创建实体类类型
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
         // 创建DTO类型
-        ClassName dtoType = ClassName.get(packageConfig.getDtoPackage(), packageConfig.getDtoClassName(entityName));
+        ClassName dtoType = ClassName.get(packageLayout.getDtoPackage(), packageLayout.getDtoClassName(entityName));
         // 创建Service接口类型
         ClassName serviceType = ClassName.get(
-                packageConfig.getServicePackage(),
-                packageConfig.getServiceClassName(entityName));
+                packageLayout.getServicePackage(),
+                packageLayout.getServiceClassName(entityName));
         // 创建Repository接口类型
         ClassName repositoryType = ClassName.get(
-                packageConfig.getRepositoryPackage(),
-                packageConfig.getRepositoryClassName(entityName));
+                packageLayout.getRepositoryPackage(),
+                packageLayout.getRepositoryClassName(entityName));
         // 创建Mapstruct Mapper类型
         ClassName mapperType = ClassName.get(
-                packageConfig.getConvertorPackage(),
-                packageConfig.getConvertorClassName(entityName));
+                packageLayout.getConvertorPackage(),
+                packageLayout.getConvertorClassName(entityName));
 
         // 创建类构建器
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getClassName(pojoInfo))
@@ -110,7 +110,7 @@ public class ServiceImplGenerator implements CodeGenerator {
         MethodSpec queryMethod = MethodSpec.methodBuilder("query" + entityName + "s")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
+                .addParameter(ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
                 .returns(listOfDto)
                 .addStatement("return $N.selectListByQuery(query).stream().map($N::toDto).collect($T.toList())", repositoryFieldName, mapperFieldName, Collectors.class)
                 .build();
@@ -121,7 +121,7 @@ public class ServiceImplGenerator implements CodeGenerator {
         MethodSpec pageQueryMethod = MethodSpec.methodBuilder("pageQuery" + entityName + "s")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
+                .addParameter(ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
                 .returns(ParameterizedTypeName.get(ClassName.get(Pagination.class), dtoType))
                 .addStatement("$T<$T> page = $N.page(query).map($N::toDto)", pageType, dtoType, repositoryFieldName, mapperFieldName)
                 .addStatement("return $T.of(page.getRecords(), query, page.getTotalRow())", Pagination.class)
@@ -167,12 +167,12 @@ public class ServiceImplGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName() {
-        return packageConfig.getServiceImplPackage();
+        return packageLayout.getServiceImplPackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return packageConfig.getServiceImplClassName(pojoInfo.getClassName());
+        return packageLayout.getServiceImplClassName(pojoInfo.getClassName());
     }
 
     /**

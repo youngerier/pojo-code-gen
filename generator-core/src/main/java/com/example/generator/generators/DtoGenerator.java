@@ -1,7 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageConfig;
+import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -17,10 +17,10 @@ import javax.lang.model.element.Modifier;
 @Slf4j
 public class DtoGenerator implements CodeGenerator {
 
-    private final PackageConfig packageConfig;
+    private final PackageLayout packageLayout;
 
-    public DtoGenerator(PackageConfig packageConfig) {
-        this.packageConfig = packageConfig;
+    public DtoGenerator(PackageLayout packageLayout) {
+        this.packageLayout = packageLayout;
     }
 
     @Override
@@ -62,11 +62,11 @@ public class DtoGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName() {
-        return packageConfig.getDtoPackage();
+        return packageLayout.getDtoPackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return packageConfig.getDtoClassName(pojoInfo.getClassName());
+        return packageLayout.getDtoClassName(pojoInfo.getClassName());
     }
 }

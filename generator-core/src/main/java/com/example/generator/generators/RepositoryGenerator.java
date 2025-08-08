@@ -1,7 +1,7 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageConfig;
+import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -20,10 +20,10 @@ import java.util.List;
  */
 @Slf4j
 public class RepositoryGenerator implements CodeGenerator {
-    private final PackageConfig packageConfig;
+    private final PackageLayout packageLayout;
 
-    public RepositoryGenerator(PackageConfig packageConfig) {
-        this.packageConfig = packageConfig;
+    public RepositoryGenerator(PackageLayout packageLayout) {
+        this.packageLayout = packageLayout;
     }
 
     @Override
@@ -48,7 +48,7 @@ public class RepositoryGenerator implements CodeGenerator {
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("selectListByQuery")
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
+                .addParameter(ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
                 .returns(ParameterizedTypeName.get(ClassName.get(List.class), entityType));
 
         methodBuilder.addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableFieldName);
@@ -78,7 +78,7 @@ public class RepositoryGenerator implements CodeGenerator {
 
         MethodSpec.Builder pageMethodBuilder = MethodSpec.methodBuilder("page")
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                .addParameter(ClassName.get(packageConfig.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
+                .addParameter(ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query"), "query")
                 .returns(ParameterizedTypeName.get(ClassName.get(Page.class), entityType));
 
         pageMethodBuilder.addStatement("$T<$T> page = new Page<>(query.getQueryPage(), query.getQuerySize())", Page.class, entityType);
@@ -113,11 +113,11 @@ public class RepositoryGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName() {
-        return packageConfig.getRepositoryPackage();
+        return packageLayout.getRepositoryPackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return packageConfig.getRepositoryClassName(pojoInfo.getClassName());
+        return packageLayout.getRepositoryClassName(pojoInfo.getClassName());
     }
 }

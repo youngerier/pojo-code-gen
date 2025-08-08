@@ -2,7 +2,7 @@ package com.example.generator.generators;
 
 import com.abc.web.support.Pagination;
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageConfig;
+import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
@@ -19,16 +19,16 @@ import java.util.List;
  */
 @Slf4j
 public class ServiceGenerator implements CodeGenerator {
-    private final PackageConfig packageConfig;
+    private final PackageLayout packageLayout;
 
-    public ServiceGenerator(PackageConfig packageConfig) {
-        this.packageConfig = packageConfig;
+    public ServiceGenerator(PackageLayout packageLayout) {
+        this.packageLayout = packageLayout;
     }
 
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
-        String dtoClassName = packageConfig.getDtoClassName(pojoInfo.getClassName());
-        ClassName dtoType = ClassName.get(packageConfig.getDtoPackage(), dtoClassName);
+        String dtoClassName = packageLayout.getDtoClassName(pojoInfo.getClassName());
+        ClassName dtoType = ClassName.get(packageLayout.getDtoPackage(), dtoClassName);
         ClassName listType = ClassName.get(List.class);
         ParameterizedTypeName listOfDto = ParameterizedTypeName.get(listType, dtoType);
 
@@ -70,7 +70,7 @@ public class ServiceGenerator implements CodeGenerator {
         MethodSpec getAllMethod = MethodSpec.methodBuilder("query" + pojoInfo.getClassName() + "s")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(listOfDto)
-                .addParameter(ClassName.get(packageConfig.getRequestPackage(), packageConfig.getQueryClassName(pojoInfo.getClassName())), "query")
+                .addParameter(ClassName.get(packageLayout.getRequestPackage(), packageLayout.getQueryClassName(pojoInfo.getClassName())), "query")
                 .addJavadoc("查询所有$L\n", pojoInfo.getClassName())
                 .addJavadoc("@return $L对象列表\n", pojoInfo.getClassName())
                 .build();
@@ -80,7 +80,7 @@ public class ServiceGenerator implements CodeGenerator {
         MethodSpec pageQueryMethod = MethodSpec.methodBuilder("pageQuery" + pojoInfo.getClassName() + "s")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(ParameterizedTypeName.get(ClassName.get(Pagination.class), dtoType))
-                .addParameter(ClassName.get(packageConfig.getRequestPackage(), packageConfig.getQueryClassName(pojoInfo.getClassName())), "query")
+                .addParameter(ClassName.get(packageLayout.getRequestPackage(), packageLayout.getQueryClassName(pojoInfo.getClassName())), "query")
                 .addJavadoc("分页查询$L\n", pojoInfo.getClassName())
                 .addJavadoc("@return $L对象列表\n", pojoInfo.getClassName())
                 .build();
@@ -117,11 +117,11 @@ public class ServiceGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName() {
-        return packageConfig.getServicePackage();
+        return packageLayout.getServicePackage();
     }
 
     @Override
     public String getClassName(PojoInfo pojoInfo) {
-        return packageConfig.getServiceClassName(pojoInfo.getClassName());
+        return packageLayout.getServiceClassName(pojoInfo.getClassName());
     }
 }

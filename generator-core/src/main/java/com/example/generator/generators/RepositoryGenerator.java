@@ -62,6 +62,8 @@ public class RepositoryGenerator implements CodeGenerator {
             queryBuilder.add(".where($L.$L.$L.eq(query.get$L()))\n",
                     tableVarName, staticTableFieldName, field.getName(), upperFirstChar(field.getName()));
         }
+
+        addTimeRangeConditions(queryBuilder, tableVarName, staticTableFieldName);
         
         String idField = pojoInfo.getFields().stream()
             .map(PojoInfo.FieldInfo::getName)
@@ -94,6 +96,8 @@ public class RepositoryGenerator implements CodeGenerator {
                     tableVarName, staticTableFieldName, field.getName(), upperFirstChar(field.getName()));
         }
 
+        addTimeRangeConditions(pageQueryBuilder, tableVarName, staticTableFieldName);
+
         pageQueryBuilder.add(".orderBy($L.$L.$L.desc());\n", tableVarName, staticTableFieldName, idField);
         pageQueryBuilder.unindent();
 
@@ -102,6 +106,13 @@ public class RepositoryGenerator implements CodeGenerator {
         interfaceBuilder.addMethod(pageMethodBuilder.build());
 
         return interfaceBuilder.build();
+    }
+
+    private void addTimeRangeConditions(CodeBlock.Builder queryBuilder, String tableVarName, String staticTableFieldName) {
+        queryBuilder.add(".where($L.$L.gmtCreate.ge(query.getMinGmtCreate()))\n", tableVarName, staticTableFieldName);
+        queryBuilder.add(".where($L.$L.gmtCreate.le(query.getMaxGmtCreate()))\n", tableVarName, staticTableFieldName);
+        queryBuilder.add(".where($L.$L.gmtModified.ge(query.getMinGmtModified()))\n", tableVarName, staticTableFieldName);
+        queryBuilder.add(".where($L.$L.gmtModified.le(query.getMaxGmtModified()))\n", tableVarName, staticTableFieldName);
     }
 
     private String upperFirstChar(String str) {

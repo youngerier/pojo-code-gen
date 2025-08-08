@@ -59,6 +59,29 @@ public class QueryGenerator implements CodeGenerator {
             classBuilder.addJavadoc("查询参数对象\n");
         }
 
+        // 添加时间范围查询字段
+        TypeName localDateTimeType = ClassName.get("java.time", "LocalDateTime");
+
+        FieldSpec minGmtCreate = FieldSpec.builder(localDateTimeType, "minGmtCreate", Modifier.PRIVATE)
+                .addJavadoc("最小创建时间\n")
+                .build();
+        classBuilder.addField(minGmtCreate);
+
+        FieldSpec maxGmtCreate = FieldSpec.builder(localDateTimeType, "maxGmtCreate", Modifier.PRIVATE)
+                .addJavadoc("最大创建时间\n")
+                .build();
+        classBuilder.addField(maxGmtCreate);
+
+        FieldSpec minGmtModified = FieldSpec.builder(localDateTimeType, "minGmtModified", Modifier.PRIVATE)
+                .addJavadoc("最小修改时间\n")
+                .build();
+        classBuilder.addField(minGmtModified);
+
+        FieldSpec maxGmtModified = FieldSpec.builder(localDateTimeType, "maxGmtModified", Modifier.PRIVATE)
+                .addJavadoc("最大修改时间\n")
+                .build();
+        classBuilder.addField(maxGmtModified);
+
         return classBuilder.build();
     }
 

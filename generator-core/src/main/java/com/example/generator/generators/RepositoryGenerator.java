@@ -5,6 +5,7 @@ import com.example.generator.CodeGenerator;
 import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -86,20 +87,26 @@ public class RepositoryGenerator implements CodeGenerator {
         String staticTableFieldName = pojoInfo.getClassName().toLowerCase();
 
         methodBuilder.addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableFieldName);
-        methodBuilder.addStatement("$T queryWrapper = $T.withOrder(query)", QueryWrapper.class, QueryWrapperHelper.class);
-        methodBuilder.addStatement("queryWrapper.from($L)", tableVarName);
+
+        CodeBlock.Builder queryWrapperBuilder = CodeBlock.builder();
+        queryWrapperBuilder.add("$T queryWrapper = $T.withOrder(query)\n", QueryWrapper.class, QueryWrapperHelper.class);
+        queryWrapperBuilder.indent();
+        queryWrapperBuilder.add(".from($L)\n", tableVarName);
 
         for (PojoInfo.FieldInfo field : pojoInfo.getFields()) {
             String fieldName = field.getName();
             String getterName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
-            methodBuilder.addStatement("queryWrapper.where($L.$L.$L.eq(query.$L()))",
+            queryWrapperBuilder.add(".where($L.$L.$L.eq(query.$L()))\n",
                     tableVarName, staticTableFieldName, fieldName, getterName);
         }
 
-        methodBuilder.addStatement("queryWrapper.and($L.$L.gmtCreate.ge(query.getMinGmtCreate()))", tableVarName, staticTableFieldName);
-        methodBuilder.addStatement("queryWrapper.and($L.$L.gmtCreate.le(query.getMaxGmtCreate()))", tableVarName, staticTableFieldName);
-        methodBuilder.addStatement("queryWrapper.and($L.$L.gmtModified.ge(query.getMinGmtModified()))", tableVarName, staticTableFieldName);
-        methodBuilder.addStatement("queryWrapper.and($L.$L.gmtModified.le(query.getMaxGmtModified()))", tableVarName, staticTableFieldName);
+        queryWrapperBuilder.add(".and($L.$L.gmtCreate.ge(query.getMinGmtCreate()))\n", tableVarName, staticTableFieldName);
+        queryWrapperBuilder.add(".and($L.$L.gmtCreate.le(query.getMaxGmtCreate()))\n", tableVarName, staticTableFieldName);
+        queryWrapperBuilder.add(".and($L.$L.gmtModified.ge(query.getMinGmtModified()))\n", tableVarName, staticTableFieldName);
+        queryWrapperBuilder.add(".and($L.$L.gmtModified.le(query.getMaxGmtModified()));\n", tableVarName, staticTableFieldName);
+        queryWrapperBuilder.unindent();
+
+        methodBuilder.addCode(queryWrapperBuilder.build());
     }
 
     @Override

@@ -109,10 +109,10 @@ public class RepositoryGenerator implements CodeGenerator {
     }
 
     private void addTimeRangeConditions(CodeBlock.Builder queryBuilder, String tableVarName, String staticTableFieldName) {
-        queryBuilder.add(".where($L.$L.gmtCreate.ge(query.getMinGmtCreate()))\n", tableVarName, staticTableFieldName);
-        queryBuilder.add(".where($L.$L.gmtCreate.le(query.getMaxGmtCreate()))\n", tableVarName, staticTableFieldName);
-        queryBuilder.add(".where($L.$L.gmtModified.ge(query.getMinGmtModified()))\n", tableVarName, staticTableFieldName);
-        queryBuilder.add(".where($L.$L.gmtModified.le(query.getMaxGmtModified()))\n", tableVarName, staticTableFieldName);
+        queryBuilder.add(".and($L.$L.gmtCreate.ge(query.getMinGmtCreate()))\n", tableVarName, staticTableFieldName);
+        queryBuilder.add(".and($L.$L.gmtCreate.le(query.getMaxGmtCreate()))\n", tableVarName, staticTableFieldName);
+        queryBuilder.add(".and($L.$L.gmtModified.ge(query.getMinGmtModified()))\n", tableVarName, staticTableFieldName);
+        queryBuilder.add(".and($L.$L.gmtModified.le(query.getMaxGmtModified()))\n", tableVarName, staticTableFieldName);
     }
 
     private String upperFirstChar(String str) {

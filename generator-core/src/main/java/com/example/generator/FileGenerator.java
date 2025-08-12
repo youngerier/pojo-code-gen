@@ -20,6 +20,8 @@ import java.util.Arrays;
 @Slf4j
 public class FileGenerator {
 
+    private static final String DEFAULT_INDENT = "    "; // 默认4个空格缩进
+    
     private final String baseOutputDir;
 
     public FileGenerator(String baseOutputDir) {
@@ -42,7 +44,7 @@ public class FileGenerator {
 
         // 创建JavaFile
         JavaFile javaFile = JavaFile.builder(packageName, typeSpec)
-                .indent("    ") // 使用4个空格缩进
+                .indent(DEFAULT_INDENT)
                 .build();
 
         // 计算新内容的哈希值

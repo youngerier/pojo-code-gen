@@ -8,7 +8,7 @@ import lombok.Getter;
 public enum QueryType {
 
     COUNT_TOTAL("统计总数"),
-    QUERY_RESET("查询结果集"),
+    QUERY_RECORDS("查询结果集"),
     QUERY_BOTH("查询总数和结果集");
 
     private final String desc;

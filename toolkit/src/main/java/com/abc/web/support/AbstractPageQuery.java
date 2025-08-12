@@ -16,18 +16,28 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> impl
      * 避免查询页面数据过大，拖垮数据库
      */
     private static final AtomicInteger MAX_QUERY_SIZE = new AtomicInteger(3000);
+    
+    /**
+     * 默认查询页码
+     */
+    private static final int DEFAULT_PAGE = 1;
+    
+    /**
+     * 默认查询大小
+     */
+    private static final int DEFAULT_SIZE = 20;
 
     /**
      * 查询页码
      */
     @NotNull
-    private Integer queryPage = 1;
+    private Integer queryPage = DEFAULT_PAGE;
 
     /**
      * 查询大小
      */
     @NotNull
-    private Integer querySize = 20;
+    private Integer querySize = DEFAULT_SIZE;
 
     /**
      * 查询类型

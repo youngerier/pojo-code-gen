@@ -10,21 +10,24 @@ public interface ExceptionCode {
      * 表示成功的 code
      */
     ExceptionCode SUCCESSFUL = new ExceptionCode() {
-        private static final long serialVersionUID = 5034455936657195532L;
-
         @Override
         public String getCode() {
             return SUCCESSFUL_CODE;
         }
 
+        @Override
         public String getDesc() {
-            return "";
+            return "操作成功";
         }
     };
-
 
     /**
      * @return 异常码
      */
     String getCode();
+
+    /**
+     * @return 异常描述
+     */
+    String getDesc();
 }

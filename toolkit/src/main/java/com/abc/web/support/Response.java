@@ -8,16 +8,40 @@ public class Response<T> {
     private String message;
     private T data;
 
+    private Response() {}
 
-    public static <T> Response ok(T data) {
-        Response<T> res = new Response<>();
-        res.setCode(200);
-        res.setMessage("success");
-        res.setData(data);
-        return res;
+    private Response(int code, String message, T data) {
+        this.code = code;
+        this.message = message;
+        this.data = data;
+    }
+
+    public static <T> Response<T> ok(T data) {
+        return new Response<>(200, "success", data);
+    }
+
+    public static <T> Response<T> ok() {
+        return new Response<>(200, "success", null);
+    }
+
+    public static <T> Response<T> error(int code, String message) {
+        return new Response<>(code, message, null);
+    }
+
+    public static <T> Response<T> error(String message) {
+        return new Response<>(500, message, null);
+    }
+
+    public static <T> Response<T> error(ExceptionCode exceptionCode) {
+        return new Response<>(Integer.parseInt(exceptionCode.getCode()), 
+                             exceptionCode.getCode(), null);
     }
 
     public boolean isOk() {
         return code == 200;
+    }
+
+    public boolean isError() {
+        return !isOk();
     }
 }

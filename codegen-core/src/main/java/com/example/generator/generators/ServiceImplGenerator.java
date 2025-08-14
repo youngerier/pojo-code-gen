@@ -62,20 +62,19 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .build();
         classBuilder.addField(repositoryField);
 
-        // 添加Mapper字段
+        // 添加Mapper字段（使用INSTANCE常量）
         String mapperFieldName = lowerFirstChar(entityName) + "Convertor";
         FieldSpec mapperField = FieldSpec.builder(mapperType, mapperFieldName)
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .initializer("$T.INSTANCE", mapperType)
                 .build();
         classBuilder.addField(mapperField);
 
-        // 添加构造函数
+        // 添加构造函数（只注入Repository）
         MethodSpec constructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(repositoryType, repositoryFieldName)
-                .addParameter(mapperType, mapperFieldName)
                 .addStatement("this.$N = $N", repositoryFieldName, repositoryFieldName)
-                .addStatement("this.$N = $N", mapperFieldName, mapperFieldName)
                 .build();
         classBuilder.addMethod(constructor);
 

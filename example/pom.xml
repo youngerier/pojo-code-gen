@@ -4,21 +4,23 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.example</groupId>
-        <artifactId>pojo-code-generator</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <groupId>io.github.youngerier</groupId>
+        <artifactId>java-codegen-toolkit</artifactId>
+        <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>example</artifactId>
+    <name>Java Code Generation Toolkit - Example</name>
+    <description>Example usage and demonstration of Java code generation toolkit</description>
 
     <dependencies>
         <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>generator-core</artifactId>
+            <groupId>io.github.youngerier</groupId>
+            <artifactId>codegen-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.example</groupId>
+            <groupId>io.github.youngerier</groupId>
             <artifactId>toolkit</artifactId>
         </dependency>
         <dependency>

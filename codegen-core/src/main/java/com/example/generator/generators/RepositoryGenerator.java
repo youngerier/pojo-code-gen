@@ -96,14 +96,14 @@ public class RepositoryGenerator implements CodeGenerator {
         for (PojoInfo.FieldInfo field : pojoInfo.getFields()) {
             String fieldName = field.getName();
             String getterName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
-            queryWrapperBuilder.add(".where($L.$L.$L.eq(query.$L()))\n",
-                    tableVarName, staticTableFieldName, fieldName, getterName);
+            queryWrapperBuilder.add(".where($L.$L.eq(query.$L()))\n",
+                    tableVarName, fieldName, getterName);
         }
 
-        queryWrapperBuilder.add(".and($L.$L.gmtCreate.ge(query.getMinGmtCreate()))\n", tableVarName, staticTableFieldName);
-        queryWrapperBuilder.add(".and($L.$L.gmtCreate.le(query.getMaxGmtCreate()))\n", tableVarName, staticTableFieldName);
-        queryWrapperBuilder.add(".and($L.$L.gmtModified.ge(query.getMinGmtModified()))\n", tableVarName, staticTableFieldName);
-        queryWrapperBuilder.add(".and($L.$L.gmtModified.le(query.getMaxGmtModified()));\n", tableVarName, staticTableFieldName);
+        queryWrapperBuilder.add(".and($L.gmtCreate.ge(query.getMinGmtCreate()))\n", tableVarName);
+        queryWrapperBuilder.add(".and($L.gmtCreate.le(query.getMaxGmtCreate()))\n", tableVarName);
+        queryWrapperBuilder.add(".and($L.gmtModified.ge(query.getMinGmtModified()))\n", tableVarName);
+        queryWrapperBuilder.add(".and($L.gmtModified.le(query.getMaxGmtModified()));\n", tableVarName);
         queryWrapperBuilder.unindent();
 
         methodBuilder.addCode(queryWrapperBuilder.build());

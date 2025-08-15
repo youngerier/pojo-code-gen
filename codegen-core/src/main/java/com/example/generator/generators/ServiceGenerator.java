@@ -46,10 +46,10 @@ public class ServiceGenerator implements CodeGenerator {
         MethodSpec createMethod = MethodSpec.methodBuilder("create" + pojoInfo.getClassName())
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(dtoType)
-                .addParameter(dtoType, pojoInfo.getClassName().toLowerCase() + "DTO")
+                .addParameter(dtoType, pojoInfo.getCamelClassName() + "DTO")
                 .addJavadoc("创建$L\n", pojoInfo.getClassName())
                 .addJavadoc("@param $L $L数据传输对象\n",
-                        pojoInfo.getClassName().toLowerCase() + "DTO",
+                        pojoInfo.getCamelClassName() + "DTO",
                         pojoInfo.getClassName())
                 .addJavadoc("@return 创建的$L对象\n", pojoInfo.getClassName())
                 .build();
@@ -91,11 +91,11 @@ public class ServiceGenerator implements CodeGenerator {
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(dtoType)
                 .addParameter(TypeName.LONG, "id")
-                .addParameter(dtoType, pojoInfo.getClassName().toLowerCase() + "DTO")
+                .addParameter(dtoType, pojoInfo.getCamelClassName() + "DTO")
                 .addJavadoc("更新$L\n", pojoInfo.getClassName())
                 .addJavadoc("@param id 主键ID\n")
                 .addJavadoc("@param $L $L数据传输对象\n",
-                        pojoInfo.getClassName().toLowerCase() + "DTO",
+                        pojoInfo.getCamelClassName() + "DTO",
                         pojoInfo.getClassName())
                 .addJavadoc("@return 更新后的$L对象\n", pojoInfo.getClassName())
                 .build();

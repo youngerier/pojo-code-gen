@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.lang.model.element.Modifier;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Repository接口生成器 - 基于MyBatis Flex
@@ -51,34 +52,25 @@ public class RepositoryGenerator implements CodeGenerator {
     }
 
     private MethodSpec buildSelectListByQueryMethod(PojoInfo pojoInfo) {
-        ClassName entityType = ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
-        ClassName queryType = ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query");
-
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("selectListByQuery")
-                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                .addParameter(queryType, "query")
-                .returns(ParameterizedTypeName.get(ClassName.get(List.class), entityType));
-
-        buildQueryWrapperLogic(methodBuilder, pojoInfo);
-
-        methodBuilder.addStatement("return selectListByQuery(queryWrapper)");
-        return methodBuilder.build();
+        return buildQueryMethod(pojoInfo, "selectListByQuery", 
+                methodBuilder -> {
+                    ClassName entityType = getEntityType(pojoInfo);
+                    methodBuilder.returns(ParameterizedTypeName.get(ClassName.get(List.class), entityType));
+                },
+                methodBuilder -> methodBuilder.addStatement("return selectListByQuery(queryWrapper)"));
     }
 
     private MethodSpec buildPageMethod(PojoInfo pojoInfo) {
-        ClassName entityType = ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
-        ClassName queryType = ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query");
-
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("page")
-                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                .addParameter(queryType, "query")
-                .returns(ParameterizedTypeName.get(ClassName.get(Page.class), entityType));
-
-        methodBuilder.addStatement("$T<$T> page = new Page<>(query.getQueryPage(), query.getQuerySize())", Page.class, entityType);
-        buildQueryWrapperLogic(methodBuilder, pojoInfo);
-
-        methodBuilder.addStatement("return paginate(page, queryWrapper)");
-        return methodBuilder.build();
+        return buildQueryMethod(pojoInfo, "page",
+                methodBuilder -> {
+                    ClassName entityType = getEntityType(pojoInfo);
+                    methodBuilder.returns(ParameterizedTypeName.get(ClassName.get(Page.class), entityType));
+                },
+                methodBuilder -> {
+                    ClassName entityType = getEntityType(pojoInfo);
+                    methodBuilder.addStatement("$T<$T> page = new Page<>(query.getQueryPage(), query.getQuerySize())", Page.class, entityType);
+                    methodBuilder.addStatement("return paginate(page, queryWrapper)");
+                });
     }
 
     private void buildQueryWrapperLogic(MethodSpec.Builder methodBuilder, PojoInfo pojoInfo) {
@@ -117,6 +109,51 @@ public class RepositoryGenerator implements CodeGenerator {
     @Override
     public String getClassName(PojoInfo pojoInfo) {
         return packageLayout.getRepositoryClassName(pojoInfo.getClassName());
+    }
+
+    /**
+     * 构建查询方法的通用模板
+     *
+     * @param pojoInfo 实体信息
+     * @param methodName 方法名
+     * @param returnTypeConfig 返回类型配置
+     * @param bodyConfig 方法体配置
+     * @return 方法规范
+     */
+    private MethodSpec buildQueryMethod(PojoInfo pojoInfo, String methodName, 
+                                       Consumer<MethodSpec.Builder> returnTypeConfig,
+                                       Consumer<MethodSpec.Builder> bodyConfig) {
+        ClassName queryType = getQueryType(pojoInfo);
+        
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addParameter(queryType, "query");
+        
+        returnTypeConfig.accept(methodBuilder);
+        buildQueryWrapperLogic(methodBuilder, pojoInfo);
+        bodyConfig.accept(methodBuilder);
+        
+        return methodBuilder.build();
+    }
+
+    /**
+     * 获取实体类型
+     *
+     * @param pojoInfo 实体信息
+     * @return 实体类型
+     */
+    private ClassName getEntityType(PojoInfo pojoInfo) {
+        return ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
+    }
+
+    /**
+     * 获取查询类型
+     *
+     * @param pojoInfo 实体信息
+     * @return 查询类型
+     */
+    private ClassName getQueryType(PojoInfo pojoInfo) {
+        return ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query");
     }
 
     /**

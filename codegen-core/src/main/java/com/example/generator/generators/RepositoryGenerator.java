@@ -83,8 +83,8 @@ public class RepositoryGenerator implements CodeGenerator {
 
     private void buildQueryWrapperLogic(MethodSpec.Builder methodBuilder, PojoInfo pojoInfo) {
         ClassName tableRefs = ClassName.get(pojoInfo.getPackageName() + ".table", pojoInfo.getClassName() + "TableRefs");
-        String tableVarName = pojoInfo.getClassName().toLowerCase() + "TableRefs";
-        String staticTableFieldName = pojoInfo.getClassName().toLowerCase();
+        String tableVarName = toCamelCase(pojoInfo.getClassName()) + "TableRefs";
+        String staticTableFieldName = toCamelCase(pojoInfo.getClassName());
 
         methodBuilder.addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableFieldName);
 
@@ -117,5 +117,18 @@ public class RepositoryGenerator implements CodeGenerator {
     @Override
     public String getClassName(PojoInfo pojoInfo) {
         return packageLayout.getRepositoryClassName(pojoInfo.getClassName());
+    }
+
+    /**
+     * 将类名转换为驼峰命名（首字母小写）
+     *
+     * @param className 类名
+     * @return 驼峰命名的字符串
+     */
+    private static String toCamelCase(String className) {
+        if (className == null || className.isEmpty()) {
+            return className;
+        }
+        return Character.toLowerCase(className.charAt(0)) + className.substring(1);
     }
 }

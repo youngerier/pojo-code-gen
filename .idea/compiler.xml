@@ -22,6 +22,7 @@
           <entry name="$MAVEN_REPOSITORY$/org/mybatis/mybatis/3.5.13/mybatis-3.5.13.jar" />
         </processorPath>
         <module name="generator-core" />
+        <module name="generator-maven-plugin" />
         <module name="toolkit" />
         <module name="example" />
       </profile>

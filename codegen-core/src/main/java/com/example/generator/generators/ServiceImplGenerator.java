@@ -4,12 +4,7 @@ import com.abc.web.support.Pagination;
 import com.example.generator.CodeGenerator;
 import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.*;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.lang.model.element.Modifier;
@@ -28,6 +23,7 @@ public class ServiceImplGenerator implements CodeGenerator {
     public ServiceImplGenerator(PackageLayout packageLayout) {
         this.packageLayout = packageLayout;
     }
+
     @Override
     public TypeSpec generate(PojoInfo pojoInfo) {
         // 获取实体类名
@@ -56,26 +52,25 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .addSuperinterface(serviceType);
 
         // 添加Repository字段
-        String repositoryFieldName = lowerFirstChar(entityName) + "Repository";
+        String repositoryFieldName = pojoInfo.getCamelClassName() + "Repository";
         FieldSpec repositoryField = FieldSpec.builder(repositoryType, repositoryFieldName)
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
                 .build();
         classBuilder.addField(repositoryField);
 
-        // 添加Mapper字段
-        String mapperFieldName = lowerFirstChar(entityName) + "Convertor";
+        // 添加Mapper字段（使用INSTANCE常量）
+        String mapperFieldName = pojoInfo.getCamelClassName() + "Convertor";
         FieldSpec mapperField = FieldSpec.builder(mapperType, mapperFieldName)
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .initializer("$T.INSTANCE", mapperType)
                 .build();
         classBuilder.addField(mapperField);
 
-        // 添加构造函数
+        // 添加构造函数（只注入Repository）
         MethodSpec constructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(repositoryType, repositoryFieldName)
-                .addParameter(mapperType, mapperFieldName)
                 .addStatement("this.$N = $N", repositoryFieldName, repositoryFieldName)
-                .addStatement("this.$N = $N", mapperFieldName, mapperFieldName)
                 .build();
         classBuilder.addMethod(constructor);
 
@@ -83,9 +78,9 @@ public class ServiceImplGenerator implements CodeGenerator {
         MethodSpec createMethod = MethodSpec.methodBuilder("create" + entityName)
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .addParameter(dtoType, lowerFirstChar(entityName) + "DTO")
+                .addParameter(dtoType, pojoInfo.getCamelClassName() + "DTO")
                 .returns(dtoType)
-                .addStatement("$T entity = $N.toEntity($N)", entityType, mapperFieldName, lowerFirstChar(entityName) + "DTO")
+                .addStatement("$T entity = $N.toEntity($N)", entityType, mapperFieldName, pojoInfo.getCamelClassName() + "DTO")
                 .addStatement("$N.insert(entity)", repositoryFieldName)
                 .addStatement("return $N.toDto(entity)", mapperFieldName)
                 .build();
@@ -102,7 +97,6 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .build();
         classBuilder.addMethod(getByIdMethod);
 
-        
 
         // 添加queryXxxs方法
         ParameterizedTypeName listOfDto = ParameterizedTypeName.get(
@@ -133,13 +127,13 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
                 .addParameter(TypeName.LONG, "id")
-                .addParameter(dtoType, lowerFirstChar(entityName) + "DTO")
+                .addParameter(dtoType, pojoInfo.getCamelClassName() + "DTO")
                 .returns(dtoType)
                 .addStatement("$T existingEntity = $N.selectOneById(id)", entityType, repositoryFieldName)
                 .beginControlFlow("if (existingEntity == null)")
                 .addStatement("return null")
                 .endControlFlow()
-                .addStatement("$T updatedEntity = $N.toEntity($N)", entityType, mapperFieldName, lowerFirstChar(entityName) + "DTO")
+                .addStatement("$T updatedEntity = $N.toEntity($N)", entityType, mapperFieldName, pojoInfo.getCamelClassName() + "DTO")
                 .addStatement("updatedEntity.setId(id)") // Ensure ID is set for update
                 .addStatement("$N.update(updatedEntity)", repositoryFieldName)
                 .addStatement("return $N.toDto(updatedEntity)", mapperFieldName)
@@ -175,13 +169,4 @@ public class ServiceImplGenerator implements CodeGenerator {
         return packageLayout.getServiceImplClassName(pojoInfo.getClassName());
     }
 
-    /**
-     * 将字符串的首字母转为小写
-     */
-    private String lowerFirstChar(String str) {
-        if (str == null || str.isEmpty()) {
-            return str;
-        }
-        return Character.toLowerCase(str.charAt(0)) + str.substring(1);
-    }
 }

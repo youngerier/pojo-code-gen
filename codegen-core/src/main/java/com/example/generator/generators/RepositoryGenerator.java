@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.lang.model.element.Modifier;
 import java.util.List;
 
+
 /**
  * Repository接口生成器 - 基于MyBatis Flex
  */
@@ -38,6 +39,7 @@ public class RepositoryGenerator implements CodeGenerator {
             interfaceBuilder.addJavadoc("数据访问层接口\n");
         }
 
+        interfaceBuilder.addMethod(buildQueryWrapperMethod(pojoInfo));
         interfaceBuilder.addMethod(buildSelectListByQueryMethod(pojoInfo));
         interfaceBuilder.addMethod(buildPageMethod(pojoInfo));
 
@@ -51,63 +53,68 @@ public class RepositoryGenerator implements CodeGenerator {
     }
 
     private MethodSpec buildSelectListByQueryMethod(PojoInfo pojoInfo) {
-        ClassName entityType = ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
-        ClassName queryType = ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query");
+        ClassName entityType = getEntityType(pojoInfo);
+        ClassName queryType = getQueryType(pojoInfo);
 
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("selectListByQuery")
+        return MethodSpec.methodBuilder("selectListByQuery")
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                 .addParameter(queryType, "query")
-                .returns(ParameterizedTypeName.get(ClassName.get(List.class), entityType));
-
-        buildQueryWrapperLogic(methodBuilder, pojoInfo);
-
-        methodBuilder.addStatement("return selectListByQuery(queryWrapper)");
-        return methodBuilder.build();
+                .returns(ParameterizedTypeName.get(ClassName.get(List.class), entityType))
+                .addStatement("return selectListByQuery(buildQueryWrapper(query))")
+                .build();
     }
 
     private MethodSpec buildPageMethod(PojoInfo pojoInfo) {
-        ClassName entityType = ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
-        ClassName queryType = ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query");
+        ClassName entityType = getEntityType(pojoInfo);
+        ClassName queryType = getQueryType(pojoInfo);
 
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("page")
+        return MethodSpec.methodBuilder("page")
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                 .addParameter(queryType, "query")
-                .returns(ParameterizedTypeName.get(ClassName.get(Page.class), entityType));
-
-        methodBuilder.addStatement("$T<$T> page = new Page<>(query.getQueryPage(), query.getQuerySize())", Page.class, entityType);
-        buildQueryWrapperLogic(methodBuilder, pojoInfo);
-
-        methodBuilder.addStatement("return paginate(page, queryWrapper)");
-        return methodBuilder.build();
+                .returns(ParameterizedTypeName.get(ClassName.get(Page.class), entityType))
+                .addStatement("$T<$T> page = new Page<>(query.getQueryPage(), query.getQuerySize())", Page.class, entityType)
+                .addStatement("return paginate(page, buildQueryWrapper(query))")
+                .build();
     }
 
-    private void buildQueryWrapperLogic(MethodSpec.Builder methodBuilder, PojoInfo pojoInfo) {
+    private MethodSpec buildQueryWrapperMethod(PojoInfo pojoInfo) {
+        ClassName queryType = getQueryType(pojoInfo);
         ClassName tableRefs = ClassName.get(pojoInfo.getPackageName() + ".table", pojoInfo.getClassName() + "TableRefs");
-        String tableVarName = pojoInfo.getClassName().toLowerCase() + "TableRefs";
-        String staticTableFieldName = pojoInfo.getClassName().toLowerCase();
+        String tableVarName = toCamelCase(pojoInfo.getClassName()) + "TableRefs";
+        String staticTableFieldName = toCamelCase(pojoInfo.getClassName());
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("buildQueryWrapper")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addParameter(queryType, "query")
+                .returns(QueryWrapper.class);
 
         methodBuilder.addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableFieldName);
 
         CodeBlock.Builder queryWrapperBuilder = CodeBlock.builder();
-        queryWrapperBuilder.add("$T queryWrapper = $T.withOrder(query)\n", QueryWrapper.class, QueryWrapperHelper.class);
+        queryWrapperBuilder.add("return $T.withOrder(query)\n", QueryWrapperHelper.class);
         queryWrapperBuilder.indent();
         queryWrapperBuilder.add(".from($L)\n", tableVarName);
 
+        // Add conditional where clauses for each field
         for (PojoInfo.FieldInfo field : pojoInfo.getFields()) {
             String fieldName = field.getName();
             String getterName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
-            queryWrapperBuilder.add(".where($L.$L.$L.eq(query.$L()))\n",
-                    tableVarName, staticTableFieldName, fieldName, getterName);
+            queryWrapperBuilder.add(".where($L.$L.eq(query.$L()))\n",
+                    tableVarName, fieldName, getterName);
         }
 
-        queryWrapperBuilder.add(".and($L.$L.gmtCreate.ge(query.getMinGmtCreate()))\n", tableVarName, staticTableFieldName);
-        queryWrapperBuilder.add(".and($L.$L.gmtCreate.le(query.getMaxGmtCreate()))\n", tableVarName, staticTableFieldName);
-        queryWrapperBuilder.add(".and($L.$L.gmtModified.ge(query.getMinGmtModified()))\n", tableVarName, staticTableFieldName);
-        queryWrapperBuilder.add(".and($L.$L.gmtModified.le(query.getMaxGmtModified()));\n", tableVarName, staticTableFieldName);
+        // Add time range conditions
+        queryWrapperBuilder.add(".and($L.gmtCreate.ge(query.getMinGmtCreate()))\n", tableVarName);
+        queryWrapperBuilder.add(".and($L.gmtCreate.le(query.getMaxGmtCreate()))\n", tableVarName);
+        queryWrapperBuilder.add(".and($L.gmtModified.ge(query.getMinGmtModified()))\n", tableVarName);
+        queryWrapperBuilder.add(".and($L.gmtModified.le(query.getMaxGmtModified()));\n", tableVarName);
         queryWrapperBuilder.unindent();
 
         methodBuilder.addCode(queryWrapperBuilder.build());
+        return methodBuilder.build();
     }
+
+
 
     @Override
     public String getPackageName() {
@@ -117,5 +124,40 @@ public class RepositoryGenerator implements CodeGenerator {
     @Override
     public String getClassName(PojoInfo pojoInfo) {
         return packageLayout.getRepositoryClassName(pojoInfo.getClassName());
+    }
+
+
+
+    /**
+     * 获取实体类型
+     *
+     * @param pojoInfo 实体信息
+     * @return 实体类型
+     */
+    private ClassName getEntityType(PojoInfo pojoInfo) {
+        return ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
+    }
+
+    /**
+     * 获取查询类型
+     *
+     * @param pojoInfo 实体信息
+     * @return 查询类型
+     */
+    private ClassName getQueryType(PojoInfo pojoInfo) {
+        return ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query");
+    }
+
+    /**
+     * 将类名转换为驼峰命名（首字母小写）
+     *
+     * @param className 类名
+     * @return 驼峰命名的字符串
+     */
+    private static String toCamelCase(String className) {
+        if (className == null || className.isEmpty()) {
+            return className;
+        }
+        return Character.toLowerCase(className.charAt(0)) + className.substring(1);
     }
 }

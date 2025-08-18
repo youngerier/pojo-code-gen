@@ -15,6 +15,9 @@ public class PojoInfo {
     private String classComment; // 类注释
     private List<FieldInfo> fields = new ArrayList<>(); // 字段信息列表
 
+    public String getCamelClassName(){
+        return className.substring(0, 1).toLowerCase() + className.substring(1);
+    }
     /**
      * 字段信息内部类
      */

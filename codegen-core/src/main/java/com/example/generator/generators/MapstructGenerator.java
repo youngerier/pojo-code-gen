@@ -4,6 +4,7 @@ import com.example.generator.CodeGenerator;
 import com.example.generator.model.PackageLayout;
 import com.example.generator.model.PojoInfo;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -51,6 +52,15 @@ public class MapstructGenerator implements CodeGenerator {
         TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(getClassName(pojoInfo))
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(ClassName.get("org.mapstruct", "Mapper"));
+
+        // 添加INSTANCE常量
+        ClassName convertorType = ClassName.get(packageLayout.getConvertorPackage(), getClassName(pojoInfo));
+        FieldSpec instanceField = FieldSpec.builder(convertorType, "INSTANCE")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                .initializer("$T.getMapper($T.class)", 
+                    ClassName.get("org.mapstruct.factory", "Mappers"), convertorType)
+                .build();
+        interfaceBuilder.addField(instanceField);
 
         // 添加实体到DTO的转换方法
         MethodSpec entityToDtoMethod = MethodSpec.methodBuilder("toDto")

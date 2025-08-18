@@ -43,7 +43,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>com.example</groupId>
+                <groupId>io.github.youngerier</groupId>
                 <artifactId>generator-maven-plugin</artifactId>
                 <version>${project.version}</version>
                 <executions>

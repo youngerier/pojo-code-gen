@@ -333,6 +333,12 @@
     <profiles>
         <profile>
             <id>release</id>
+            <modules>
+                <module>codegen-core</module>
+                <module>toolkit</module>
+                <module>generator-maven-plugin</module>
+                <!-- Exclude example module from release -->
+            </modules>
             <build>
                 <plugins>
                     <plugin>

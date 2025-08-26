@@ -20,8 +20,8 @@ public class GeneratorConfig {
     private final String outputBaseDir;
 
     /**
-     * 需要生成代码的POJO文件的完整路径列表。
+     * A list of fully qualified class names of the POJOs for which code needs to be generated.
      */
-    private final List<String> pojoPaths;
+    private final List<String> pojoClasses;
 
 }

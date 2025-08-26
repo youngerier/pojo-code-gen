@@ -1,5 +1,6 @@
 package com.abc.entity;
 
+import com.example.generator.annotation.GenModel;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.Table;
 import lombok.Data;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
  */
 @Table(value = User.TABLE_NAME)
 @Data
+@GenModel
 public class User {
     public static final String TABLE_NAME = "t_user";
 

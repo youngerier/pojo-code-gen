@@ -20,19 +20,11 @@ public class CodeGeneratorMain {
         GeneratorConfig config = GeneratorConfig.builder()
                 .moduleName(moduleName)
                 .outputBaseDir("target" + File.separator + "generated-sources")
-                .pojoPaths(Collections.singletonList(resolvePojoPath(pojoClassName, moduleName)))
+                .pojoClasses(Collections.singletonList(pojoClassName))
                 .build();
 
         // 3. 创建并执行引擎
         GeneratorEngine engine = new GeneratorEngine(config);
         engine.execute();
-    }
-
-    /**
-     * 将类名转换为项目内的完整文件路径。
-     */
-    private static String resolvePojoPath(String className, String moduleName) {
-        String filePath = className.replace('.', File.separatorChar) + ".java";
-        return new File(System.getProperty("user.dir"), moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java" + File.separator + filePath).getAbsolutePath();
     }
 }

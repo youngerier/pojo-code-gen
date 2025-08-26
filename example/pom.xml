@@ -56,9 +56,9 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <pojoPaths>
-                        <path>${project.basedir}/src/main/java/com/abc/entity/User.java</path>
-                    </pojoPaths>
+                    <scanPackages>
+                        <package>com.abc.entity</package>
+                    </scanPackages>
                     <!-- outputDir is not specified, so it will use the default: target/generated-sources/ -->
                 </configuration>
             </plugin>

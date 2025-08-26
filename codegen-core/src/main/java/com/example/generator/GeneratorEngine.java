@@ -24,24 +24,24 @@ public class GeneratorEngine {
     }
 
     /**
-     * 执行代码生成。
+     * Execute code generation.
      */
     public void execute() {
-        for (String pojoPath : config.getPojoPaths()) {
+        for (String pojoClass : config.getPojoClasses()) {
             try {
-                generateSinglePojo(pojoPath);
-            } catch (IOException | NoSuchAlgorithmException e) {
-                log.error("为 {} 生成代码时出错: {}", pojoPath, e.getMessage(), e);
+                generateSinglePojo(pojoClass);
+            } catch (IOException | NoSuchAlgorithmException | ClassNotFoundException e) {
+                log.error("Error generating code for {}: {}", pojoClass, e.getMessage(), e);
             }
         }
         log.info("所有代码生成任务完成!");
     }
 
-    private void generateSinglePojo(String pojoFilePath) throws IOException, NoSuchAlgorithmException {
-        // 1. 解析POJO文件
+    private void generateSinglePojo(String pojoClassName) throws IOException, NoSuchAlgorithmException, ClassNotFoundException {
+        // 1. Parse the POJO class
         PojoParser parser = new PojoParser();
-        PojoInfo pojoInfo = parser.parse(pojoFilePath, config.getModuleName());
-        log.info("成功解析POJO: {}", pojoInfo.getClassName());
+        PojoInfo pojoInfo = parser.parse(pojoClassName, config.getModuleName());
+        log.info("Successfully parsed POJO: {}", pojoInfo.getClassName());
 
         // 2. 创建包配置
         String basePackage = pojoInfo.getPackageName().substring(0, pojoInfo.getPackageName().lastIndexOf("."));

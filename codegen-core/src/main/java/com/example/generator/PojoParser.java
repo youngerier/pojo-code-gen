@@ -14,7 +14,6 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 
 /**
@@ -24,35 +23,42 @@ import java.io.IOException;
 public class PojoParser {
 
     /**
-     * 解析POJO文件
+     * Parse a POJO class.
      *
-     * @param filePath POJO文件路径
-     * @return 解析后的POJO信息
-     * @throws IOException IO异常
+     * @param className  The fully qualified class name of the POJO.
+     * @param moduleName The name of the module.
+     * @return The parsed POJO information.
+     * @throws IOException            If an I/O error occurs.
+     * @throws ClassNotFoundException If the class is not found.
      */
-    public PojoInfo parse(String filePath,String moduleName) throws IOException {
-        // 配置符号解析器
+    public PojoInfo parse(String className, String moduleName) throws IOException, ClassNotFoundException {
+        // Configure the symbol solver
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
-        combinedTypeSolver.add(new JavaParserTypeSolver(new File(System.getProperty("user.dir") + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java")));
+        String srcPath = System.getProperty("user.dir") + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
+        combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcPath)));
 
         JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
         StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
 
-        File file = new File(filePath);
-        CompilationUnit cu = StaticJavaParser.parse(new FileInputStream(file));
+        Class<?> clazz = Class.forName(className);
+        String fileName = clazz.getSimpleName() + ".java";
+        String packagePath = clazz.getPackage().getName().replace('.', File.separatorChar);
+        String filePath = srcPath + File.separator + packagePath + File.separator + fileName;
+
+        CompilationUnit cu = StaticJavaParser.parse(new File(filePath));
 
         PojoInfo pojoInfo = new PojoInfo();
 
-        // 提取包名
+        // Extract package name
         cu.getPackageDeclaration().ifPresent(pkg -> pojoInfo.setPackageName(pkg.getNameAsString()));
 
-        // 提取类信息
-        cu.getClassByName(file.getName().replace(".java", "")).ifPresent(cls -> {
+        // Extract class information
+        cu.getClassByName(clazz.getSimpleName()).ifPresent(cls -> {
             pojoInfo.setClassName(cls.getNameAsString());
             pojoInfo.setClassComment(extractComment(cls));
 
-            // 提取字段信息
+            // Extract field information
             extractFields(cls, pojoInfo);
         });
 
@@ -60,11 +66,11 @@ public class PojoParser {
     }
 
     /**
-     * 提取字段信息
+     * Extract field information.
      */
     private void extractFields(ClassOrInterfaceDeclaration cls, PojoInfo pojoInfo) {
         for (FieldDeclaration fieldDecl : cls.getFields()) {
-            // 跳过静态字段
+            // Skip static fields
             if (fieldDecl.isStatic()) {
                 continue;
             }
@@ -75,15 +81,15 @@ public class PojoParser {
                 fieldInfo.setType(var.getTypeAsString());
                 fieldInfo.setComment(extractComment(fieldDecl));
 
-                // 尝试解析并设置完整类型
+                // Try to resolve and set the full type
                 try {
                     fieldInfo.setFullType(var.getType().resolve().describe());
                 } catch (Exception e) {
-                    // 解析失败，回退到简单类型
+                    // Fallback to simple type if resolution fails
                     fieldInfo.setFullType(var.getTypeAsString());
                 }
 
-                // 判断是否为主键（简单判断：字段名是id或xxxId）
+                // Check if it's a primary key (simple check: field name is "id" or ends with "Id")
                 fieldInfo.setPrimaryKey(isPrimaryKey(fieldInfo.getName()));
 
                 pojoInfo.getFields().add(fieldInfo);
@@ -92,26 +98,23 @@ public class PojoParser {
     }
 
     /**
-     * 提取注释内容
+     * Extract comment content.
      *
-     * @param node 包含注释的节点
-     * @return 提取的注释内容，如果没有注释则返回空字符串
+     * @param node The node containing the comment.
+     * @return The extracted comment content, or an empty string if there is no comment.
      */
     private String extractComment(Node node) {
         return node.getComment().map(comment -> {
             String commentStr = comment.getContent().trim();
-            // 清理注释标记
+            // Clean up comment markers
             return commentStr.replaceAll("\\*", "").trim();
         }).orElse("");
     }
 
     /**
-     * 判断是否为主键字段
+     * Check if it's a primary key field.
      */
     private boolean isPrimaryKey(String fieldName) {
         return "id".equals(fieldName) || fieldName.endsWith("Id");
     }
-
-    // 注释：在JavaParser 3.25.4中，不存在com.github.javaparser.ast.Commentable接口
-    // 所有AST节点都继承自Node类，Node类有getComment()方法
 }

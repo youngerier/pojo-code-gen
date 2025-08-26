@@ -70,9 +70,7 @@ mvn test
 mvn clean deploy -P release
 
 # 或者分步骤执行
-mvn clean compile
-mvn source:jar javadoc:jar
-mvn gpg:sign-and-deploy-file -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -DrepositoryId=ossrh
+mvn clean deploy -P release -s ./settings.xml -X
 ```
 
 ### 4. 在 Sonatype Nexus 中发布

@@ -43,6 +43,26 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>generator-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-code</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <pojoPaths>
+                        <path>${project.basedir}/src/main/java/com/abc/entity/User.java</path>
+                    </pojoPaths>
+                    <!-- outputDir is not specified, so it will use the default: target/generated-sources/ -->
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>

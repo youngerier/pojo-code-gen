@@ -15,7 +15,7 @@ public class GeneratorConfig {
     private final String moduleName;
 
     /**
-     * 生成代码的根输出目录 (例如 "example/target/generated-sources")
+     * 生成代码的根输出目录 (例如 "target/generated-sources")
      */
     private final String outputBaseDir;
 

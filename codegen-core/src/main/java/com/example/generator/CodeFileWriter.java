@@ -1,6 +1,6 @@
 package com.example.generator;
 
-import com.example.generator.model.PojoInfo;
+import com.example.generator.model.ClassMetadata;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 import lombok.extern.slf4j.Slf4j;
@@ -15,16 +15,16 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 /**
- * 文件生成器，负责将生成的代码写入文件系统
+ * 代码文件写入器，负责将生成的代码写入文件系统
  */
 @Slf4j
-public class FileGenerator {
+public class CodeFileWriter {
 
     private static final String DEFAULT_INDENT = "    "; // 默认4个空格缩进
     
     private final String baseOutputDir;
 
-    public FileGenerator(String baseOutputDir) {
+    public CodeFileWriter(String baseOutputDir) {
         this.baseOutputDir = baseOutputDir;
     }
 
@@ -32,15 +32,15 @@ public class FileGenerator {
      * 生成文件
      *
      * @param codeGenerator 代码生成器
-     * @param pojoInfo      POJO信息
+     * @param classMetadata 类元数据信息
      * @throws IOException IO异常
      */
-    public void generateFile(CodeGenerator codeGenerator, PojoInfo pojoInfo) throws IOException {
+    public void generateFile(CodeGenerator codeGenerator, ClassMetadata classMetadata) throws IOException {
         String packageName = codeGenerator.getPackageName();
-        String className = codeGenerator.getClassName(pojoInfo);
+        String className = codeGenerator.getClassName(classMetadata);
 
         // 生成TypeSpec
-        TypeSpec typeSpec = codeGenerator.generate(pojoInfo);
+        TypeSpec typeSpec = codeGenerator.generate(classMetadata);
 
         // 创建JavaFile
         JavaFile javaFile = JavaFile.builder(packageName, typeSpec)

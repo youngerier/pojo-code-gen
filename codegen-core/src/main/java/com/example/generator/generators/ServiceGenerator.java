@@ -2,8 +2,8 @@ package com.example.generator.generators;
 
 import com.abc.web.support.Pagination;
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageLayout;
-import com.example.generator.model.PojoInfo;
+import com.example.generator.model.PackageStructure;
+import com.example.generator.model.ClassMetadata;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -19,94 +19,94 @@ import java.util.List;
  */
 @Slf4j
 public class ServiceGenerator implements CodeGenerator {
-    private final PackageLayout packageLayout;
+    private final PackageStructure packageStructure;
 
-    public ServiceGenerator(PackageLayout packageLayout) {
-        this.packageLayout = packageLayout;
+    public ServiceGenerator(PackageStructure packageStructure) {
+        this.packageStructure = packageStructure;
     }
 
     @Override
-    public TypeSpec generate(PojoInfo pojoInfo) {
-        String dtoClassName = packageLayout.getDtoClassName(pojoInfo.getClassName());
-        ClassName dtoType = ClassName.get(packageLayout.getDtoPackage(), dtoClassName);
+    public TypeSpec generate(ClassMetadata classMetadata) {
+        String dtoClassName = packageStructure.getDtoClassName(classMetadata.getClassName());
+        ClassName dtoType = ClassName.get(packageStructure.getDtoPackage(), dtoClassName);
         ClassName listType = ClassName.get(List.class);
         ParameterizedTypeName listOfDto = ParameterizedTypeName.get(listType, dtoType);
 
         // 创建接口构建器
-        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(getClassName(pojoInfo))
+        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(getClassName(classMetadata))
                 .addModifiers(Modifier.PUBLIC);
 
         // 添加接口注释
-        if (pojoInfo.getClassComment() != null && !pojoInfo.getClassComment().isEmpty()) {
-            interfaceBuilder.addJavadoc(pojoInfo.getClassComment() + "\n");
+        if (classMetadata.getClassComment() != null && !classMetadata.getClassComment().isEmpty()) {
+            interfaceBuilder.addJavadoc(classMetadata.getClassComment() + "\n");
             interfaceBuilder.addJavadoc("服务接口\n");
         }
 
         // 添加创建方法
-        MethodSpec createMethod = MethodSpec.methodBuilder("create" + pojoInfo.getClassName())
+        MethodSpec createMethod = MethodSpec.methodBuilder("create" + classMetadata.getClassName())
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(dtoType)
-                .addParameter(dtoType, pojoInfo.getCamelClassName() + "DTO")
-                .addJavadoc("创建$L\n", pojoInfo.getClassName())
+                .addParameter(dtoType, classMetadata.getCamelClassName() + "DTO")
+                .addJavadoc("创建$L\n", classMetadata.getClassName())
                 .addJavadoc("@param $L $L数据传输对象\n",
-                        pojoInfo.getCamelClassName() + "DTO",
-                        pojoInfo.getClassName())
-                .addJavadoc("@return 创建的$L对象\n", pojoInfo.getClassName())
+                        classMetadata.getCamelClassName() + "DTO",
+                        classMetadata.getClassName())
+                .addJavadoc("@return 创建的$L对象\n", classMetadata.getClassName())
                 .build();
         interfaceBuilder.addMethod(createMethod);
 
         // 添加查询单个对象方法
-        MethodSpec getByIdMethod = MethodSpec.methodBuilder("get" + pojoInfo.getClassName() + "ById")
+        MethodSpec getByIdMethod = MethodSpec.methodBuilder("get" + classMetadata.getClassName() + "ById")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(dtoType)
                 .addParameter(TypeName.LONG, "id")
-                .addJavadoc("根据ID查询$L\n", pojoInfo.getClassName())
+                .addJavadoc("根据ID查询$L\n", classMetadata.getClassName())
                 .addJavadoc("@param id 主键ID\n")
-                .addJavadoc("@return 对应的$L对象\n", pojoInfo.getClassName())
+                .addJavadoc("@return 对应的$L对象\n", classMetadata.getClassName())
                 .build();
         interfaceBuilder.addMethod(getByIdMethod);
 
         // 添加查询所有对象方法
-        MethodSpec getAllMethod = MethodSpec.methodBuilder("query" + pojoInfo.getClassName() + "s")
+        MethodSpec getAllMethod = MethodSpec.methodBuilder("query" + classMetadata.getClassName() + "s")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(listOfDto)
-                .addParameter(ClassName.get(packageLayout.getRequestPackage(), packageLayout.getQueryClassName(pojoInfo.getClassName())), "query")
-                .addJavadoc("查询所有$L\n", pojoInfo.getClassName())
-                .addJavadoc("@return $L对象列表\n", pojoInfo.getClassName())
+                .addParameter(ClassName.get(packageStructure.getRequestPackage(), packageStructure.getQueryClassName(classMetadata.getClassName())), "query")
+                .addJavadoc("查询所有$L\n", classMetadata.getClassName())
+                .addJavadoc("@return $L对象列表\n", classMetadata.getClassName())
                 .build();
         interfaceBuilder.addMethod(getAllMethod);
 
         // 添加分页查询方法
-        MethodSpec pageQueryMethod = MethodSpec.methodBuilder("pageQuery" + pojoInfo.getClassName() + "s")
+        MethodSpec pageQueryMethod = MethodSpec.methodBuilder("pageQuery" + classMetadata.getClassName() + "s")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(ParameterizedTypeName.get(ClassName.get(Pagination.class), dtoType))
-                .addParameter(ClassName.get(packageLayout.getRequestPackage(), packageLayout.getQueryClassName(pojoInfo.getClassName())), "query")
-                .addJavadoc("分页查询$L\n", pojoInfo.getClassName())
-                .addJavadoc("@return $L对象列表\n", pojoInfo.getClassName())
+                .addParameter(ClassName.get(packageStructure.getRequestPackage(), packageStructure.getQueryClassName(classMetadata.getClassName())), "query")
+                .addJavadoc("分页查询$L\n", classMetadata.getClassName())
+                .addJavadoc("@return $L对象列表\n", classMetadata.getClassName())
                 .build();
         interfaceBuilder.addMethod(pageQueryMethod);
  
          // 添加更新方法
-        MethodSpec updateMethod = MethodSpec.methodBuilder("update" + pojoInfo.getClassName())
+        MethodSpec updateMethod = MethodSpec.methodBuilder("update" + classMetadata.getClassName())
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(dtoType)
                 .addParameter(TypeName.LONG, "id")
-                .addParameter(dtoType, pojoInfo.getCamelClassName() + "DTO")
-                .addJavadoc("更新$L\n", pojoInfo.getClassName())
+                .addParameter(dtoType, classMetadata.getCamelClassName() + "DTO")
+                .addJavadoc("更新$L\n", classMetadata.getClassName())
                 .addJavadoc("@param id 主键ID\n")
                 .addJavadoc("@param $L $L数据传输对象\n",
-                        pojoInfo.getCamelClassName() + "DTO",
-                        pojoInfo.getClassName())
-                .addJavadoc("@return 更新后的$L对象\n", pojoInfo.getClassName())
+                        classMetadata.getCamelClassName() + "DTO",
+                        classMetadata.getClassName())
+                .addJavadoc("@return 更新后的$L对象\n", classMetadata.getClassName())
                 .build();
         interfaceBuilder.addMethod(updateMethod);
 
         // 添加删除方法
-        MethodSpec deleteMethod = MethodSpec.methodBuilder("delete" + pojoInfo.getClassName())
+        MethodSpec deleteMethod = MethodSpec.methodBuilder("delete" + classMetadata.getClassName())
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(TypeName.BOOLEAN)
                 .addParameter(TypeName.LONG, "id")
-                .addJavadoc("删除$L\n", pojoInfo.getClassName())
+                .addJavadoc("删除$L\n", classMetadata.getClassName())
                 .addJavadoc("@param id 主键ID\n")
                 .addJavadoc("@return 是否删除成功\n")
                 .build();
@@ -117,11 +117,11 @@ public class ServiceGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName() {
-        return packageLayout.getServicePackage();
+        return packageStructure.getServicePackage();
     }
 
     @Override
-    public String getClassName(PojoInfo pojoInfo) {
-        return packageLayout.getServiceClassName(pojoInfo.getClassName());
+    public String getClassName(ClassMetadata classMetadata) {
+        return packageStructure.getServiceClassName(classMetadata.getClassName());
     }
 }

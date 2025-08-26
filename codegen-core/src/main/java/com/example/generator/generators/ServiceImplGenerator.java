@@ -2,8 +2,8 @@ package com.example.generator.generators;
 
 import com.abc.web.support.Pagination;
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageLayout;
-import com.example.generator.model.PojoInfo;
+import com.example.generator.model.PackageStructure;
+import com.example.generator.model.ClassMetadata;
 import com.squareup.javapoet.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,14 +18,14 @@ import java.util.stream.Collectors;
 public class ServiceImplGenerator implements CodeGenerator {
 
 
-    private final PackageLayout packageLayout;
+    private final PackageStructure packageLayout;
 
-    public ServiceImplGenerator(PackageLayout packageLayout) {
+    public ServiceImplGenerator(PackageStructure packageLayout) {
         this.packageLayout = packageLayout;
     }
 
     @Override
-    public TypeSpec generate(PojoInfo pojoInfo) {
+    public TypeSpec generate(ClassMetadata pojoInfo) {
         // 获取实体类名
         String entityName = pojoInfo.getClassName();
         // 创建实体类类型
@@ -165,7 +165,7 @@ public class ServiceImplGenerator implements CodeGenerator {
     }
 
     @Override
-    public String getClassName(PojoInfo pojoInfo) {
+    public String getClassName(ClassMetadata pojoInfo) {
         return packageLayout.getServiceImplClassName(pojoInfo.getClassName());
     }
 

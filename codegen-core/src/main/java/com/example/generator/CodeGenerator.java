@@ -1,6 +1,6 @@
 package com.example.generator;
 
-import com.example.generator.model.PojoInfo;
+import com.example.generator.model.ClassMetadata;
 import com.squareup.javapoet.TypeSpec;
 
 /**
@@ -11,10 +11,10 @@ public interface CodeGenerator {
     /**
      * 生成代码
      *
-     * @param pojoInfo POJO信息
+     * @param classMetadata 类元数据信息
      * @return 生成的TypeSpec对象
      */
-    TypeSpec generate(PojoInfo pojoInfo);
+    TypeSpec generate(ClassMetadata classMetadata);
 
     /**
      * 获取生成文件的包名
@@ -26,8 +26,8 @@ public interface CodeGenerator {
     /**
      * 获取生成文件的类名
      *
-     * @param pojoInfo POJO信息
+     * @param classMetadata 类元数据信息
      * @return 类名
      */
-    String getClassName(PojoInfo pojoInfo);
+    String getClassName(ClassMetadata classMetadata);
 }

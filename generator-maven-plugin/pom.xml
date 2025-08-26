@@ -21,19 +21,19 @@
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
-            <version>3.8.1</version>
+            <version>3.9.4</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.plugin-tools</groupId>
             <artifactId>maven-plugin-annotations</artifactId>
-            <version>3.6.0</version>
+            <version>3.9.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
-            <artifactId>maven-project</artifactId>
-            <version>2.2.1</version>
+            <artifactId>maven-core</artifactId>
+            <version>3.9.4</version>
             <scope>provided</scope>
         </dependency>
 
@@ -53,15 +53,44 @@
 
     <build>
         <plugins>
+            <!-- Maven Compiler Plugin with proper configuration -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <!-- Exclude annotation processors that may interfere with plugin generation -->
+                    <annotationProcessorPaths>
+                        <!-- Only include essential annotation processors for this module -->
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            
+            <!-- Maven Plugin Plugin for generating plugin descriptor -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.9.0</version>
+                <configuration>
+                    <!-- Ensure goal prefix is set -->
+                    <goalPrefix>pojo-codegen</goalPrefix>
+                    <!-- Skip documentation generation for now -->
+                    <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
+                </configuration>
                 <executions>
                     <execution>
                         <id>default-descriptor</id>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>descriptor</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>help-goal</id>
+                        <goals>
+                            <goal>helpmojo</goal>
                         </goals>
                     </execution>
                 </executions>

@@ -1,8 +1,8 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageLayout;
-import com.example.generator.model.PojoInfo;
+import com.example.generator.model.PackageStructure;
+import com.example.generator.model.ClassMetadata;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
@@ -20,22 +20,22 @@ import javax.lang.model.element.Modifier;
  */
 @Slf4j
 public class QueryGenerator implements CodeGenerator {
-    private final PackageLayout packageLayout;
+    private final PackageStructure packageStructure;
 
-    public QueryGenerator(PackageLayout packageLayout) {
-        this.packageLayout = packageLayout;
+    public QueryGenerator(PackageStructure packageStructure) {
+        this.packageStructure = packageStructure;
     }
 
     @Override
-    public TypeSpec generate(PojoInfo pojoInfo) {
+    public TypeSpec generate(ClassMetadata classMetadata) {
         // 创建类构建器
-        TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getClassName(pojoInfo))
+        TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getClassName(classMetadata))
                 .addModifiers(Modifier.PUBLIC)
                 .superclass(ParameterizedTypeName.get(ClassName.get(AbstractPageQuery.class), ClassName.get(DefaultOrderField.class)))
                 .addAnnotation(ClassName.get("lombok", "Data"));
 
         // 添加字段
-        for (PojoInfo.FieldInfo field : pojoInfo.getFields()) {
+        for (ClassMetadata.FieldInfo field : classMetadata.getFields()) {
             // 创建字段类型
             TypeName fieldType = ClassName.bestGuess(field.getFullType());
 
@@ -54,8 +54,8 @@ public class QueryGenerator implements CodeGenerator {
         }
 
         // 添加类注释
-        if (pojoInfo.getClassComment() != null && !pojoInfo.getClassComment().isEmpty()) {
-            classBuilder.addJavadoc(pojoInfo.getClassComment() + "\n");
+        if (classMetadata.getClassComment() != null && !classMetadata.getClassComment().isEmpty()) {
+            classBuilder.addJavadoc(classMetadata.getClassComment() + "\n");
             classBuilder.addJavadoc("查询参数对象\n");
         }
 
@@ -87,11 +87,11 @@ public class QueryGenerator implements CodeGenerator {
 
     @Override
     public String getPackageName() {
-        return packageLayout.getRequestPackage();
+        return packageStructure.getRequestPackage();
     }
 
     @Override
-    public String getClassName(PojoInfo pojoInfo) {
-        return packageLayout.getQueryClassName(pojoInfo.getClassName());
+    public String getClassName(ClassMetadata classMetadata) {
+        return packageStructure.getQueryClassName(classMetadata.getClassName());
     }
 }

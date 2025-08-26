@@ -55,7 +55,7 @@
                 <executions>
                     <execution>
                         <id>generate-code</id>
-                        <phase>generate-sources</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>generate</goal>
                         </goals>

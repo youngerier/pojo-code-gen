@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 封装从POJO解析出的信息
+ * 类元数据信息，包含从源码中解析出的类的详细信息
  */
 @Data
-public class PojoInfo {
+public class ClassMetadata {
     private String packageName; // 包名
     private String className;   // 类名
     private String classComment; // 类注释

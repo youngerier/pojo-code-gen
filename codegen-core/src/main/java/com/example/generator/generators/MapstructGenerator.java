@@ -1,8 +1,8 @@
 package com.example.generator.generators;
 
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageLayout;
-import com.example.generator.model.PojoInfo;
+import com.example.generator.model.PackageStructure;
+import com.example.generator.model.ClassMetadata;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
@@ -19,14 +19,14 @@ import java.util.List;
 @Slf4j
 public class MapstructGenerator implements CodeGenerator {
 
-    private final PackageLayout packageLayout;
+    private final PackageStructure packageLayout;
 
-    public MapstructGenerator(PackageLayout packageLayout) {
+    public MapstructGenerator(PackageStructure packageLayout) {
         this.packageLayout = packageLayout;
     }
 
     @Override
-    public TypeSpec generate(PojoInfo pojoInfo) {
+    public TypeSpec generate(ClassMetadata pojoInfo) {
         // 获取实体类名
         String entityName = pojoInfo.getClassName();
         // 创建实体类类型
@@ -125,7 +125,7 @@ public class MapstructGenerator implements CodeGenerator {
     }
 
     @Override
-    public String getClassName(PojoInfo pojoInfo) {
+    public String getClassName(ClassMetadata pojoInfo) {
         return packageLayout.getConvertorClassName(pojoInfo.getClassName());
     }
 

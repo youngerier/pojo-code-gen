@@ -2,8 +2,8 @@ package com.example.generator.generators;
 
 import com.abc.web.support.QueryWrapperHelper;
 import com.example.generator.CodeGenerator;
-import com.example.generator.model.PackageLayout;
-import com.example.generator.model.PojoInfo;
+import com.example.generator.model.PackageStructure;
+import com.example.generator.model.ClassMetadata;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
@@ -22,14 +22,14 @@ import java.util.List;
  */
 @Slf4j
 public class RepositoryGenerator implements CodeGenerator {
-    private final PackageLayout packageLayout;
+    private final PackageStructure packageLayout;
 
-    public RepositoryGenerator(PackageLayout packageLayout) {
+    public RepositoryGenerator(PackageStructure packageLayout) {
         this.packageLayout = packageLayout;
     }
 
     @Override
-    public TypeSpec generate(PojoInfo pojoInfo) {
+    public TypeSpec generate(ClassMetadata pojoInfo) {
         TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(getClassName(pojoInfo))
                 .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(createBaseMapperType(pojoInfo));
@@ -46,13 +46,13 @@ public class RepositoryGenerator implements CodeGenerator {
         return interfaceBuilder.build();
     }
 
-    private ParameterizedTypeName createBaseMapperType(PojoInfo pojoInfo) {
+    private ParameterizedTypeName createBaseMapperType(ClassMetadata pojoInfo) {
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
         ClassName baseMapperType = ClassName.get("com.mybatisflex.core", "BaseMapper");
         return ParameterizedTypeName.get(baseMapperType, entityType);
     }
 
-    private MethodSpec buildSelectListByQueryMethod(PojoInfo pojoInfo) {
+    private MethodSpec buildSelectListByQueryMethod(ClassMetadata pojoInfo) {
         ClassName entityType = getEntityType(pojoInfo);
         ClassName queryType = getQueryType(pojoInfo);
 
@@ -64,7 +64,7 @@ public class RepositoryGenerator implements CodeGenerator {
                 .build();
     }
 
-    private MethodSpec buildPageMethod(PojoInfo pojoInfo) {
+    private MethodSpec buildPageMethod(ClassMetadata pojoInfo) {
         ClassName entityType = getEntityType(pojoInfo);
         ClassName queryType = getQueryType(pojoInfo);
 
@@ -77,7 +77,7 @@ public class RepositoryGenerator implements CodeGenerator {
                 .build();
     }
 
-    private MethodSpec buildQueryWrapperMethod(PojoInfo pojoInfo) {
+    private MethodSpec buildQueryWrapperMethod(ClassMetadata pojoInfo) {
         ClassName queryType = getQueryType(pojoInfo);
         ClassName tableRefs = ClassName.get(pojoInfo.getPackageName() + ".table", pojoInfo.getClassName() + "TableRefs");
         String tableVarName = toCamelCase(pojoInfo.getClassName()) + "TableRefs";
@@ -96,7 +96,7 @@ public class RepositoryGenerator implements CodeGenerator {
         queryWrapperBuilder.add(".from($L)\n", tableVarName);
 
         // Add conditional where clauses for each field
-        for (PojoInfo.FieldInfo field : pojoInfo.getFields()) {
+        for (ClassMetadata.FieldInfo field : pojoInfo.getFields()) {
             String fieldName = field.getName();
             String getterName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
             queryWrapperBuilder.add(".where($L.$L.eq(query.$L()))\n",
@@ -122,7 +122,7 @@ public class RepositoryGenerator implements CodeGenerator {
     }
 
     @Override
-    public String getClassName(PojoInfo pojoInfo) {
+    public String getClassName(ClassMetadata pojoInfo) {
         return packageLayout.getRepositoryClassName(pojoInfo.getClassName());
     }
 
@@ -134,7 +134,7 @@ public class RepositoryGenerator implements CodeGenerator {
      * @param pojoInfo 实体信息
      * @return 实体类型
      */
-    private ClassName getEntityType(PojoInfo pojoInfo) {
+    private ClassName getEntityType(ClassMetadata pojoInfo) {
         return ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
     }
 
@@ -144,7 +144,7 @@ public class RepositoryGenerator implements CodeGenerator {
      * @param pojoInfo 实体信息
      * @return 查询类型
      */
-    private ClassName getQueryType(PojoInfo pojoInfo) {
+    private ClassName getQueryType(ClassMetadata pojoInfo) {
         return ClassName.get(packageLayout.getRequestPackage(), pojoInfo.getClassName() + "Query");
     }
 

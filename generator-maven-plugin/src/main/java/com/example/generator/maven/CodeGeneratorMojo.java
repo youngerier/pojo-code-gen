@@ -9,6 +9,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
@@ -22,7 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Mojo(name = "generate", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
+@Mojo(name = "generate", defaultPhase = LifecyclePhase.PROCESS_CLASSES, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class CodeGeneratorMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
@@ -50,6 +51,17 @@ public class CodeGeneratorMojo extends AbstractMojo {
         if (scanPackages == null || scanPackages.isEmpty()) {
             getLog().warn("No packages to scan configured. Skipping code generation.");
             return;
+        }
+
+        // 检查项目是否已编译，如果没有则尝试编译
+        File outputDirectory = new File(project.getBuild().getOutputDirectory());
+        if (!outputDirectory.exists() || outputDirectory.listFiles() == null || outputDirectory.listFiles().length == 0) {
+            getLog().info("Project classes not found, attempting to compile project first...");
+            try {
+                compileProject();
+            } catch (Exception e) {
+                throw new MojoExecutionException("Failed to compile project before code generation", e);
+            }
         }
 
         // The GeneratorEngine works inside the specified output directory.
@@ -167,6 +179,44 @@ public class CodeGeneratorMojo extends AbstractMojo {
                 fallback.add(outputDirectory);
             }
             return fallback;
+        }
+    }
+
+    /**
+     * 编译项目以确保类文件存在
+     */
+    private void compileProject() throws Exception {
+        getLog().info("Compiling project to ensure class files exist...");
+        
+        // 使用 Maven 的内部 API 来编译项目
+        try {
+            // 构建简单的编译命令
+            ProcessBuilder pb = new ProcessBuilder("mvn", "compile");
+            pb.directory(project.getBasedir());
+            pb.redirectErrorStream(true);
+            
+            Process process = pb.start();
+            
+            // 读取输出但不打印（避免干扰）
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(process.getInputStream()));
+            String line;
+            StringBuilder output = new StringBuilder();
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                getLog().warn("Compilation process returned non-zero exit code: " + exitCode);
+                getLog().debug("Compilation output: " + output.toString());
+            } else {
+                getLog().info("Project compiled successfully");
+            }
+        } catch (Exception e) {
+            getLog().warn("Failed to compile project automatically: " + e.getMessage());
+            getLog().warn("Please run 'mvn compile' manually before using this plugin");
+            throw e;
         }
     }
 }

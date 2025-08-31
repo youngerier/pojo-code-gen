@@ -54,22 +54,53 @@
         <!-- Build Properties -->
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <!-- Dependency Versions -->
-        <javaparser.version>3.25.4</javaparser.version>
+        <!-- Core Dependency Versions -->
+        <javaparser.version>3.26.2</javaparser.version>
         <javapoet.version>1.13.0</javapoet.version>
-        <lombok.version>1.18.24</lombok.version>
+        <lombok.version>1.18.34</lombok.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
-        <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
-        <mybatis-flex.version>1.10.0</mybatis-flex.version>
+        <org.mapstruct.version>1.6.2</org.mapstruct.version>
+        <mybatis-flex.version>1.10.1</mybatis-flex.version>
+        
+        <!-- Spring Framework Versions -->
         <spring.version>6.2.7</spring.version>
-        <slf4j.version>2.0.9</slf4j.version>
+        <aspectj.version>1.9.24</aspectj.version>
+        
+        <!-- Jackson Versions -->
+        <jackson.version>2.19.1</jackson.version>
+        
+        <!-- Logging Versions -->
+        <slf4j.version>2.0.16</slf4j.version>
         <logback.version>1.5.13</logback.version>
-        <validation-api.version>1.1.0.Final</validation-api.version>
-
+        
+        <!-- Validation Versions -->
+        <jakarta.validation.version>3.0.2</jakarta.validation.version>
+        <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
+        
+        <!-- Maven Plugin Versions -->
+        <maven.plugin.api.version>3.9.4</maven.plugin.api.version>
+        <maven.plugin.annotations.version>3.9.0</maven.plugin.annotations.version>
+        <reflections.version>0.10.2</reflections.version>
+        
+        <!-- Maven Plugin Versions -->
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>3.10.1</maven-javadoc-plugin.version>
+        <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
+        <maven-plugin-plugin.version>3.15.1</maven-plugin-plugin.version>
+        <flatten-maven-plugin.version>1.6.0</flatten-maven-plugin.version>
+        <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
+        
         <!-- GPG signing control - disabled by default, enabled in release profile -->
         <gpg.skip>true</gpg.skip>
+        
+        <!-- Skip tests by default for faster builds -->
+        <maven.test.skip>false</maven.test.skip>
+        <skipTests>false</skipTests>
     </properties>
 
     <distributionManagement>
@@ -145,7 +176,7 @@
             <dependency>
                 <groupId>org.aspectj</groupId>
                 <artifactId>aspectjweaver</artifactId>
-                <version>1.9.24</version>
+                <version>${aspectj.version}</version>
             </dependency>
             <dependency>
                 <groupId>aopalliance</groupId>
@@ -157,12 +188,12 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>2.19.1</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>
                 <artifactId>jackson-datatype-jsr310</artifactId>
-                <version>2.19.1</version>
+                <version>${jackson.version}</version>
             </dependency>
 
             <!-- Spring Expression Language -->
@@ -176,8 +207,8 @@
             <dependency>
                 <groupId>jakarta.servlet</groupId>
                 <artifactId>jakarta.servlet-api</artifactId>
+                <version>${jakarta.servlet.version}</version>
                 <scope>provided</scope>
-                <version>6.1.0</version>
             </dependency>
 
             <!-- MapStruct -->
@@ -211,7 +242,32 @@
             <dependency>
                 <groupId>jakarta.validation</groupId>
                 <artifactId>jakarta.validation-api</artifactId>
-                <version>3.0.2</version>
+                <version>${jakarta.validation.version}</version>
+            </dependency>
+            
+            <!-- Maven Plugin Dependencies -->
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-plugin-api</artifactId>
+                <version>${maven.plugin.api.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven.plugin-tools</groupId>
+                <artifactId>maven-plugin-annotations</artifactId>
+                <version>${maven.plugin.annotations.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-core</artifactId>
+                <version>${maven.plugin.api.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.reflections</groupId>
+                <artifactId>reflections</artifactId>
+                <version>${reflections.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.youngerier</groupId>
@@ -245,10 +301,18 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.11.0</version>
+                    <version>${maven-compiler-plugin.version}</version>
                     <configuration>
+                        <release>${maven.compiler.release}</release>
                         <source>${maven.compiler.source}</source>
                         <target>${maven.compiler.target}</target>
+                        <encoding>${project.build.sourceEncoding}</encoding>
+                        <showWarnings>true</showWarnings>
+                        <showDeprecation>true</showDeprecation>
+                        <compilerArgs>
+                            <arg>-parameters</arg>
+                            <arg>-Xlint:unchecked</arg>
+                        </compilerArgs>
                         <annotationProcessorPaths>
                             <path>
                                 <groupId>org.projectlombok</groupId>
@@ -278,7 +342,10 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>${maven-source-plugin.version}</version>
+                    <configuration>
+                        <attach>true</attach>
+                    </configuration>
                     <executions>
                         <execution>
                             <id>attach-sources</id>
@@ -293,12 +360,18 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.6.3</version>
+                    <version>${maven-javadoc-plugin.version}</version>
                     <configuration>
-                        <encoding>UTF-8</encoding>
-                        <charset>UTF-8</charset>
-                        <docencoding>UTF-8</docencoding>
+                        <encoding>${project.build.sourceEncoding}</encoding>
+                        <charset>${project.build.sourceEncoding}</charset>
+                        <docencoding>${project.build.sourceEncoding}</docencoding>
                         <doclint>none</doclint>
+                        <quiet>true</quiet>
+                        <source>${maven.compiler.source}</source>
+                        <additionalJOptions>
+                            <additionalJOption>-J-Duser.language=en</additionalJOption>
+                            <additionalJOption>-J-Duser.country=US</additionalJOption>
+                        </additionalJOptions>
                     </configuration>
                     <executions>
                         <execution>
@@ -314,7 +387,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-gpg-plugin</artifactId>
-                    <version>3.1.0</version>
+                    <version>${maven-gpg-plugin.version}</version>
                     <configuration>
                         <skip>${gpg.skip}</skip>
                         <executable>${gpg.executable}</executable>
@@ -336,27 +409,15 @@
                     </executions>
                 </plugin>
 
-                <!-- Nexus staging plugin -->
-                <!-- <plugin>
-                    <groupId>org.sonatype.plugins</groupId>
-                    <artifactId>nexus-staging-maven-plugin</artifactId>
-                    <version>1.6.13</version>
-                    <extensions>true</extensions>
-                    <configuration>
-                        <serverId>cc5a8e4c-3b03-4fb7-bcff-afdfe91a90ce</serverId>
-                        <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                        <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                    </configuration>
-                </plugin> -->
-
                 <plugin>
                     <groupId>org.sonatype.central</groupId>
                     <artifactId>central-publishing-maven-plugin</artifactId>
-                    <version>0.8.0</version>
+                    <version>${central-publishing-maven-plugin.version}</version>
                     <extensions>true</extensions>
                     <configuration>
                         <publishingServerId>central</publishingServerId>
                         <autoPublish>true</autoPublish>
+                        <waitUntil>published</waitUntil>
                     </configuration>
                 </plugin>
 
@@ -364,10 +425,14 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>flatten-maven-plugin</artifactId>
-                    <version>1.5.0</version>
+                    <version>${flatten-maven-plugin.version}</version>
                     <configuration>
                         <updatePomFile>true</updatePomFile>
                         <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                        <pomElements>
+                            <distributionManagement>remove</distributionManagement>
+                            <repositories>remove</repositories>
+                        </pomElements>
                     </configuration>
                     <executions>
                         <execution>
@@ -382,6 +447,32 @@
                             <phase>clean</phase>
                             <goals>
                                 <goal>clean</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                
+                <!-- Maven Plugin Plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-plugin-plugin</artifactId>
+                    <version>${maven-plugin-plugin.version}</version>
+                    <configuration>
+                        <goalPrefix>pojo-codegen</goalPrefix>
+                        <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>default-descriptor</id>
+                            <phase>process-classes</phase>
+                            <goals>
+                                <goal>descriptor</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>help-goal</id>
+                            <goals>
+                                <goal>helpmojo</goal>
                             </goals>
                         </execution>
                     </executions>

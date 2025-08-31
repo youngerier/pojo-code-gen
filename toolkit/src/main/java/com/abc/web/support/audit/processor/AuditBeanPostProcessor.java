@@ -329,7 +329,7 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
         private void setParameterInfo(AuditEvent event, MethodInvocation invocation, Auditable auditable) {
             try {
                 Object[] args = invocation.getArguments();
-                if (args == null || args.length == 0) {
+                if (args.length == 0) {
                     return;
                 }
                 
@@ -405,11 +405,6 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
                 }
             }
             
-            // 检查索引方式配置（向后兼容）
-            if (Arrays.stream(auditable.ignoreParams()).anyMatch(index -> index == paramIndex)) {
-                return true;
-            }
-            
             // 检查参数名称方式配置
             if (Arrays.stream(auditable.ignoreParamNames()).anyMatch(name -> name.equals(paramName))) {
                 return true;
@@ -432,11 +427,6 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
                         return DataMaskingUtils.maskData(paramValue, sensitiveParam.strategy(), sensitiveParam.customExpression());
                     }
                 }
-            }
-            
-            // 检查索引方式配置（向后兼容）
-            if (Arrays.stream(auditable.sensitiveParams()).anyMatch(index -> index == paramIndex)) {
-                return maskSensitiveData(paramValue);
             }
             
             // 检查参数名称方式配置

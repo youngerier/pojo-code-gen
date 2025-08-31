@@ -69,11 +69,11 @@ public class UserService {
         return new User(username, email);
     }
     
-    // ✅ 正确：敏感参数索引有效
+    // ✅ 正确：使用参数名称配置
     @Auditable(
         operation = "UPDATE_PASSWORD",
         description = "更新密码",
-        sensitiveParams = {1}  // 第二个参数是密码
+        sensitiveParamNames = {"newPassword"}  // 使用参数名称指定敏感参数
     )
     public void updatePassword(Long userId, String newPassword) {
         // 业务逻辑
@@ -106,10 +106,10 @@ public class UserService {
 @Service
 public class UserService {
     
-    // ❌ 错误：敏感参数索引超出范围
+    // ❌ 错误：使用不存在的参数名称
     @Auditable(
         operation = "UPDATE_USER",
-        sensitiveParams = {5}  // 只有2个参数，索引5无效
+        sensitiveParamNames = {"nonExistentParam"}  // 错误：参数名称不存在
     )
     public void updateUser(Long userId, String username) {
         // 业务逻辑
@@ -119,7 +119,7 @@ public class UserService {
 
 编译时输出：
 ```
-错误: 敏感参数索引 5 超出参数范围 [0, 2)
+错误: 参数名称 'nonExistentParam' 在方法参数中不存在
 ```
 
 ### 4. 类级别注解
@@ -155,13 +155,13 @@ public class UserService {
 - **级别**: WARNING
 - **说明**: 虽然不是必需的，但指定操作名称有助于更好地识别审计事件
 
-### 2. 敏感参数索引验证
-- **规则**: `sensitiveParams` 中的索引必须在方法参数范围内
+### 2. 敏感参数名称验证
+- **规则**: `sensitiveParamNames` 中的参数名称必须在方法参数中存在
 - **级别**: ERROR
-- **说明**: 索引从0开始，不能超过方法参数的数量
+- **说明**: 参数名称必须与实际方法参数名称一致
 
-### 3. 忽略参数索引验证
-- **规则**: `ignoreParams` 中的索引必须在方法参数范围内
+### 3. 忽略参数名称验证
+- **规则**: `ignoreParamNames` 中的参数名称必须在方法参数中存在
 - **级别**: ERROR
 - **说明**: 与敏感参数验证类似
 
@@ -190,7 +190,7 @@ public class DemoService {
     // 这会触发错误
     @Auditable(
         operation = "UPDATE_PASSWORD",
-        sensitiveParams = {3}  // 错误：只有2个参数
+        sensitiveParamNames = {"wrongParamName"}  // 错误：参数名称不存在
     )
     public void updatePassword(Long userId, String password) {
         // 更新密码逻辑
@@ -220,7 +220,7 @@ mvn clean compile
 [WARNING] 建议为@Auditable注解指定operation属性
   位置: com.example.DemoService.createUser(java.lang.String,java.lang.String)
 
-[ERROR] 敏感参数索引 3 超出参数范围 [0, 2)
+[ERROR] 参数名称 'wrongParamName' 在方法参数中不存在
   位置: com.example.DemoService.updatePassword(java.lang.Long,java.lang.String)
 
 [NOTE] 检测到方法级别的@Auditable注解
@@ -281,7 +281,7 @@ public class AuditableAnnotationProcessorTest {
 
 ### 1. 开发建议
 - **总是指定 `operation`**: 虽然不是必需的，但有助于审计日志的可读性
-- **仔细检查参数索引**: 确保 `sensitiveParams` 和 `ignoreParams` 的索引正确
+- **仔细检查参数名称**: 确保 `sensitiveParamNames` 和 `ignoreParamNames` 中的参数名称正确
 - **使用描述性的操作名称**: 如 `CREATE_USER`、`UPDATE_PASSWORD` 等
 
 ### 2. 团队协作

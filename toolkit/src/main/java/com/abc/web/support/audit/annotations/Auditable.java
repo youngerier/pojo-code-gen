@@ -62,13 +62,6 @@ public @interface Auditable {
     boolean async() default true;
     
     /**
-     * 敏感参数索引（这些参数将被脱敏）
-     * @deprecated 推荐使用 sensitiveParamNames 或 sensitiveParamExpression
-     */
-    @Deprecated
-    int[] sensitiveParams() default {};
-    
-    /**
      * 敏感参数名称（这些参数将被脱敏）
      * 示例：{"password", "creditCardNumber"}
      */
@@ -80,13 +73,6 @@ public @interface Auditable {
      * 示例："#request.password != null" 或 "#user.email.contains('@')"
      */
     String sensitiveParamExpression() default "";
-    
-    /**
-     * 忽略的参数索引
-     * @deprecated 推荐使用 ignoreParamNames
-     */
-    @Deprecated
-    int[] ignoreParams() default {};
     
     /**
      * 忽略的参数名称

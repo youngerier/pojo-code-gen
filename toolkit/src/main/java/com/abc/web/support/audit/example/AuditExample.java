@@ -127,23 +127,22 @@ public class AuditExample {
     }
     
     /**
-     * 混合配置示例
-     * 演示新旧配置方式的兼容性
+     * 新旧配置兼容示例
+     * 演示新配置方式的优势
      */
     @Auditable(
-        operation = "混合配置",
-        description = "新旧配置兼容示例",
+        operation = "新配置方式",
+        description = "推荐的配置方式示例",
         eventType = AuditEventType.BUSINESS_OPERATION,
         enableParamAnnotations = true,
-        sensitiveParams = {1},  // 传统索引方式
-        sensitiveParamNames = {"legacyParam"}  // 参数名方式
+        sensitiveParamNames = {"legacyParam"}  // 参数名称方式
     )
-    public void mixedConfiguration(
+    public void newConfigurationWay(
             String normal,
-            String indexSensitive,  // 通过索引配置为敏感
-            @SensitiveParam(strategy = MaskStrategy.EMAIL) String annotationSensitive,  // 通过注解配置
+            @SensitiveParam(strategy = MaskStrategy.EMAIL, description = "邮箱地址") String email,  // 推荐：通过注解配置
+            @IgnoreParam(reason = "大对象，不记录") Object request,        // 推荐：通过注解忽略
             String legacyParam) {   // 通过参数名配置为敏感
-        log.info("混合配置示例执行");
+        log.info("新配置方式示例执行");
     }
 }
 

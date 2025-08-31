@@ -1,7 +1,5 @@
 package com.abc.web.support.exception;
 
-import com.abc.web.support.ExceptionCode;
-
 /**
  * 系统异常
  * 用于系统级别的异常，如数据库连接失败、外部服务调用失败等

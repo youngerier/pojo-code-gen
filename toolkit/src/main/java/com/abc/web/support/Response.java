@@ -1,5 +1,6 @@
 package com.abc.web.support;
 
+import com.abc.web.support.exception.ExceptionCode;
 import lombok.Data;
 
 @Data

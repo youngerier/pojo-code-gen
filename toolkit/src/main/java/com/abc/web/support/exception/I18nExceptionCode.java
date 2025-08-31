@@ -1,4 +1,4 @@
-package com.abc.web.support;
+package com.abc.web.support.exception;
 
 /**
  * 国际化异常码接口

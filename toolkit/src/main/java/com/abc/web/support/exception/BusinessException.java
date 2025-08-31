@@ -1,7 +1,5 @@
 package com.abc.web.support.exception;
 
-import com.abc.web.support.ExceptionCode;
-
 /**
  * 业务异常
  * 用于所有业务逻辑处理中的异常情况，包括：

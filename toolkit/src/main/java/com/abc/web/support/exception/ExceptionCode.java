@@ -1,4 +1,4 @@
-package com.abc.web.support;
+package com.abc.web.support.exception;
 
 public interface ExceptionCode {
     /**

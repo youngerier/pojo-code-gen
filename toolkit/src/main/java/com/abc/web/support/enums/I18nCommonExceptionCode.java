@@ -1,6 +1,6 @@
 package com.abc.web.support.enums;
 
-import com.abc.web.support.I18nExceptionCode;
+import com.abc.web.support.exception.I18nExceptionCode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

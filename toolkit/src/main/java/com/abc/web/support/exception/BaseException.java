@@ -1,6 +1,5 @@
 package com.abc.web.support.exception;
 
-import com.abc.web.support.ExceptionCode;
 import lombok.Getter;
 
 /**

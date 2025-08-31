@@ -230,20 +230,6 @@ public class ExceptionUtils {
     }
 
     /**
-     * Token过期异常
-     */
-    public static void throwTokenExpired() {
-        throwBusiness(I18nCommonExceptionCode.TOKEN_EXPIRED);
-    }
-
-    /**
-     * Token无效异常
-     */
-    public static void throwTokenInvalid() {
-        throwBusiness(I18nCommonExceptionCode.TOKEN_INVALID);
-    }
-
-    /**
      * 数据库异常
      */
     public static void throwDatabaseError() {

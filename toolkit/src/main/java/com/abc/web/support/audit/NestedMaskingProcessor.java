@@ -62,12 +62,10 @@ public class NestedMaskingProcessor {
             ObjectNode objectNode = (ObjectNode) jsonNode;
             
             // 处理指定字段路径
-            if (fieldPaths.length > 0) {
-                for (String fieldPath : fieldPaths) {
-                    maskFieldByPath(objectNode, fieldPath, strategy, customExpression);
-                }
+            for (String fieldPath : fieldPaths) {
+                maskFieldByPath(objectNode, fieldPath, strategy, customExpression);
             }
-            
+
             // 自动嵌套处理
             if (autoNested) {
                 maskObjectByAnnotations(objectNode, data.getClass());

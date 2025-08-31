@@ -23,6 +23,12 @@ public class Assert {
     
     private static final Pattern ID_CARD_PATTERN = Pattern.compile(
             "^[1-9]\\d{5}(18|19|20)\\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\\d{3}[0-9Xx]$");
+    
+    private static final Pattern URL_PATTERN = Pattern.compile(
+            "^(https?)://[\\w\\-]+(\\.[\\w\\-]+)+([\\w\\-\\.,@?^=%&:/~\\+#]*[\\w\\-\\@?^=%&/~\\+#])?$");
+    
+    private static final Pattern IP_PATTERN = Pattern.compile(
+            "^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$");
 
     // ==================== 基础断言 ====================
 
@@ -230,5 +236,66 @@ rows BusinessException 如果两个对象不相等
      */
     public static void authenticated(boolean authenticated) {
         ExceptionUtils.throwIf(!authenticated, I18nCommonExceptionCode.UNAUTHORIZED);
+    }
+    
+    /**
+     * 断言用户已登录
+     *
+     * @param user 用户对象
+     * @throws BusinessException 如果用户未登录
+     */
+    public static void userLoggedIn(Object user) {
+        ExceptionUtils.throwIf(user == null, I18nCommonExceptionCode.UNAUTHORIZED);
+    }
+    
+    /**
+     * 断言Token有效
+     *
+     * @param tokenValid Token是否有效
+     * @throws BusinessException 如果Token无效
+     */
+    public static void validToken(boolean tokenValid) {
+        ExceptionUtils.throwIf(!tokenValid, I18nCommonExceptionCode.TOKEN_INVALID);
+    }
+    
+    /**
+     * 断言账户未被锁定
+     *
+     * @param locked 账户是否被锁定
+     * @throws BusinessException 如果账户被锁定
+     */
+    public static void accountNotLocked(boolean locked) {
+        ExceptionUtils.throwIf(locked, I18nCommonExceptionCode.ACCOUNT_LOCKED);
+    }
+    
+    /**
+     * 断言账户已启用
+     *
+     * @param enabled 账户是否已启用
+     * @throws BusinessException 如果账户被禁用
+     */
+    public static void accountEnabled(boolean enabled) {
+        ExceptionUtils.throwIf(!enabled, I18nCommonExceptionCode.USER_DISABLED);
+    }
+    
+    /**
+     * 断言密码正确
+     *
+     * @param passwordMatch 密码是否匹配
+     * @throws BusinessException 如果密码错误
+     */
+    public static void correctPassword(boolean passwordMatch) {
+        ExceptionUtils.throwIf(!passwordMatch, I18nCommonExceptionCode.PASSWORD_INCORRECT);
+    }
+    
+    /**
+     * 断言特定权限
+     *
+     * @param hasPermission 是否有权限
+     * @param resource 资源名称
+     * @throws BusinessException 如果没有权限
+     */
+    public static void hasPermissionFor(boolean hasPermission, String resource) {
+        ExceptionUtils.throwIf(!hasPermission, I18nCommonExceptionCode.PERMISSION_DENIED, resource);
     }
 }

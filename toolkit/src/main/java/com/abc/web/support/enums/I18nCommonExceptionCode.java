@@ -47,8 +47,17 @@ public enum I18nCommonExceptionCode implements I18nExceptionCode {
     USER_NOT_FOUND("1200", "exception.user_not_found", "用户不存在"),
     USER_ALREADY_EXISTS("1201", "exception.user_already_exists", "用户已存在"),
     USER_DISABLED("1202", "exception.user_disabled", "用户已被禁用"),
-    PASSWORD_INCORRECT("1203", "exception.password_incorrect", "密码错误"),
-    PASSWORD_EXPIRED("1204", "exception.password_expired", "密码已过期"),
+    USER_LOCKED("1203", "exception.user_locked", "用户已被锁定"),
+    PASSWORD_INCORRECT("1204", "exception.password_incorrect", "密码错误"),
+    PASSWORD_EXPIRED("1205", "exception.password_expired", "密码已过期"),
+    PASSWORD_TOO_WEAK("1206", "exception.password_too_weak", "密码强度不足"),
+    LOGIN_FAILED("1207", "exception.login_failed", "登录失败"),
+    TOKEN_EXPIRED("1208", "exception.token_expired", "令牌已过期"),
+    TOKEN_INVALID("1209", "exception.token_invalid", "令牌无效"),
+    SESSION_EXPIRED("1210", "exception.session_expired", "会话已过期"),
+    ACCOUNT_LOCKED("1211", "exception.account_locked", "账户已锁定"),
+    ACCESS_DENIED("1212", "exception.access_denied", "访问被拒绝"),
+    PERMISSION_DENIED("1213", "exception.permission_denied", "权限不足"),
 
     // 数据库错误 2xxx
     DATABASE_ERROR("2000", "exception.database_error", "数据库操作失败"),
@@ -65,7 +74,34 @@ public enum I18nCommonExceptionCode implements I18nExceptionCode {
     FILE_NOT_FOUND("4000", "exception.file_not_found", "文件不存在"),
     FILE_UPLOAD_ERROR("4001", "exception.file_upload_error", "文件上传失败"),
     FILE_FORMAT_ERROR("4002", "exception.file_format_error", "文件格式错误"),
-    FILE_SIZE_EXCEEDED("4003", "exception.file_size_exceeded", "文件大小超出限制 {0}MB");
+    FILE_SIZE_EXCEEDED("4003", "exception.file_size_exceeded", "文件大小超出限制 {0}MB"),
+    FILE_READ_ERROR("4004", "exception.file_read_error", "文件读取失败"),
+    FILE_WRITE_ERROR("4005", "exception.file_write_error", "文件写入失败"),
+    FILE_DELETE_ERROR("4006", "exception.file_delete_error", "文件删除失败"),
+    DIRECTORY_NOT_FOUND("4007", "exception.directory_not_found", "目录不存在"),
+    
+    // 消息队列错误 5xxx
+    MQ_SEND_ERROR("5000", "exception.mq_send_error", "消息发送失败"),
+    MQ_RECEIVE_ERROR("5001", "exception.mq_receive_error", "消息接收失败"),
+    MQ_CONNECTION_ERROR("5002", "exception.mq_connection_error", "消息队列连接失败"),
+    
+    // 缓存错误 6xxx
+    CACHE_ERROR("6000", "exception.cache_error", "缓存操作失败"),
+    CACHE_KEY_NOT_FOUND("6001", "exception.cache_key_not_found", "缓存键不存在"),
+    CACHE_EXPIRED("6002", "exception.cache_expired", "缓存已过期"),
+    
+    // 配置错误 7xxx
+    CONFIG_ERROR("7000", "exception.config_error", "配置错误"),
+    CONFIG_NOT_FOUND("7001", "exception.config_not_found", "配置项不存在"),
+    CONFIG_INVALID("7002", "exception.config_invalid", "配置值无效"),
+    
+    // 第三方服务错误 8xxx
+    THIRD_PARTY_ERROR("8000", "exception.third_party_error", "第三方服务错误"),
+    SMS_SEND_ERROR("8001", "exception.sms_send_error", "短信发送失败"),
+    EMAIL_SEND_ERROR("8002", "exception.email_send_error", "邮件发送失败"),
+    PAYMENT_ERROR("8003", "exception.payment_error", "支付失败"),
+    WECHAT_API_ERROR("8004", "exception.wechat_api_error", "微信接口错误"),
+    ALIPAY_API_ERROR("8005", "exception.alipay_api_error", "支付宝接口错误");
 
     private final String code;
     private final String messageKey;
@@ -125,5 +161,108 @@ public enum I18nCommonExceptionCode implements I18nExceptionCode {
      */
     public boolean isBusinessError() {
         return code.startsWith("1");
+    }
+    
+    /**
+     * 判断是否为参数验证错误
+     *
+     * @return true 如果是参数验证错误（1100-1199）
+     */
+    public boolean isValidationError() {
+        return code.startsWith("11");
+    }
+    
+    /**
+     * 判断是否为用户相关错误
+     *
+     * @return true 如果是用户相关错误（1200-1299）
+     */
+    public boolean isUserError() {
+        return code.startsWith("12");
+    }
+    
+    /**
+     * 判断是否为数据库错误
+     *
+     * @return true 如果是数据库错误（2xxx）
+     */
+    public boolean isDatabaseError() {
+        return code.startsWith("2");
+    }
+    
+    /**
+     * 判断是否为外部服务错误
+     *
+     * @return true 如果是外部服务错误（3xxx）
+     */
+    public boolean isExternalServiceError() {
+        return code.startsWith("3");
+    }
+    
+    /**
+     * 判断是否为文件操作错误
+     *
+     * @return true 如果是文件操作错误（4xxx）
+     */
+    public boolean isFileError() {
+        return code.startsWith("4");
+    }
+    
+    /**
+     * 判断是否为消息队列错误
+     *
+     * @return true 如果是消息队列错误（5xxx）
+     */
+    public boolean isMqError() {
+        return code.startsWith("5");
+    }
+    
+    /**
+     * 判断是否为缓存错误
+     *
+     * @return true 如果是缓存错误（6xxx）
+     */
+    public boolean isCacheError() {
+        return code.startsWith("6");
+    }
+    
+    /**
+     * 判断是否为配置错误
+     *
+     * @return true 如果是配置错误（7xxx）
+     */
+    public boolean isConfigError() {
+        return code.startsWith("7");
+    }
+    
+    /**
+     * 判断是否为第三方服务错误
+     *
+     * @return true 如果是第三方服务错误（8xxx）
+     */
+    public boolean isThirdPartyError() {
+        return code.startsWith("8");
+    }
+    
+    /**
+     * 获取错误类型名称
+     *
+     * @return 错误类型名称
+     */
+    public String getErrorType() {
+        if (isSuccess()) return "成功";
+        if (isClientError()) return "客户端错误";
+        if (isServerError()) return "服务端错误";
+        if (isValidationError()) return "参数验证错误";
+        if (isUserError()) return "用户相关错误";
+        if (isDatabaseError()) return "数据库错误";
+        if (isExternalServiceError()) return "外部服务错误";
+        if (isFileError()) return "文件操作错误";
+        if (isMqError()) return "消息队列错误";
+        if (isCacheError()) return "缓存错误";
+        if (isConfigError()) return "配置错误";
+        if (isThirdPartyError()) return "第三方服务错误";
+        if (isBusinessError()) return "业务错误";
+        return "未知错误";
     }
 }

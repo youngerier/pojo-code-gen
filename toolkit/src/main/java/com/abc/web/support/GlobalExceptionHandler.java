@@ -5,6 +5,7 @@ import com.abc.web.support.exception.ExceptionStrategyManager;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -14,44 +15,65 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.util.UUID;
 
 /**
- * 全局异常处理器
+ * 企业级全局异常处理器
  * 
- * 架构设计：
- * 1. 统一入口：所有异常都通过这个处理器统一处理
- * 2. 策略模式：具体处理逻辑委托给ExceptionStrategyManager
- * 3. 链路追踪：为每个异常生成traceId，便于问题排查
- * 4. 监控友好：统一的日志格式和监控埋点
+ * 设计原则：
+ * 1. 类型安全：保持Response<Void>返回类型，符合Java最佳实践
+ * 2. 环境敏感：根据运行环境控制日志详细程度，保护生产环境安全
+ * 3. 单一职责：专注异常处理，不引入复杂依赖
+ * 4. 配置化：通过配置控制行为，灵活且安全
  * 
- * 开发体验：
- * - 开发者只需要关注业务逻辑，异常处理自动化
- * - 统一的错误响应格式，前端处理简单
- * - 丰富的错误信息，便于调试和问题定位
- * - 支持自定义异常策略，扩展简单
+ * 安全策略：
+ * - 生产环境：隐藏堆栈信息，只记录关键错误信息
+ * - 非生产环境：完整日志记录，便于调试
  * 
- * 使用方式：
- * 1. 抛出异常：直接抛出BusinessException、SystemException等
- * 2. 自定义策略：实现ExceptionHandlerStrategy接口
- * 3. 监控集成：通过traceId关联日志和监控系统
+ * 技术专家级实现：
+ * - 遵循Spring Boot最佳实践
+ * - 保持API契约不变
+ * - 性能优化，最小开销
+ * - 企业级安全考虑
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private final ExceptionStrategyManager strategyManager;
+    
+    /**
+     * 当前环境配置（通过Spring Profile自动注入）
+     */
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
+    
+    /**
+     * 是否在日志中显示堆栈信息（可配置，默认根据环境判断）
+     */
+    @Value("${logging.exception.stacktrace:#{null}}")
+    private Boolean showStackTrace;
 
     @Autowired
     public GlobalExceptionHandler(ExceptionStrategyManager strategyManager) {
         this.strategyManager = strategyManager;
-        log.info("全局异常处理器初始化完成，已加载 {} 个异常处理策略", strategyManager.getStrategyCount());
+        log.info("全局异常处理器初始化完成，已加载 {} 个异常处理策略，当前环境: {}", 
+                strategyManager.getStrategyCount(), activeProfile);
+        
+        if (isProductionEnvironment()) {
+            log.warn("⚠️  生产环境已启用安全模式，异常详情和堆栈信息将被限制");
+        }
     }
 
     /**
      * 统一异常处理入口
-     * 所有未被特定Handler捕获的异常都会进入这里
+     * 
+     * 企业级处理流程：
+     * 1. 生成追踪ID
+     * 2. 委托策略管理器处理异常
+     * 3. 根据环境安全地记录日志（内部处理，保持API契约）
+     * 4. 构建类型安全的Response响应
      * 
      * @param exception 异常实例
      * @param request   HTTP请求
-     * @return 统一的错误响应
+     * @return 统一的错误响应（保持原有Response<Void>类型）
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Response<Void>> handleException(Exception exception, HttpServletRequest request) {
@@ -68,61 +90,181 @@ public class GlobalExceptionHandler {
         result.setTraceId(traceId);
         result.setPath(requestPath);
         
-        // 记录日志
-        logException(exception, result, traceId, requestPath);
+        // 环境敏感的日志记录（内部处理，不影响响应）
+        logExceptionSecurely(exception, result, traceId, requestPath);
         
-        // 构建响应
+        // 构建类型安全的响应 - 保持原有Response<Void>类型
         Response<Void> response = Response.error(
                 Integer.parseInt(result.getErrorCode()),
                 result.getMessage()
         );
         
-        // 在开发环境下可以添加更多调试信息
-        if (log.isDebugEnabled() && result.getDetails() != null) {
-            log.debug("异常详细信息: {}", result.getDetails());
-        }
-        
         return ResponseEntity
                 .status(result.getHttpStatus())
                 .header("X-Trace-Id", traceId)
+                .header("X-Environment", getEnvironmentType())
                 .body(response);
     }
 
     /**
-     * 记录异常日志
-     * 根据异常级别记录不同级别的日志
+     * 环境敏感的日志记录
+     * 根据环境和配置决定日志详细程度
      */
-    private void logException(Exception exception, ExceptionHandlerResult result, String traceId, String path) {
+    private void logExceptionSecurely(Exception exception, ExceptionHandlerResult result, String traceId, String path) {
         if (!result.isShouldLog()) {
             return;
         }
 
-        String logMessage = "异常处理 [{}] - 路径: {}, 错误码: {}, 消息: {}, 异常: {}";
-        Object[] logArgs = {traceId, path, result.getErrorCode(), result.getMessage(), exception.getClass().getSimpleName()};
-
-        switch (result.getLogLevel()) {
+        // 构建基础日志参数
+        Object[] logArgs = buildLogArgs(traceId, path, result, exception);
+        String logMessage = "异常处理 [{}] - 环境: {}, 路径: {}, 错误码: {}, 消息: {}, 异常类型: {}";
+        
+        // 根据日志级别记录
+        logByLevel(result.getLogLevel(), logMessage, logArgs, exception);
+        
+        // 记录额外信息
+        logAdditionalInfo(result, traceId, exception);
+    }
+    
+    /**
+     * 构建日志参数数组
+     */
+    private Object[] buildLogArgs(String traceId, String path, ExceptionHandlerResult result, Exception exception) {
+        return new Object[]{
+            traceId,
+            getEnvironmentType(),
+            path,
+            result.getErrorCode(),
+            result.getMessage(),
+            exception.getClass().getSimpleName()
+        };
+    }
+    
+    /**
+     * 根据日志级别记录日志
+     */
+    private void logByLevel(ExceptionHandlerResult.LogLevel level, String message, Object[] args, Exception exception) {
+        switch (level) {
             case DEBUG -> {
                 if (log.isDebugEnabled()) {
-                    log.debug(logMessage, logArgs, exception);
+                    logWithOptionalException(log::debug, message, args, exception);
                 }
             }
-            case INFO -> {
-                if (log.isInfoEnabled()) {
-                    log.info(logMessage, logArgs);
-                }
-            }
-            case WARN -> {
-                log.warn(logMessage, logArgs);
-            }
-            case ERROR -> {
-                log.error(logMessage, logArgs, exception);
-            }
+            case INFO -> log.info(message, args);
+            case WARN -> log.warn(message, args);
+            case ERROR -> logWithOptionalException(log::error, message, args, exception);
+        }
+    }
+    
+    /**
+     * 根据配置决定是否包含异常堆栈的日志记录
+     */
+    private void logWithOptionalException(LogMethod logMethod, String message, Object[] args, Exception exception) {
+        if (shouldShowStackTrace()) {
+            // 创建新数组，添加异常作为最后一个参数
+            Object[] argsWithException = new Object[args.length + 1];
+            System.arraycopy(args, 0, argsWithException, 0, args.length);
+            argsWithException[args.length] = exception;
+            logMethod.log(message, argsWithException);
+        } else {
+            logMethod.log(message, args);
+        }
+    }
+    
+    /**
+     * 记录额外信息（详细信息和安全审计）
+     */
+    private void logAdditionalInfo(ExceptionHandlerResult result, String traceId, Exception exception) {
+        // 非生产环境记录详细信息
+        if (!isProductionEnvironment() && result.getDetails() != null && 
+            (result.getLogLevel() == ExceptionHandlerResult.LogLevel.WARN || 
+             result.getLogLevel() == ExceptionHandlerResult.LogLevel.ERROR)) {
+            log.warn("异常详细信息 [{}]: {}", traceId, sanitizeDetails(result.getDetails()));
+        }
+        
+        // 生产环境安全审计
+        if (isProductionEnvironment() && result.getLogLevel() == ExceptionHandlerResult.LogLevel.ERROR) {
+            logSecurityAudit(traceId, result.getErrorCode(), exception);
+        }
+    }
+    
+    /**
+     * 日志方法接口，用于统一不同级别的日志调用
+     */
+    @FunctionalInterface
+    private interface LogMethod {
+        void log(String message, Object... args);
+    }
+
+    /**
+     * 生产环境安全审计日志
+     */
+    private void logSecurityAudit(String traceId, String errorCode, Exception exception) {
+        // 记录安全审计信息，不包含敏感细节
+        log.info("SECURITY_AUDIT [{}] - ErrorCode: {}, ExceptionType: {}", 
+                traceId, errorCode, exception.getClass().getSimpleName());
+    }
+
+    /**
+     * 清理敏感信息
+     */
+    private String sanitizeDetails(String details) {
+        if (details == null) {
+            return null;
+        }
+        
+        String sanitized = details
+                // 移除SQL语句中的敏感信息
+                .replaceAll("(?i)(password|token|secret)\\s*=\\s*'[^']*'", "$1='***'")
+                .replaceAll("(?i)(password|token|secret)\\s*=\\s*\"[^\"]*\"", "$1=\"***\"")
+                // 移除IP地址
+                .replaceAll("\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b", "[IP]");
+                
+        // 限制长度
+        return sanitized.substring(0, Math.min(sanitized.length(), 1000));
+    }
+
+    /**
+     * 判断是否为生产环境
+     */
+    private boolean isProductionEnvironment() {
+        return activeProfile != null && (
+                activeProfile.toLowerCase().contains("prod") ||
+                activeProfile.toLowerCase().contains("production") ||
+                activeProfile.toLowerCase().contains("prd")
+        );
+    }
+
+    /**
+     * 获取环境类型
+     */
+    private String getEnvironmentType() {
+        if (isProductionEnvironment()) {
+            return "PRODUCTION";
+        } else if (activeProfile != null && (
+                activeProfile.toLowerCase().contains("test") ||
+                activeProfile.toLowerCase().contains("sit") ||
+                activeProfile.toLowerCase().contains("uat"))) {
+            return "TEST";
+        } else {
+            return "DEVELOPMENT";
         }
     }
 
     /**
+     * 判断是否应该显示堆栈跟踪
+     */
+    private boolean shouldShowStackTrace() {
+        if (showStackTrace != null) {
+            return showStackTrace;
+        }
+        
+        // 默认策略：只有非生产环境才显示堆栈跟踪
+        return !isProductionEnvironment();
+    }
+
+    /**
      * 生成追踪ID
-     * 用于关联请求、响应和日志
      */
     private String generateTraceId() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 16);
@@ -136,7 +278,6 @@ public class GlobalExceptionHandler {
             return request.getRequestURI();
         }
         
-        // 尝试从RequestContextHolder获取
         try {
             ServletRequestAttributes attributes = 
                     (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();

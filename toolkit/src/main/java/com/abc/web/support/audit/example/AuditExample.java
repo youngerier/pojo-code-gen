@@ -5,8 +5,10 @@ import com.abc.web.support.audit.annotations.Auditable;
 import com.abc.web.support.audit.annotations.IgnoreParam;
 import com.abc.web.support.audit.annotations.SensitiveParam;
 import com.abc.web.support.audit.annotations.SensitiveParam.MaskStrategy;
+import com.abc.web.support.audit.example.model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import java.time.LocalDate;
 
 /**
  * 审计功能使用示例
@@ -143,6 +145,134 @@ public class AuditExample {
             @IgnoreParam(reason = "大对象，不记录") Object request,        // 推荐：通过注解忽略
             String legacyParam) {   // 通过参数名配置为敏感
         log.info("新配置方式示例执行");
+    }
+    
+    // ================= 复杂对象脱敏功能演示 =================
+    
+    /**
+     * 复杂对象自动脱敏示例
+     * 演示使用@SensitiveField注解进行自动嵌套脱敏
+     */
+    @Auditable(
+        operation = "用户注册_复杂对象",
+        description = "演示复杂对象内部属性自动脱敏",
+        eventType = AuditEventType.CREATE,
+        includeParameters = true,
+        includeResult = false
+    )
+    public String registerUserWithComplexObject(
+            @SensitiveParam(
+                autoNested = true,  // 启用自动嵌套脱敏
+                description = "用户注册请求对象"
+            ) UserRegisterRequest request) {
+        
+        log.info("处理用户注册请求: {}", request.getUsername());
+        
+        // 模拟注册逻辑
+        return "用户注册成功，用户ID: " + System.currentTimeMillis();
+    }
+    
+    /**
+     * 指定字段路径脱敏示例
+     * 演示通过fieldPaths精确控制需要脱敏的字段
+     */
+    @Auditable(
+        operation = "更新用户档案",
+        description = "演示指定字段路径脱敏",
+        eventType = AuditEventType.UPDATE,
+        includeParameters = true
+    )
+    public void updateUserProfile(
+            String userId,
+            @SensitiveParam(
+                fieldPaths = {
+                    "profile.realName",      // 档案中的真实姓名
+                    "profile.idCard",        // 档案中的身份证号
+                    "profile.address.detailAddress",  // 嵌套对象中的详细地址
+                    "emergencyContact.contactPhone"   // 紧急联系人电话
+                },
+                strategy = MaskStrategy.DEFAULT,
+                description = "用户更新请求"
+            ) UserRegisterRequest updateRequest) {
+        
+        log.info("更新用户档案: {}", userId);
+        // 模拟更新逻辑
+    }
+    
+    /**
+     * 混合脱敏策略示例
+     * 演示在同一个复杂对象中使用多种脱敏方式
+     */
+    @Auditable(
+        operation = "实名认证",
+        description = "演示混合脱敏策略",
+        eventType = AuditEventType.BUSINESS_OPERATION,
+        includeParameters = true
+    )
+    public boolean performKYCVerification(
+            @SensitiveParam(
+                fieldPaths = {"profile.bankCardNumber"},  // 只脱敏银行卡号
+                strategy = MaskStrategy.BANK_CARD,
+                autoNested = false,  // 禁用自动脱敏，只处理指定字段
+                description = "KYC验证请求"
+            ) UserRegisterRequest kycRequest,
+            
+            @SensitiveParam(strategy = MaskStrategy.FULL, description = "验证密码") 
+            String verificationPassword) {
+        
+        log.info("执行实名认证: {}", kycRequest.getUsername());
+        
+        // 模拟认证逻辑
+        return true;
+    }
+    
+    /**
+     * 创建完整演示数据的辅助方法
+     * 用于测试复杂对象脱敏功能
+     */
+    public UserRegisterRequest createSampleUserRequest() {
+        // 创建地址信息
+        Address address = new Address(
+            "广东省",
+            "深圳市", 
+            "南山区",
+            "科技园南区深南大道9999号科技大厦A座1001室",  // 敏感：详细地址
+            "518057",
+            113.934782,  // 敏感：经度
+            22.547234    // 敏感：纬度
+        );
+        
+        // 创建用户档案
+        UserProfile profile = new UserProfile(
+            "张三",                    // 敏感：真实姓名
+            "440301199001011234",      // 敏感：身份证号
+            "6225881234567890123",     // 敏感：银行卡号
+            LocalDate.of(1990, 1, 1),
+            "男",
+            "我是一名热爱技术的软件工程师，专注于Java后端开发，有5年以上的企业级项目经验。",  // 敏感：个人简介
+            address
+        );
+        
+        // 创建紧急联系人
+        EmergencyContact emergencyContact = new EmergencyContact(
+            "李四",                     // 敏感：联系人姓名
+            "13987654321",             // 敏感：联系人手机号
+            "父亲",
+            "lisi@example.com",        // 敏感：联系人邮箱
+            "工作日18:00后联系"          // 敏感：备注信息
+        );
+        
+        // 创建用户注册请求
+        return new UserRegisterRequest(
+            "zhangsan123",             // 普通：用户名
+            "MySecretPassword123!",    // 敏感：密码
+            "zhangsan@example.com",    // 敏感：邮箱
+            "13712345678",             // 敏感：手机号
+            profile,                    // 敏感：用户档案（嵌套对象）
+            emergencyContact,           // 敏感：紧急联系人（嵌套对象）
+            "123456",                  // 普通：验证码
+            true                        // 普通：同意条款
+        );
     }
 }
 

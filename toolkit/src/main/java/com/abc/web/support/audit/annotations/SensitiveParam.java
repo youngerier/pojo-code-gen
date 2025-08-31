@@ -32,6 +32,20 @@ public @interface SensitiveParam {
     String description() default "";
     
     /**
+     * 需要脱敏的字段路径
+     * 支持嵌套属性，使用点号分隔
+     * 例如：{"password", "user.phone", "profile.idCard"}
+     * 空数组表示对整个参数进行脱敏
+     */
+    String[] fieldPaths() default {};
+    
+    /**
+     * 是否启用自动嵌套脱敏
+     * 当为true时，会自动递归处理参数对象中所有标记了@SensitiveField的字段
+     */
+    boolean autoNested() default true;
+    
+    /**
      * 脱敏策略枚举
      */
     enum MaskStrategy {

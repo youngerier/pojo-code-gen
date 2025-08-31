@@ -422,9 +422,16 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
             // 优先检查参数注解
             if (auditable.enableParamAnnotations()) {
                 for (Annotation annotation : paramAnnotations) {
-                    if (annotation instanceof SensitiveParam) {
-                        SensitiveParam sensitiveParam = (SensitiveParam) annotation;
-                        return DataMaskingUtils.maskData(paramValue, sensitiveParam.strategy(), sensitiveParam.customExpression());
+                    if (annotation instanceof SensitiveParam sensitiveParam) {
+
+                        // 使用嵌套脱敏处理器
+                        return NestedMaskingProcessor.maskNestedData(
+                            paramValue,
+                            sensitiveParam.strategy(),
+                            sensitiveParam.customExpression(),
+                            sensitiveParam.fieldPaths(),
+                            sensitiveParam.autoNested()
+                        );
                     }
                 }
             }

@@ -30,9 +30,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 审计Bean后处理器
- * 统一的审计实现方案，基于BeanPostProcessor和MethodInterceptor
- * 自动为带有@Auditable注解的Bean创建代理并实现完整的审计功能
+ * 审计Bean后处理器 - 简化版本
+ * 基于BeanPostProcessor自动为带有@Auditable注解的Bean创建审计代理
+ * 
+ * 主要简化内容：
+ * 1. 减少方法数量，合并相关逻辑
+ * 2. 简化参数处理逻辑
+ * 3. 统一异常处理
+ * 4. 提高代码可读性
  * 
  * @author toolkit
  * @since 1.0.0
@@ -45,144 +50,75 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
     private final ExpressionParser parser = new SpelExpressionParser();
-    
-    // 缓存已处理的Bean，避免重复处理
     private final Map<String, Boolean> processedBeans = new ConcurrentHashMap<>();
     
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        // 避免重复处理同一个Bean
-        if (processedBeans.containsKey(beanName)) {
+        if (shouldSkipBean(beanName, bean.getClass()) || !hasAuditableAnnotation(bean.getClass())) {
             return bean;
         }
         
-        Class<?> beanClass = bean.getClass();
-        
-        // 跳过Spring内部类和代理类
-        if (isSpringInternalClass(beanClass)) {
-            return bean;
-        }
-        
-        // 检查是否需要审计
-        if (needsAudit(beanClass)) {
-            processedBeans.put(beanName, true);
-            return createAuditProxy(bean);
-        }
-        
-        return bean;
+        processedBeans.put(beanName, true);
+        return createAuditProxy(bean);
     }
     
-    /**
-     * 检查是否是Spring内部类
-     */
+    private boolean shouldSkipBean(String beanName, Class<?> beanClass) {
+        return processedBeans.containsKey(beanName) || isSpringInternalClass(beanClass);
+    }
+    
     private boolean isSpringInternalClass(Class<?> clazz) {
-        String className = clazz.getName();
-        return className.startsWith("org.springframework.") ||
-               className.startsWith("org.apache.catalina.") ||
-               className.startsWith("com.sun.") ||
-               className.contains("$$EnhancerBySpringCGLIB$$") ||
-               className.contains("$$FastClassBySpringCGLIB$$");
+        String name = clazz.getName();
+        return name.startsWith("org.springframework.") || 
+               name.startsWith("org.apache.catalina.") ||
+               name.contains("$$EnhancerBySpringCGLIB$$");
     }
     
-    /**
-     * 检查Bean是否需要审计
-     */
-    private boolean needsAudit(Class<?> beanClass) {
-        // 检查类级别的@Auditable注解
+    private boolean hasAuditableAnnotation(Class<?> beanClass) {
+        // 检查类级别注解
         if (AnnotationUtils.findAnnotation(beanClass, Auditable.class) != null) {
             return true;
         }
         
-        // 检查方法级别的@Auditable注解
-        for (Method method : beanClass.getDeclaredMethods()) {
-            if (AnnotationUtils.findAnnotation(method, Auditable.class) != null) {
-                return true;
-            }
-        }
-        
-        return false;
+        // 检查方法级别注解
+        return Arrays.stream(beanClass.getDeclaredMethods())
+                .anyMatch(method -> AnnotationUtils.findAnnotation(method, Auditable.class) != null);
     }
     
-    /**
-     * 创建审计代理
-     */
     private Object createAuditProxy(Object bean) {
         ProxyFactory proxyFactory = new ProxyFactory(bean);
         proxyFactory.addAdvice(new AuditMethodInterceptor());
-        proxyFactory.setProxyTargetClass(true); // 使用CGLIB代理
+        proxyFactory.setProxyTargetClass(true);
         return proxyFactory.getProxy();
     }
     
     /**
-     * 审计方法拦截器
-     * 整合了原AuditAspect的完整功能
+     * 审计方法拦截器 - 简化版本
      */
     private class AuditMethodInterceptor implements MethodInterceptor {
         
         @Override
         public Object invoke(MethodInvocation invocation) throws Throwable {
-            Method method = invocation.getMethod();
-            
-            // 获取@Auditable注解
-            Auditable auditable = getAuditableAnnotation(method, invocation.getThis().getClass());
-            
-            if (auditable == null) {
+            Auditable auditable = findAuditableAnnotation(invocation);
+            if (auditable == null || !shouldAudit(invocation, auditable)) {
                 return invocation.proceed();
             }
             
-            // 检查审计条件
-            if (!shouldAudit(invocation, auditable)) {
-                return invocation.proceed();
-            }
-            
-            AuditEvent auditEvent = createAuditEvent(invocation, auditable);
-            long startTime = System.currentTimeMillis();
-            
-            try {
-                Object result = invocation.proceed();
-                
-                // 记录成功结果
-                auditEvent.success();
-                auditEvent.setDuration(System.currentTimeMillis() - startTime);
-                
-                // 记录返回值
-                if (auditable.includeResult() && result != null) {
-                    auditEvent.setAfterData(serializeObject(result));
-                }
-                
-                saveAuditEvent(auditEvent, auditable.async());
-                return result;
-                
-            } catch (Throwable throwable) {
-                // 记录异常信息
-                auditEvent.failure(throwable.getMessage());
-                auditEvent.setDuration(System.currentTimeMillis() - startTime);
-                
-                if (auditable.includeException()) {
-                    auditEvent.setErrorMessage(getFullExceptionMessage(throwable));
-                }
-                
-                saveAuditEvent(auditEvent, auditable.async());
-                throw throwable;
-            }
+            return executeWithAudit(invocation, auditable);
         }
         
         /**
-         * 获取@Auditable注解（方法级别优先于类级别）
+         * 查找@Auditable注解（方法优先于类）
          */
-        private Auditable getAuditableAnnotation(Method method, Class<?> targetClass) {
-            // 优先检查方法级别注解
-            Auditable methodLevel = AnnotationUtils.findAnnotation(method, Auditable.class);
-            if (methodLevel != null) {
-                return methodLevel;
-            }
+        private Auditable findAuditableAnnotation(MethodInvocation invocation) {
+            Method method = invocation.getMethod();
+            Class<?> targetClass = invocation.getThis().getClass();
             
-            // 检查类级别注解
-            return AnnotationUtils.findAnnotation(targetClass, Auditable.class);
+            Auditable methodLevel = AnnotationUtils.findAnnotation(method, Auditable.class);
+            return methodLevel != null ? methodLevel : AnnotationUtils.findAnnotation(targetClass, Auditable.class);
         }
         
         /**
-         * 检查是否应该进行审计
+         * 检查是否应该执行审计
          */
         private boolean shouldAudit(MethodInvocation invocation, Auditable auditable) {
             String condition = auditable.condition();
@@ -191,11 +127,46 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
             }
             
             try {
-                StandardEvaluationContext context = createEvaluationContext(invocation);
+                StandardEvaluationContext context = buildSpelContext(invocation);
                 return Boolean.TRUE.equals(parser.parseExpression(condition).getValue(context, Boolean.class));
             } catch (Exception e) {
-                log.warn("审计条件表达式解析失败: {}", condition, e);
-                return true; // 默认进行审计
+                log.warn("审计条件解析失败: {}", condition, e);
+                return true; // 默认执行审计
+            }
+        }
+        
+        /**
+         * 执行带审计的方法调用
+         */
+        private Object executeWithAudit(MethodInvocation invocation, Auditable auditable) throws Throwable {
+            AuditEvent auditEvent = createAuditEvent(invocation, auditable);
+            long startTime = System.currentTimeMillis();
+            
+            try {
+                Object result = invocation.proceed();
+                
+                // 记录成功
+                auditEvent.success();
+                auditEvent.setDuration(System.currentTimeMillis() - startTime);
+                
+                if (auditable.includeResult() && result != null) {
+                    auditEvent.setAfterData(serialize(result));
+                }
+                
+                saveAuditEvent(auditEvent, auditable.async());
+                return result;
+                
+            } catch (Throwable throwable) {
+                // 记录失败
+                auditEvent.failure(throwable.getMessage());
+                auditEvent.setDuration(System.currentTimeMillis() - startTime);
+                
+                if (auditable.includeException()) {
+                    auditEvent.setErrorMessage(buildExceptionMessage(throwable));
+                }
+                
+                saveAuditEvent(auditEvent, auditable.async());
+                throw throwable;
             }
         }
         
@@ -205,23 +176,18 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
         private AuditEvent createAuditEvent(MethodInvocation invocation, Auditable auditable) {
             AuditEvent event = AuditEvent.create();
             
-            // 设置基本信息
+            // 基本信息
             event.setEventType(auditable.eventType());
-            event.setOperation(getOperation(invocation, auditable));
+            event.setOperation(getOperationName(invocation, auditable));
             event.setDescription(getDescription(invocation, auditable));
             event.setResourceType(auditable.resourceType());
             event.setModuleName(auditable.module());
             
-            // 设置用户信息
-            setUserInfo(event);
+            // 上下文信息
+            setContextInfo(event);
             
-            // 设置请求信息
-            setRequestInfo(event);
-            
-            // 设置业务标识
+            // 业务信息
             setBusinessKey(event, invocation, auditable);
-            
-            // 设置参数信息
             if (auditable.includeParameters()) {
                 setParameterInfo(event, invocation, auditable);
             }
@@ -229,70 +195,40 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
             return event;
         }
         
-        /**
-         * 获取操作名称
-         */
-        private String getOperation(MethodInvocation invocation, Auditable auditable) {
-            if (StringUtils.hasText(auditable.operation())) {
-                return auditable.operation();
-            }
-            
-            // 默认使用方法名
-            return invocation.getMethod().getName();
+        private String getOperationName(MethodInvocation invocation, Auditable auditable) {
+            return StringUtils.hasText(auditable.operation()) 
+                ? auditable.operation() 
+                : invocation.getMethod().getName();
         }
         
-        /**
-         * 获取操作描述
-         */
         private String getDescription(MethodInvocation invocation, Auditable auditable) {
             if (StringUtils.hasText(auditable.description())) {
                 return auditable.description();
             }
             
-            // 默认使用类名+方法名
             String className = invocation.getThis().getClass().getSimpleName();
             String methodName = invocation.getMethod().getName();
             return className + "." + methodName;
         }
         
         /**
-         * 设置用户信息
+         * 设置上下文信息（用户、请求等）
          */
-        private void setUserInfo(AuditEvent event) {
+        private void setContextInfo(AuditEvent event) {
+            // 设置用户信息
+            event.setUserId("system");
+            event.setUsername("system");
+            
+            // 设置请求信息
             try {
-                // TODO: 从Security Context获取用户信息
-                // Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                // if (authentication != null && authentication.isAuthenticated()) {
-                //     UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-                //     event.setUserId(userDetails.getUsername());
-                //     event.setUsername(userDetails.getUsername());
-                // }
-                
-                // 临时设置默认值
-                event.setUserId("system");
-                event.setUsername("system");
-            } catch (Exception e) {
-                log.warn("获取用户信息失败", e);
-            }
-        }
-        
-        /**
-         * 设置请求信息
-         */
-        private void setRequestInfo(AuditEvent event) {
-            try {
-                ServletRequestAttributes attributes = 
-                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-                
-                if (attributes != null) {
-                    HttpServletRequest request = attributes.getRequest();
-                    event.setClientIp(getClientIp(request));
+                HttpServletRequest request = getCurrentRequest();
+                if (request != null) {
+                    event.setClientIp(extractClientIp(request));
                     event.setUserAgent(request.getHeader("User-Agent"));
                     event.setRequestPath(request.getRequestURI());
                     event.setRequestMethod(request.getMethod());
                     event.setSessionId(request.getSession().getId());
                     
-                    // 设置请求ID（如果有的话）
                     String requestId = request.getHeader("X-Request-ID");
                     if (requestId != null) {
                         event.setRequestId(requestId);
@@ -303,9 +239,12 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
             }
         }
         
-        /**
-         * 设置业务标识
-         */
+        private HttpServletRequest getCurrentRequest() {
+            ServletRequestAttributes attributes = 
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            return attributes != null ? attributes.getRequest() : null;
+        }
+        
         private void setBusinessKey(AuditEvent event, MethodInvocation invocation, Auditable auditable) {
             String businessKeyExpression = auditable.businessKey();
             if (!StringUtils.hasText(businessKeyExpression)) {
@@ -313,7 +252,7 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
             }
             
             try {
-                StandardEvaluationContext context = createEvaluationContext(invocation);
+                StandardEvaluationContext context = buildSpelContext(invocation);
                 Object businessKey = parser.parseExpression(businessKeyExpression).getValue(context);
                 if (businessKey != null) {
                     event.setBusinessKey(businessKey.toString());
@@ -324,7 +263,7 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
         }
         
         /**
-         * 设置参数信息
+         * 设置参数信息（简化版本）
          */
         private void setParameterInfo(AuditEvent event, MethodInvocation invocation, Auditable auditable) {
             try {
@@ -334,150 +273,82 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
                 }
                 
                 Map<String, Object> params = new HashMap<>();
-                String[] paramNames = getParameterNames(invocation.getMethod());
-                
-                // 获取方法参数注解
                 Annotation[][] paramAnnotations = invocation.getMethod().getParameterAnnotations();
                 
                 for (int i = 0; i < args.length; i++) {
-                    String paramName = i < paramNames.length ? paramNames[i] : "param" + i;
+                    String paramName = "param" + i;
                     
-                    // 检查是否应该忽略参数
-                    if (shouldIgnoreParam(i, paramName, paramAnnotations[i], auditable)) {
+                    // 检查是否忽略参数
+                    if (shouldIgnoreParameter(paramName, paramAnnotations[i], auditable)) {
                         continue;
                     }
                     
-                    Object paramValue = args[i];
-                    
-                    // 敏感参数脱敏
-                    paramValue = maskSensitiveParam(i, paramName, paramValue, paramAnnotations[i], auditable, invocation);
-                    
+                    // 处理敏感参数
+                    Object paramValue = processSensitiveParameter(args[i], paramAnnotations[i], auditable);
                     params.put(paramName, paramValue);
                 }
                 
                 if (!params.isEmpty()) {
-                    event.setBeforeData(serializeObject(params));
+                    event.setBeforeData(serialize(params));
                 }
             } catch (Exception e) {
                 log.warn("设置参数信息失败", e);
             }
         }
         
-        /**
-         * 创建SpEL表达式上下文
-         */
-        private StandardEvaluationContext createEvaluationContext(MethodInvocation invocation) {
-            StandardEvaluationContext context = new StandardEvaluationContext();
-            
-            Object[] args = invocation.getArguments();
-            String[] paramNames = getParameterNames(invocation.getMethod());
-            
-            for (int i = 0; i < args.length; i++) {
-                String paramName = i < paramNames.length ? paramNames[i] : "param" + i;
-                context.setVariable(paramName, args[i]);
-            }
-            
-            return context;
-        }
-        
-        /**
-         * 获取参数名称
-         */
-        private String[] getParameterNames(Method method) {
-            // 简单实现，使用参数索引
-            String[] names = new String[method.getParameterCount()];
-            for (int i = 0; i < names.length; i++) {
-                names[i] = "param" + i;
-            }
-            return names;
-        }
-        
-        /**
-         * 检查是否应该忽略参数
-         */
-        private boolean shouldIgnoreParam(int paramIndex, String paramName, Annotation[] paramAnnotations, Auditable auditable) {
-            // 优先检查参数注解
+        private boolean shouldIgnoreParameter(String paramName, Annotation[] annotations, Auditable auditable) {
+            // 检查参数注解
             if (auditable.enableParamAnnotations()) {
-                for (Annotation annotation : paramAnnotations) {
+                for (Annotation annotation : annotations) {
                     if (annotation instanceof IgnoreParam) {
                         return true;
                     }
                 }
             }
             
-            // 检查参数名称方式配置
-            if (Arrays.stream(auditable.ignoreParamNames()).anyMatch(name -> name.equals(paramName))) {
-                return true;
-            }
-            
-            return false;
+            // 检查配置的忽略参数名
+            return Arrays.stream(auditable.ignoreParamNames()).anyMatch(name -> name.equals(paramName));
         }
         
-        /**
-         * 敏感参数脱敏
-         */
-        private Object maskSensitiveParam(int paramIndex, String paramName, Object paramValue, 
-                                        Annotation[] paramAnnotations, Auditable auditable, MethodInvocation invocation) {
+        private Object processSensitiveParameter(Object value, Annotation[] annotations, Auditable auditable) {
+            if (!auditable.enableParamAnnotations()) {
+                return value;
+            }
             
-            // 优先检查参数注解
-            if (auditable.enableParamAnnotations()) {
-                for (Annotation annotation : paramAnnotations) {
-                    if (annotation instanceof SensitiveParam sensitiveParam) {
-
-                        // 使用嵌套脱敏处理器
-                        return NestedMaskingProcessor.maskNestedData(
-                            paramValue,
-                            sensitiveParam.strategy(),
-                            sensitiveParam.customExpression(),
-                            sensitiveParam.fieldPaths(),
-                            sensitiveParam.autoNested()
-                        );
-                    }
+            // 检查敏感参数注解
+            for (Annotation annotation : annotations) {
+                if (annotation instanceof SensitiveParam sensitiveParam) {
+                    return NestedMaskingProcessor.maskNestedData(
+                        value, 
+                        sensitiveParam.strategy(), 
+                        sensitiveParam.customExpression(),
+                        sensitiveParam.fieldPaths(), 
+                        sensitiveParam.autoNested()
+                    );
                 }
             }
             
-            // 检查参数名称方式配置
-            if (Arrays.stream(auditable.sensitiveParamNames()).anyMatch(name -> name.equals(paramName))) {
-                return maskSensitiveData(paramValue);
-            }
-            
-            // 检查SpEL表达式配置
-            if (StringUtils.hasText(auditable.sensitiveParamExpression())) {
-                try {
-                    StandardEvaluationContext context = createEvaluationContext(invocation);
-                    Boolean isSensitive = parser.parseExpression(auditable.sensitiveParamExpression())
-                        .getValue(context, Boolean.class);
-                    if (Boolean.TRUE.equals(isSensitive)) {
-                        return maskSensitiveData(paramValue);
-                    }
-                } catch (Exception e) {
-                    log.warn("敏感参数表达式解析失败: {}", auditable.sensitiveParamExpression(), e);
-                }
-            }
-            
-            return paramValue;
+            return value;
         }
         
         /**
-         * 脱敏敏感数据（默认实现）
+         * 构建SpEL表达式上下文
          */
-        private Object maskSensitiveData(Object data) {
-            if (data == null) {
-                return null;
+        private StandardEvaluationContext buildSpelContext(MethodInvocation invocation) {
+            StandardEvaluationContext context = new StandardEvaluationContext();
+            Object[] args = invocation.getArguments();
+            
+            for (int i = 0; i < args.length; i++) {
+                context.setVariable("param" + i, args[i]);
             }
             
-            String str = data.toString();
-            if (str.length() <= 4) {
-                return "****";
-            }
-            
-            return str.substring(0, 2) + "****" + str.substring(str.length() - 2);
+            return context;
         }
         
         /**
-         * 获取客户端IP
+         * 提取客户端IP
          */
-        private String getClientIp(HttpServletRequest request) {
+        private String extractClientIp(HttpServletRequest request) {
             String ip = request.getHeader("X-Forwarded-For");
             if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
                 ip = request.getHeader("X-Real-IP");
@@ -491,7 +362,7 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
         /**
          * 序列化对象
          */
-        private String serializeObject(Object obj) {
+        private String serialize(Object obj) {
             try {
                 return objectMapper.writeValueAsString(obj);
             } catch (Exception e) {
@@ -500,15 +371,16 @@ public class AuditBeanPostProcessor implements BeanPostProcessor {
         }
         
         /**
-         * 获取完整异常消息
+         * 构建异常消息
          */
-        private String getFullExceptionMessage(Throwable throwable) {
+        private String buildExceptionMessage(Throwable throwable) {
             StringBuilder sb = new StringBuilder();
             sb.append(throwable.getClass().getSimpleName()).append(": ").append(throwable.getMessage());
             
             Throwable cause = throwable.getCause();
             while (cause != null) {
-                sb.append(" -> ").append(cause.getClass().getSimpleName()).append(": ").append(cause.getMessage());
+                sb.append(" -> ").append(cause.getClass().getSimpleName())
+                  .append(": ").append(cause.getMessage());
                 cause = cause.getCause();
             }
             

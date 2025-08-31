@@ -1,3 +1,0 @@
-# 注解处理器配置文件
-# 用于在编译时自动发现和注册注解处理器
-com.abc.web.support.audit.processor.AuditableAnnotationProcessor

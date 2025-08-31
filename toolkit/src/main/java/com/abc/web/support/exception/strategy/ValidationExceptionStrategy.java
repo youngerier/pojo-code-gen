@@ -45,7 +45,6 @@ public class ValidationExceptionStrategy implements ExceptionHandlerStrategy {
             return handleConstraintViolation(constraintException);
         }
         
-        String message = ExceptionUtils.getLocalizedMessage(I18nCommonExceptionCode.VALIDATION_ERROR);
         return ExceptionHandlerResult.validation(I18nCommonExceptionCode.VALIDATION_ERROR);
     }
 
@@ -67,16 +66,9 @@ public class ValidationExceptionStrategy implements ExceptionHandlerStrategy {
             fieldErrors.put("_global", error.getDefaultMessage());
         });
         
-        // 构建国际化消息
-        String baseMessage = ExceptionUtils.getLocalizedMessage(I18nCommonExceptionCode.VALIDATION_ERROR);
-        String message = String.format("%s，共 %d 个字段错误", baseMessage, fieldErrors.size());
-        
-        return ExceptionHandlerResult.validation(
-                I18nCommonExceptionCode.VALIDATION_ERROR.getCode(),
-                message
-        ).toBuilder()
+        return ExceptionHandlerResult.validation(I18nCommonExceptionCode.VALIDATION_ERROR)
+                .toBuilder()
                 .extra(Map.of("fieldErrors", fieldErrors))
-                .details(buildDetailMessage(fieldErrors))
                 .build();
     }
 
@@ -92,26 +84,10 @@ public class ValidationExceptionStrategy implements ExceptionHandlerStrategy {
                         (existing, replacement) -> existing // 保留第一个错误消息
                 ));
         
-        // 构建国际化消息
-        String baseMessage = ExceptionUtils.getLocalizedMessage(I18nCommonExceptionCode.VALIDATION_ERROR);
-        String message = String.format("%s，共 %d 个约束违反", baseMessage, violations.size());
-        
-        return ExceptionHandlerResult.validation(
-                I18nCommonExceptionCode.VALIDATION_ERROR.getCode(),
-                message
-        ).toBuilder()
+        return ExceptionHandlerResult.validation(I18nCommonExceptionCode.VALIDATION_ERROR)
+                .toBuilder()
                 .extra(Map.of("violations", violations))
-                .details(String.join("; ", violations.values()))
                 .build();
-    }
-
-    /**
-     * 构建详细错误消息
-     */
-    private String buildDetailMessage(Map<String, Object> fieldErrors) {
-        return fieldErrors.entrySet().stream()
-                .map(entry -> String.format("%s: %s", entry.getKey(), entry.getValue()))
-                .collect(Collectors.joining("; "));
     }
 
     @Override

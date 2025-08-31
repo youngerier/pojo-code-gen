@@ -61,20 +61,14 @@ public class CommonExceptionStrategy implements ExceptionHandlerStrategy {
      * 处理数据库相关异常
      */
     private ExceptionHandlerResult handleDatabaseException(Exception exception) {
-        return ExceptionHandlerResult.system(I18nCommonExceptionCode.DATABASE_ERROR)
-                .toBuilder()
-                .details("Database operation failed: " + exception.getMessage())
-                .build();
+        return ExceptionHandlerResult.system(I18nCommonExceptionCode.DATABASE_ERROR);
     }
 
     /**
      * 处理超时异常
      */
     private ExceptionHandlerResult handleTimeoutException(Exception exception) {
-        return ExceptionHandlerResult.system(I18nCommonExceptionCode.TIMEOUT_ERROR)
-                .toBuilder()
-                .details("Request timeout: " + exception.getMessage())
-                .build();
+        return ExceptionHandlerResult.system(I18nCommonExceptionCode.TIMEOUT_ERROR);
     }
 
     /**
@@ -85,28 +79,14 @@ public class CommonExceptionStrategy implements ExceptionHandlerStrategy {
             return handleTimeoutException(exception);
         }
         
-        return ExceptionHandlerResult.system(I18nCommonExceptionCode.EXTERNAL_SERVICE_ERROR)
-                .toBuilder()
-                .details("IO exception: " + exception.getMessage())
-                .build();
+        return ExceptionHandlerResult.system(I18nCommonExceptionCode.EXTERNAL_SERVICE_ERROR);
     }
 
     /**
      * 处理HTTP方法不支持异常
      */
     private ExceptionHandlerResult handleMethodNotSupported(HttpRequestMethodNotSupportedException exception) {
-        String supportedMethods = String.join(", ", exception.getSupportedMethods());
-        String baseMessage = ExceptionUtils.getLocalizedMessage(I18nCommonExceptionCode.METHOD_NOT_ALLOWED);
-        
-        String message = String.format("%s %s，支持的方法: %s", 
-                baseMessage, exception.getMethod(), supportedMethods);
-        
-        return ExceptionHandlerResult.validation(
-                I18nCommonExceptionCode.METHOD_NOT_ALLOWED.getCode(),
-                message
-        ).toBuilder()
-                .details("Unsupported HTTP method: " + exception.getMethod())
-                .build();
+        return ExceptionHandlerResult.validation(I18nCommonExceptionCode.METHOD_NOT_ALLOWED);
     }
 
     /**
@@ -114,11 +94,7 @@ public class CommonExceptionStrategy implements ExceptionHandlerStrategy {
      */
     private ExceptionHandlerResult handleGenericException(Exception exception) {
         // 对于未知异常，不向用户暴露详细信息
-        return ExceptionHandlerResult.system(I18nCommonExceptionCode.INTERNAL_SERVER_ERROR)
-                .toBuilder()
-                .details("Unexpected exception: " + exception.getClass().getSimpleName() + 
-                        " - " + exception.getMessage())
-                .build();
+        return ExceptionHandlerResult.system(I18nCommonExceptionCode.INTERNAL_SERVER_ERROR);
     }
 
     /**

@@ -65,50 +65,35 @@ public class SecurityExceptionStrategy implements ExceptionHandlerStrategy {
      * 处理凭据错误异常（用户名密码错误）
      */
     private ExceptionHandlerResult handleBadCredentials(Exception exception) {
-        return ExceptionHandlerResult.authentication(I18nCommonExceptionCode.LOGIN_FAILED)
-                .toBuilder()
-                .details("Bad credentials provided: " + exception.getMessage())
-                .build();
+        return ExceptionHandlerResult.authentication(I18nCommonExceptionCode.LOGIN_FAILED);
     }
 
     /**
      * 处理账户锁定异常
      */
     private ExceptionHandlerResult handleAccountLocked(Exception exception) {
-        return ExceptionHandlerResult.authentication(I18nCommonExceptionCode.ACCOUNT_LOCKED)
-                .toBuilder()
-                .details("User account is locked: " + exception.getMessage())
-                .build();
+        return ExceptionHandlerResult.authentication(I18nCommonExceptionCode.ACCOUNT_LOCKED);
     }
 
     /**
      * 处理账户禁用异常
      */
     private ExceptionHandlerResult handleAccountDisabled(Exception exception) {
-        return ExceptionHandlerResult.authentication(I18nCommonExceptionCode.USER_DISABLED)
-                .toBuilder()
-                .details("User account is disabled: " + exception.getMessage())
-                .build();
+        return ExceptionHandlerResult.authentication(I18nCommonExceptionCode.USER_DISABLED);
     }
 
     /**
      * 处理访问拒绝异常（权限不足）
      */
     private ExceptionHandlerResult handleAccessDenied(Exception exception) {
-        return ExceptionHandlerResult.authorization(I18nCommonExceptionCode.PERMISSION_DENIED)
-                .toBuilder()
-                .details("Access denied to requested resource: " + exception.getMessage())
-                .build();
+        return ExceptionHandlerResult.authorization(I18nCommonExceptionCode.PERMISSION_DENIED);
     }
 
     /**
      * 处理通用认证异常
      */
     private ExceptionHandlerResult handleAuthenticationException(Exception exception) {
-        return ExceptionHandlerResult.authentication(I18nCommonExceptionCode.UNAUTHORIZED)
-                .toBuilder()
-                .details("Authentication failed: " + exception.getMessage())
-                .build();
+        return ExceptionHandlerResult.authentication(I18nCommonExceptionCode.UNAUTHORIZED);
     }
 
     @Override

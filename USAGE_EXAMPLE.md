@@ -69,11 +69,11 @@
             <plugin>
                 <groupId>io.github.youngerier</groupId>
                 <artifactId>generator-maven-plugin</artifactId>
-                <version>1.0.0</version>
+                <version>1.0.1</version>
                 <executions>
                     <execution>
                         <id>generate-code</id>
-                        <phase>generate-sources</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>generate</goal>
                         </goals>
@@ -83,7 +83,7 @@
                     <scanPackages>
                         <package>com.example.entity</package>
                     </scanPackages>
-                    <outputDir>target/generated-sources</outputDir>
+                    <outputDir>${project.build.directory}/generated-sources</outputDir>
                 </configuration>
             </plugin>
 
@@ -119,7 +119,30 @@
 </project>
 ```
 
-### 2. 创建实体类
+### 2. 添加插件依赖
+
+除了核心的代码生成插件，你还需要添加相关的依赖库：
+
+```xml
+<dependencies>
+    <!-- 代码生成核心库（如果需要自定义生成器）-->
+    <dependency>
+        <groupId>io.github.youngerier</groupId>
+        <artifactId>codegen-core</artifactId>
+        <version>1.0.1</version>
+        <scope>provided</scope>
+    </dependency>
+    
+    <!-- 工具包（包含通用类和工具）-->
+    <dependency>
+        <groupId>io.github.youngerier</groupId>
+        <artifactId>toolkit</artifactId>
+        <version>1.0.1</version>
+    </dependency>
+</dependencies>
+```
+
+### 3. 创建实体类
 
 在 `src/main/java/com/example/entity` 目录下创建实体类：
 
@@ -200,7 +223,7 @@ public class Product {
 }
 ```
 
-### 3. 运行代码生成
+### 4. 运行代码生成
 
 执行以下命令生成代码：
 
@@ -209,10 +232,13 @@ public class Product {
 mvn clean compile
 
 # 或者单独执行代码生成插件
-mvn io.github.youngerier:generator-maven-plugin:1.0.0:generate
+mvn pojo-codegen:generate
+
+# 使用完整的插件坐标
+mvn io.github.youngerier:generator-maven-plugin:1.0.1:generate
 ```
 
-### 4. 生成的代码结构
+### 5. 生成的代码结构
 
 执行后会在 `target/generated-sources` 目录下生成以下文件：
 
@@ -244,7 +270,7 @@ target/generated-sources/
     └── ProductConverter.java
 ```
 
-### 5. 使用生成的代码
+### 6. 使用生成的代码
 
 #### 在Controller中使用：
 
@@ -319,22 +345,103 @@ public class CustomUserServiceImpl {
 
 ## 配置选项
 
-### 插件配置参数
+### Maven插件完整配置
 
 ```xml
-<configuration>
-    <!-- 扫描的包名，支持多个 -->
-    <scanPackages>
-        <package>com.example.entity</package>
-        <package>com.example.model</package>
-    </scanPackages>
-    
-    <!-- 输出目录，默认为 target/generated-sources -->
-    <outputDir>src/main/java</outputDir>
-    
-    <!-- 是否跳过代码生成，默认为 false -->
-    <skip>false</skip>
-</configuration>
+<plugin>
+    <groupId>io.github.youngerier</groupId>
+    <artifactId>generator-maven-plugin</artifactId>
+    <version>1.0.1</version>
+    <executions>
+        <execution>
+            <id>generate-code</id>
+            <!-- 推荐绑定到 process-classes 阶段，确保类文件已编译 -->
+            <phase>process-classes</phase>
+            <goals>
+                <goal>generate</goal>
+            </goals>
+        </execution>
+    </executions>
+    <configuration>
+        <!-- 扫描的包名，支持多个包 -->
+        <scanPackages>
+            <package>com.example.entity</package>
+            <package>com.example.model</package>
+            <package>com.abc.domain</package>
+        </scanPackages>
+        
+        <!-- 输出目录，默认为 ${project.build.directory}/generated-sources/ -->
+        <!-- 最终代码会生成在 outputDir/src/main/java 目录下 -->
+        <outputDir>${project.build.directory}/generated-sources</outputDir>
+    </configuration>
+</plugin>
+```
+
+### 插件配置参数详解
+
+| 参数名 | 类型 | 默认值 | 描述 |
+|--------|------|--------|------|
+| `scanPackages` | `List<String>` | 无 | **必需参数**。要扫描的包名列表，插件会在这些包中查找带有 `@GenModel` 注解的类 |
+| `outputDir` | `File` | `${project.build.directory}/generated-sources/` | 代码生成的基础目录，最终代码位于此目录下的 `src/main/java` 文件夹中 |
+
+### 支持的Maven命令
+
+```bash
+# 1. 通过生命周期触发（推荐）
+mvn clean compile
+
+# 2. 直接执行插件目标
+mvn pojo-codegen:generate
+
+# 3. 完整的插件目标执行
+mvn io.github.youngerier:generator-maven-plugin:1.0.1:generate
+
+# 4. 带参数执行
+mvn pojo-codegen:generate -Dpojo.codegen.scanPackages=com.example.entity,com.example.model
+```
+
+### 插件属性配置
+
+除了在 `pom.xml` 中配置，也可以通过系统属性传递参数：
+
+```bash
+# 通过命令行指定扫描包
+mvn pojo-codegen:generate -Dpojo.codegen.scanPackages=com.example.entity
+
+# 通过命令行指定输出目录
+mvn pojo-codegen:generate -Dpojo.codegen.outputDir=src/main/java
+```
+
+### 多模块项目配置
+
+在多模块项目中，建议在需要代码生成的子模块中单独配置插件：
+
+```xml
+<!-- 在子模块的 pom.xml 中 -->
+<build>
+    <plugins>
+        <plugin>
+            <groupId>io.github.youngerier</groupId>
+            <artifactId>generator-maven-plugin</artifactId>
+            <version>1.0.1</version>
+            <executions>
+                <execution>
+                    <id>generate-code</id>
+                    <phase>process-classes</phase>
+                    <goals>
+                        <goal>generate</goal>
+                    </goals>
+                </execution>
+            </executions>
+            <configuration>
+                <scanPackages>
+                    <package>com.example.module1.entity</package>
+                </scanPackages>
+                <outputDir>${project.build.directory}/generated-sources</outputDir>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
 ```
 
 ## 注意事项
@@ -353,7 +460,13 @@ public class CustomUserServiceImpl {
 3. **IDE支持**：
    - 生成的代码会自动加入到编译路径
    - IDE可以正常识别和使用生成的类
-   - 建议将 `target/generated-sources` 标记为源码目录
+   - 建议将 `target/generated-sources/src/main/java` 标记为源码目录
+   - IntelliJ IDEA 通常会自动识别，Eclipse 可能需要手动刷新项目
+
+4. **插件执行阶段**：
+   - 默认绑定到 `process-classes` 阶段，确保在代码生成前类文件已编译
+   - 支持直接执行插件目标 `mvn pojo-codegen:generate`
+   - 如果类文件不存在，插件会自动尝试编译项目
 
 ## 高级用法
 
@@ -379,15 +492,65 @@ public class CustomGenerator {
 
 ## 故障排除
 
+### 常见问题及解决方案
+
 1. **找不到 @GenModel 注解**：
-   - 确保添加了正确的依赖
+   - 确保添加了正确的依赖 `codegen-core`
    - 检查包名是否正确
+   - 确认实体类已编译成功
 
-2. **代码生成失败**：
-   - 检查实体类是否编译通过
-   - 确保插件配置正确
-   - 查看Maven日志输出
+2. **插件找不到带有 @GenModel 注解的类**：
+   ```bash
+   # 确保项目已编译
+   mvn clean compile
+   
+   # 检查 target/classes 目录下是否有类文件
+   ls -la target/classes/com/example/entity/
+   
+   # 重新执行代码生成
+   mvn pojo-codegen:generate
+   ```
 
-3. **生成的代码编译错误**：
+3. **插件执行失败**：
+   ```xml
+   <!-- 确保插件配置正确 -->
+   <plugin>
+       <groupId>io.github.youngerier</groupId>
+       <artifactId>generator-maven-plugin</artifactId>
+       <version>1.0.1</version>
+       <!-- 检查版本号是否正确 -->
+   </plugin>
+   ```
+
+4. **生成的代码编译错误**：
    - 检查依赖版本是否匹配
    - 确保注解处理器配置正确
+   - 检查 Java 版本兼容性（需要 Java 17+）
+
+5. **IDE 不识别生成的代码**：
+   ```bash
+   # 刷新 Maven 项目
+   mvn clean compile
+   
+   # 在 IDE 中刷新项目
+   # IntelliJ IDEA: Ctrl+Shift+F9 或 Build -> Rebuild Project
+   # Eclipse: F5 或 Project -> Refresh
+   ```
+
+6. **多模块项目中的问题**：
+   - 确保在正确的子模块中配置插件
+   - 检查模块间的依赖关系
+   - 遵循先编译再生成的序列
+
+### 调试技巧
+
+```bash
+# 开启 Maven 详细日志
+mvn pojo-codegen:generate -X
+
+# 检查插件信息
+mvn help:describe -Dplugin=io.github.youngerier:generator-maven-plugin:1.0.1
+
+# 检查项目的类路径
+mvn dependency:build-classpath
+```

@@ -70,7 +70,7 @@ public class CodeGeneratorMojo extends AbstractMojo {
         }
 
         try {
-            List<String> pojoClasses = findPojoClasses();
+            List<Class<?>> pojoClasses = findPojoClasses();
             if (pojoClasses.isEmpty()) {
                 getLog().warn("No POJOs with @GenModel annotation found in specified packages. Skipping code generation.");
                 return;
@@ -100,7 +100,7 @@ public class CodeGeneratorMojo extends AbstractMojo {
         }
     }
 
-    private List<String> findPojoClasses() throws MojoExecutionException {
+    private List<Class<?>> findPojoClasses() throws MojoExecutionException {
         ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             List<URL> urls = new ArrayList<>();
@@ -144,15 +144,9 @@ public class CodeGeneratorMojo extends AbstractMojo {
                     .addClassLoaders(customClassLoader));
 
             Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(GenModel.class);
-            
-            List<String> result = annotatedClasses.stream()
-                    .map(Class::getName)
-                    .collect(Collectors.toList());
-            
+            List<Class<?>> result = new ArrayList<>(annotatedClasses);
             getLog().info("Found " + result.size() + " classes annotated with @GenModel: " + result);
-            
             return result;
-            
         } catch (Exception e) {
             throw new MojoExecutionException("Error scanning for POJO classes", e);
         } finally {

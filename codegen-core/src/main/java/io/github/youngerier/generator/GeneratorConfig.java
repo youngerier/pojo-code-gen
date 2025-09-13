@@ -22,6 +22,6 @@ public class GeneratorConfig {
     /**
      * A list of fully qualified class names of the POJOs for which code needs to be generated.
      */
-    private final List<String> pojoClasses;
+    private final List<Class<?>> pojoClasses;
 
 }

@@ -347,7 +347,7 @@ public class CustomUserServiceImpl {
 
 ### Maven插件完整配置
 
-```xml
+```
 <plugin>
     <groupId>io.github.youngerier</groupId>
     <artifactId>generator-maven-plugin</artifactId>
@@ -474,18 +474,32 @@ mvn pojo-codegen:generate -Dpojo.codegen.outputDir=src/main/java
 
 如果需要自定义代码生成逻辑，可以直接使用核心API：
 
-```java
-import io.github.youngerier.core.CodeGeneratorMain;
-import io.github.youngerier.config.GeneratorConfig;
+```
+import io.github.youngerier.generator.GeneratorConfig;
+import io.github.youngerier.generator.GeneratorEngine;
+import java.io.File;
+import java.util.Collections;
 
 public class CustomGenerator {
     public static void main(String[] args) {
-        GeneratorConfig config = new GeneratorConfig();
-        config.setBasePackage("com.example");
-        config.setOutputDir("src/main/java");
-        config.setPojoClasses(Arrays.asList("com.example.entity.User"));
-        
-        CodeGeneratorMain.main(config);
+        try {
+            // 创建POJO类对象
+            Class<?> pojoClass = Class.forName("com.example.entity.User");
+            
+            // 构建 GeneratorConfig
+            GeneratorConfig config = GeneratorConfig.builder()
+                    .moduleName("example")
+                    .outputBaseDir("target" + File.separator + "generated-sources")
+                    .pojoClasses(Collections.singletonList(pojoClass))
+                    .build();
+
+            // 创建并执行引擎
+            GeneratorEngine engine = new GeneratorEngine(config);
+            engine.execute();
+        } catch (ClassNotFoundException e) {
+            System.err.println("找不到指定的POJO类: com.example.entity.User");
+            e.printStackTrace();
+        }
     }
 }
 ```

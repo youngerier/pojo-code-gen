@@ -27,20 +27,20 @@ public class GeneratorEngine {
      * Execute code generation.
      */
     public void execute() {
-        for (String pojoClass : config.getPojoClasses()) {
+        for (Class<?> pojoClass : config.getPojoClasses()) {
             try {
                 generateSinglePojo(pojoClass);
-            } catch (IOException | NoSuchAlgorithmException | ClassNotFoundException e) {
-                log.error("Error generating code for {}: {}", pojoClass, e.getMessage(), e);
+            } catch (IOException | NoSuchAlgorithmException e) {
+                log.error("Error generating code for {}: {}", pojoClass.getName(), e.getMessage(), e);
             }
         }
         log.info("所有代码生成任务完成!");
     }
 
-    private void generateSinglePojo(String pojoClassName) throws IOException, NoSuchAlgorithmException, ClassNotFoundException {
+    private void generateSinglePojo(Class<?> pojoClass) throws IOException, NoSuchAlgorithmException {
         // 1. Parse the POJO class
         SourceCodeAnalyzer analyzer = new SourceCodeAnalyzer();
-        ClassMetadata classMetadata = analyzer.parse(pojoClassName, config.getModuleName());
+        ClassMetadata classMetadata = analyzer.parse(pojoClass, config.getModuleName());
         log.info("Successfully parsed POJO: {}", classMetadata.getClassName());
 
         // 2. 创建包配置

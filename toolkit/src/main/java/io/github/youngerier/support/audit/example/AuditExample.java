@@ -1,12 +1,10 @@
 package io.github.youngerier.support.audit.example;
 
-import com.abc.web.support.audit.*;
 import io.github.youngerier.support.audit.AuditEventType;
 import io.github.youngerier.support.audit.annotations.Auditable;
 import io.github.youngerier.support.audit.annotations.IgnoreParam;
 import io.github.youngerier.support.audit.annotations.SensitiveParam;
 import io.github.youngerier.support.audit.annotations.SensitiveParam.MaskStrategy;
-import com.abc.web.support.audit.example.model.*;
 import io.github.youngerier.support.audit.example.model.Address;
 import io.github.youngerier.support.audit.example.model.EmergencyContact;
 import io.github.youngerier.support.audit.example.model.UserProfile;

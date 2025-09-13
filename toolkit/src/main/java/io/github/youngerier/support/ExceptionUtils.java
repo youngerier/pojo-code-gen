@@ -1,7 +1,6 @@
 package io.github.youngerier.support;
 
 import io.github.youngerier.support.enums.I18nCommonExceptionCode;
-import com.abc.web.support.exception.*;
 import io.github.youngerier.support.exception.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

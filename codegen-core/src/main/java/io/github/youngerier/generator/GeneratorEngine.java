@@ -1,6 +1,5 @@
 package io.github.youngerier.generator;
 
-import com.example.generator.generators.*;
 import io.github.youngerier.generator.generators.*;
 import io.github.youngerier.generator.model.PackageStructure;
 import io.github.youngerier.generator.model.ClassMetadata;

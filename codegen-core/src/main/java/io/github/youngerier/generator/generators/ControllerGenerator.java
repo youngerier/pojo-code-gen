@@ -186,7 +186,7 @@ public class ControllerGenerator implements CodeGenerator {
         // 添加删除方法
         MethodSpec deleteMethod = MethodSpec.methodBuilder("delete" + classMetadata.getClassName())
                 .addModifiers(Modifier.PUBLIC)
-                .returns(ParameterizedTypeName.get(responseType, TypeName.BOOLEAN))
+                .returns(ParameterizedTypeName.get(responseType, ClassName.get(Boolean.class)))
                 .addAnnotation(AnnotationSpec.builder(ClassName.get("org.springframework.web.bind.annotation", "DeleteMapping"))
                         .addMember("value", "$S", "/{id}")
                         .build())

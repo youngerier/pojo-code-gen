@@ -15,8 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 
 /**
  * 源码分析器，使用JavaParser解析Java源码并提取类元数据信息
@@ -39,43 +42,19 @@ public class SourceCodeAnalyzer {
             String packageName = clazz.getPackage().getName();
             String simpleClassName = clazz.getSimpleName();
             
-            // Configure the symbol solver
+            // Find the source file path
+            File sourceFile = findSourceFile(clazz, packageName, simpleClassName);
+            
+            // Configure the symbol solver with the parent directory of the source file
             CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
             combinedTypeSolver.add(new ReflectionTypeSolver());
             
-            // Determine the source path based on the current working directory
-            String userDir = System.getProperty("user.dir");
-            String srcPath = findSourcePath(userDir, moduleName);
-            
-            combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcPath)));
+            // Get the src/main/java directory
+            File srcDir = findSrcMainJavaDir(sourceFile);
+            combinedTypeSolver.add(new JavaParserTypeSolver(srcDir));
 
             JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
             StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
-
-            // Find source file using Class object information
-            String packagePath = packageName.replace('.', File.separatorChar);
-            String fileName = simpleClassName + ".java";
-            String filePath = srcPath + File.separator + packagePath + File.separator + fileName;
-            
-            File sourceFile = new File(filePath);
-            if (!sourceFile.exists()) {
-                // Try to find the source file using classpath
-                URL resource = clazz.getResource(simpleClassName + ".class");
-                if (resource != null) {
-                    // Try to derive source path from classpath
-                    String classPath = Paths.get(resource.toURI()).toString();
-                    // Replace target/classes with src/main/java
-                    String sourcePath = classPath.replaceAll("target[/\\\\]classes", "src/main/java");
-                    sourcePath = sourcePath.replaceAll("build[/\\\\]classes[/\\\\]java[/\\\\]main", "src/main/java");
-                    // Replace class file with java file
-                    sourcePath = sourcePath.replaceAll(simpleClassName + "\\.class$", simpleClassName + ".java");
-                    sourceFile = new File(sourcePath);
-                }
-                
-                if (!sourceFile.exists()) {
-                    throw new IOException("Source file not found: " + filePath);
-                }
-            }
 
             CompilationUnit cu = StaticJavaParser.parse(sourceFile);
 
@@ -109,101 +88,88 @@ public class SourceCodeAnalyzer {
      * @throws ClassNotFoundException If the class is not found.
      */
     public ClassMetadata parse(String className, String moduleName) throws IOException, ClassNotFoundException {
-        // Configure the symbol solver
-        CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
-        combinedTypeSolver.add(new ReflectionTypeSolver());
+        // Load the class
+        Class<?> clazz = Class.forName(className);
         
-        // Determine the source path based on the current working directory
-        String userDir = System.getProperty("user.dir");
-        String srcPath = findSourcePath(userDir, moduleName);
-        
-        combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcPath)));
-
-        JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
-        StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
-
-        // Extract package and class name from the fully qualified class name
-        int lastDotIndex = className.lastIndexOf('.');
-        if (lastDotIndex == -1) {
-            throw new IllegalArgumentException("Invalid class name: " + className + ". Expected fully qualified class name.");
-        }
-        
-        String packageName = className.substring(0, lastDotIndex);
-        String simpleClassName = className.substring(lastDotIndex + 1);
-        String fileName = simpleClassName + ".java";
-        String packagePath = packageName.replace('.', File.separatorChar);
-        String filePath = srcPath + File.separator + packagePath + File.separator + fileName;
-        
-        File sourceFile = new File(filePath);
-        if (!sourceFile.exists()) {
-            throw new IOException("Source file not found: " + filePath);
-        }
-
-        CompilationUnit cu = StaticJavaParser.parse(sourceFile);
-
-        ClassMetadata classMetadata = new ClassMetadata();
-
-        // Extract package name
-        cu.getPackageDeclaration().ifPresent(pkg -> classMetadata.setPackageName(pkg.getNameAsString()));
-
-        // Extract class information
-        cu.getClassByName(simpleClassName).ifPresent(cls -> {
-            classMetadata.setClassName(cls.getNameAsString());
-            classMetadata.setClassComment(extractComment(cls));
-
-            // Extract field information
-            extractFields(cls, classMetadata);
-        });
-
-        return classMetadata;
+        // Delegate to the other parse method
+        return parse(clazz, moduleName);
     }
 
     /**
-     * Find the correct source path for the module.
+     * Find the source file for a class.
      *
-     * @param userDir     The current working directory.
-     * @param moduleName  The name of the module.
-     * @return The correct source path.
+     * @param clazz The class to find the source file for.
+     * @param packageName The package name of the class.
+     * @param simpleClassName The simple class name.
+     * @return The source file.
+     * @throws IOException If the source file cannot be found.
+     * @throws URISyntaxException If there is an error with the URI.
      */
-    private String findSourcePath(String userDir, String moduleName) {
-        // Try the direct path first
-        String srcPath = userDir + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
-        if (new File(srcPath).exists()) {
-            return srcPath;
-        }
-        
-        // Try with "example" prefix
-        srcPath = userDir + File.separator + "example" + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
-        if (new File(srcPath).exists()) {
-            return srcPath;
-        }
-        
-        // Try if we're already in the module directory
-        if (userDir.endsWith(moduleName)) {
-            srcPath = userDir + File.separator + "src" + File.separator + "main" + File.separator + "java";
-            if (new File(srcPath).exists()) {
-                return srcPath;
+    private File findSourceFile(Class<?> clazz, String packageName, String simpleClassName) throws IOException, URISyntaxException {
+        // Try to find the source file using classpath
+        URL resource = clazz.getResource(simpleClassName + ".class");
+        if (resource != null) {
+            // Derive source path from classpath
+            String classPath = Paths.get(resource.toURI()).toString();
+            
+            // Replace target/classes or build/classes with src/main/java
+            String sourcePath = classPath
+                .replaceAll("[/\\\\]target[/\\\\]classes", File.separator + "src" + File.separator + "main" + File.separator + "java")
+                .replaceAll("[/\\\\]build[/\\\\]classes[/\\\\]java[/\\\\]main", File.separator + "src" + File.separator + "main" + File.separator + "java");
+            
+            // Replace class file with java file
+            sourcePath = sourcePath.replaceAll(simpleClassName + "\\.class$", simpleClassName + ".java");
+            
+            File sourceFile = new File(sourcePath);
+            if (sourceFile.exists()) {
+                return sourceFile;
             }
         }
         
-        // Try if we're in the example directory
-        if (userDir.endsWith("example")) {
-            srcPath = userDir + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
-            if (new File(srcPath).exists()) {
-                return srcPath;
+        // Fallback: try to construct the path based on package structure
+        String packagePath = packageName.replace('.', File.separatorChar);
+        String fileName = simpleClassName + ".java";
+        
+        // Try common source directory structures
+        String[] possiblePaths = {
+            "src" + File.separator + "main" + File.separator + "java",
+            "example" + File.separator + "src" + File.separator + "main" + File.separator + "java",
+            "example" + File.separator + "sub-module" + File.separator + "src" + File.separator + "main" + File.separator + "java"
+        };
+        
+        for (String possiblePath : possiblePaths) {
+            String filePath = possiblePath + File.separator + packagePath + File.separator + fileName;
+            File sourceFile = new File(filePath);
+            if (sourceFile.exists()) {
+                return sourceFile;
             }
         }
         
-        // Fallback to the original logic
-        if (userDir.endsWith(moduleName)) {
-            // We're already in the module directory
-            srcPath = userDir + File.separator + "src" + File.separator + "main" + File.separator + "java";
-        } else {
-            // We're in the parent directory
-            srcPath = userDir + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
+        throw new IOException("Source file not found for class: " + packageName + "." + simpleClassName);
+    }
+
+    /**
+     * Find the src/main/java directory for a source file.
+     *
+     * @param sourceFile The source file.
+     * @return The src/main/java directory.
+     */
+    private File findSrcMainJavaDir(File sourceFile) {
+        Path sourcePath = sourceFile.toPath().toAbsolutePath().normalize();
+        
+        // Walk up the directory tree to find src/main/java
+        Path current = sourcePath.getParent();
+        while (current != null) {
+            Path srcMainJava = current.resolve("src").resolve("main").resolve("java");
+            if (srcMainJava.toFile().exists()) {
+                return srcMainJava.toFile();
+            }
+            current = current.getParent();
         }
         
-        return srcPath;
+        // Fallback: return the parent directory of the source file's parent directory
+        // This assumes the structure is something like src/main/java/package/Class.java
+        return sourceFile.getParentFile().getParentFile().getParentFile();
     }
 
     /**

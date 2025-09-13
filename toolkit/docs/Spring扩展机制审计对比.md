@@ -195,7 +195,7 @@ public void handleSecurityEvent(AuthenticationSuccessEvent event) {
 ### 8. **注解处理器 ⭐⭐**
 
 ```java
-@SupportedAnnotationTypes("com.abc.web.support.audit.annotations.Auditable")
+@SupportedAnnotationTypes("annotations.audit.io.github.youngerier.support.Auditable")
 public class AuditableAnnotationProcessor extends AbstractProcessor {
     // 编译时处理注解
 }

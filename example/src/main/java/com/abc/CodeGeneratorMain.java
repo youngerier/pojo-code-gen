@@ -1,7 +1,7 @@
 package com.abc;
 
-import com.example.generator.GeneratorConfig;
-import com.example.generator.GeneratorEngine;
+import io.github.youngerier.generator.GeneratorConfig;
+import io.github.youngerier.generator.GeneratorEngine;
 
 import java.io.File;
 import java.util.Collections;

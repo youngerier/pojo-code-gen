@@ -1,6 +1,6 @@
 package com.abc.entity;
 
-import com.example.generator.annotation.GenModel;
+import io.github.youngerier.generator.annotation.GenModel;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.Table;
 import lombok.Data;

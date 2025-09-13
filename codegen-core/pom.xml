@@ -3,6 +3,8 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    
+    <!-- 父项目配置 -->
     <parent>
         <groupId>io.github.youngerier</groupId>
         <artifactId>java-codegen-toolkit</artifactId>
@@ -10,12 +12,17 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <!-- 模块基本信息 -->
     <artifactId>codegen-core</artifactId>
     <name>Java Code Generation Toolkit - Core</name>
-    <description>Core module providing Java code generation functionality for DTOs, Services, Repositories and more</description>
+    <description>核心代码生成模块，提供DTO、Service、Repository等Java代码生成功能</description>
 
     <dependencies>
-        <!-- JavaParser -->
+        <!-- ============================ -->
+        <!-- 核心代码生成依赖 -->
+        <!-- ============================ -->
+        
+        <!-- JavaParser - Java源码解析 -->
         <dependency>
             <groupId>com.github.javaparser</groupId>
             <artifactId>javaparser-core</artifactId>
@@ -25,27 +32,46 @@
             <artifactId>javaparser-symbol-solver-core</artifactId>
         </dependency>
 
-        <!-- JavaPoet -->
+        <!-- JavaPoet - Java代码生成 -->
         <dependency>
             <groupId>com.squareup</groupId>
             <artifactId>javapoet</artifactId>
         </dependency>
 
-        <!-- Lombok -->
+        <!-- ============================ -->
+        <!-- 代码增强与注解处理 -->
+        <!-- ============================ -->
+        
+        <!-- Lombok - 代码增强 -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
 
-        <!-- Spring相关 -->
+        <!-- MapStruct - 对象映射 -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ============================ -->
+        <!-- 框架集成支持 -->
+        <!-- ============================ -->
+        
+        <!-- Spring框架 - 可选依赖 -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
             <optional>true</optional>
         </dependency>
 
-        <!-- MyBatis Flex -->
+        <!-- MyBatis Flex - ORM框架 -->
         <dependency>
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-core</artifactId>
@@ -60,30 +86,52 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- MapStruct -->
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct-processor</artifactId>
-        </dependency>
-
-
+        <!-- ============================ -->
+        <!-- 验证与工具类 -->
+        <!-- ============================ -->
+        
+        <!-- Bean验证API -->
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
 
+        <!-- 项目工具包 -->
         <dependency>
             <groupId>io.github.youngerier</groupId>
             <artifactId>toolkit</artifactId>
         </dependency>
+        
+        <!-- 日志框架 -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
     </dependencies>
+
+    <!-- ============================ -->
+    <!-- 构建配置 -->
+    <!-- ============================ -->
+    <build>
+        <plugins>
+            <!-- 编译插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            
+            <!-- 源码打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+            
+            <!-- Javadoc插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

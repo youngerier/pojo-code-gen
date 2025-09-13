@@ -16,6 +16,7 @@
     <artifactId>example</artifactId>
     <name>Java Code Generation Toolkit - Example</name>
     <description>Java代码生成工具包的使用示例和演示</description>
+    <packaging>pom</packaging>
 
     <!-- ============================ -->
     <!-- 项目属性 -->
@@ -67,46 +68,5 @@
     <!-- ============================ -->
     <!-- 构建配置 -->
     <!-- ============================ -->
-    <build>
-        <plugins>
-            <!-- 代码生成插件 -->
-            <plugin>
-                <groupId>io.github.youngerier</groupId>
-                <artifactId>generator-maven-plugin</artifactId>
-                <version>${project.version}</version>
-                <executions>
-                    <execution>
-                        <id>generate-code</id>
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <scanPackages>
-                        <package>com.abc.entity</package>
-                    </scanPackages>
-                    <!-- 未指定outputDir，将使用默认值：target/generated-sources/ -->
-                </configuration>
-            </plugin>
-            
-            <!-- 编译插件 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
-            
-            <!-- 执行插件 -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <mainClass>com.abc.CodeGeneratorMain</mainClass>
-                    <workingDirectory>../</workingDirectory>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+
 </project>

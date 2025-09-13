@@ -43,6 +43,7 @@
         <module>toolkit</module>
         <module>example</module>
         <module>generator-maven-plugin</module>
+        <module>example/sub-module</module>
     </modules>
 
     <properties>

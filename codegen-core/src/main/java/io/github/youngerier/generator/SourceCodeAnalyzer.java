@@ -45,15 +45,7 @@ public class SourceCodeAnalyzer {
             
             // Determine the source path based on the current working directory
             String userDir = System.getProperty("user.dir");
-            String srcPath;
-            
-            if (userDir.endsWith(moduleName)) {
-                // We're already in the module directory
-                srcPath = userDir + File.separator + "src" + File.separator + "main" + File.separator + "java";
-            } else {
-                // We're in the parent directory
-                srcPath = userDir + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
-            }
+            String srcPath = findSourcePath(userDir, moduleName);
             
             combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcPath)));
 
@@ -123,15 +115,7 @@ public class SourceCodeAnalyzer {
         
         // Determine the source path based on the current working directory
         String userDir = System.getProperty("user.dir");
-        String srcPath;
-        
-        if (userDir.endsWith(moduleName)) {
-            // We're already in the module directory
-            srcPath = userDir + File.separator + "src" + File.separator + "main" + File.separator + "java";
-        } else {
-            // We're in the parent directory
-            srcPath = userDir + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
-        }
+        String srcPath = findSourcePath(userDir, moduleName);
         
         combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcPath)));
 
@@ -172,6 +156,54 @@ public class SourceCodeAnalyzer {
         });
 
         return classMetadata;
+    }
+
+    /**
+     * Find the correct source path for the module.
+     *
+     * @param userDir     The current working directory.
+     * @param moduleName  The name of the module.
+     * @return The correct source path.
+     */
+    private String findSourcePath(String userDir, String moduleName) {
+        // Try the direct path first
+        String srcPath = userDir + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
+        if (new File(srcPath).exists()) {
+            return srcPath;
+        }
+        
+        // Try with "example" prefix
+        srcPath = userDir + File.separator + "example" + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
+        if (new File(srcPath).exists()) {
+            return srcPath;
+        }
+        
+        // Try if we're already in the module directory
+        if (userDir.endsWith(moduleName)) {
+            srcPath = userDir + File.separator + "src" + File.separator + "main" + File.separator + "java";
+            if (new File(srcPath).exists()) {
+                return srcPath;
+            }
+        }
+        
+        // Try if we're in the example directory
+        if (userDir.endsWith("example")) {
+            srcPath = userDir + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
+            if (new File(srcPath).exists()) {
+                return srcPath;
+            }
+        }
+        
+        // Fallback to the original logic
+        if (userDir.endsWith(moduleName)) {
+            // We're already in the module directory
+            srcPath = userDir + File.separator + "src" + File.separator + "main" + File.separator + "java";
+        } else {
+            // We're in the parent directory
+            srcPath = userDir + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
+        }
+        
+        return srcPath;
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.abc.entity;
+package abc.entity;
 
 import io.github.youngerier.generator.annotation.GenModel;
 import com.mybatisflex.annotation.Id;

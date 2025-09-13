@@ -37,17 +37,18 @@
           <entry name="$MAVEN_REPOSITORY$/org/mybatis/mybatis/3.5.16/mybatis-3.5.16.jar" />
         </processorPath>
         <module name="codegen-core" />
+        <module name="sub-module" />
         <module name="generator-maven-plugin" />
         <module name="toolkit" />
-        <module name="example" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="codegen-core" options="-parameters -Xlint:unchecked" />
-      <module name="example" options="-parameters -Xlint:unchecked" />
+      <module name="example" options="" />
       <module name="generator-maven-plugin" options="-parameters -Xlint:unchecked" />
+      <module name="sub-module" options="-parameters -Xlint:unchecked" />
       <module name="toolkit" options="-parameters -Xlint:unchecked" />
     </option>
   </component>

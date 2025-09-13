@@ -1,4 +1,4 @@
-package com.abc.entity;
+package abc.entity;
 
 import com.mybatisflex.annotation.EnumValue;
 import lombok.AllArgsConstructor;

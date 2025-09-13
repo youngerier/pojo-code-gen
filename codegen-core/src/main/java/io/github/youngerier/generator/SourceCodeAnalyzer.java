@@ -15,6 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * 源码分析器，使用JavaParser解析Java源码并提取类元数据信息
@@ -36,16 +39,10 @@ public class SourceCodeAnalyzer {
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
         
-        // Determine the source path based on the current working directory
-        String userDir = System.getProperty("user.dir");
-        String srcPath;
-        
-        if (userDir.endsWith(moduleName)) {
-            // We're already in the module directory
-            srcPath = userDir + File.separator + "src" + File.separator + "main" + File.separator + "java";
-        } else {
-            // We're in the parent directory
-            srcPath = userDir + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java";
+        // 更智能地确定源代码路径
+        String srcPath = findSourcePath(moduleName);
+        if (srcPath == null) {
+            throw new IOException("无法找到模块 " + moduleName + " 的源代码目录");
         }
         
         combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcPath)));
@@ -87,6 +84,69 @@ public class SourceCodeAnalyzer {
         });
 
         return classMetadata;
+    }
+
+    /**
+     * 智能查找源代码路径
+     * @param moduleName 模块名称
+     * @return 源代码路径，如果找不到则返回null
+     */
+    private String findSourcePath(String moduleName) {
+        String userDir = System.getProperty("user.dir");
+        log.info("当前工作目录: {}", userDir);
+        log.info("模块名称: {}", moduleName);
+        
+        // 尝试多种可能的源代码路径
+        String[] possiblePaths = {
+            // 当前目录下的标准结构
+            userDir + File.separator + "src" + File.separator + "main" + File.separator + "java",
+            
+            // 当前目录就是模块目录的情况
+            userDir + File.separator + "src" + File.separator + "main" + File.separator + "java",
+            
+            // 父目录结构 (userDir/moduleName/src/main/java)
+            userDir + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java",
+            
+            // 兄弟目录结构 (userDir/../moduleName/src/main/java)
+            Paths.get(userDir).getParent().toString() + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java",
+            
+            // 更复杂的嵌套结构 (userDir/../../moduleName/src/main/java)
+            Paths.get(userDir).getParent().getParent().toString() + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java"
+        };
+        
+        // 检查每个可能的路径
+        for (String path : possiblePaths) {
+            File srcDir = new File(path);
+            if (srcDir.exists() && srcDir.isDirectory()) {
+                log.info("找到源代码目录: {}", path);
+                return path;
+            }
+        }
+        
+        // 如果以上都没找到，尝试在当前目录及其子目录中搜索src/main/java
+        try {
+            Path startPath = Paths.get(userDir);
+            Path foundPath = Files.walk(startPath, 5)
+                .filter(path -> path.toString().endsWith("src" + File.separator + "main" + File.separator + "java"))
+                .filter(Files::isDirectory)
+                .findFirst()
+                .orElse(null);
+                
+            if (foundPath != null) {
+                String path = foundPath.toString();
+                log.info("通过搜索找到源代码目录: {}", path);
+                return path;
+            }
+        } catch (IOException e) {
+            log.warn("搜索源代码目录时发生错误: {}", e.getMessage());
+        }
+        
+        log.error("无法在以下路径中找到源代码目录:");
+        for (String path : possiblePaths) {
+            log.error("  - {}", path);
+        }
+        
+        return null;
     }
 
     /**

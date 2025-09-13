@@ -16,6 +16,11 @@ import java.util.List;
  */
 @Slf4j
 public class GeneratorEngine {
+    
+    /**
+     * Standard Maven source directory path.
+     */
+    private static final String SRC_MAIN_JAVA = "src" + File.separator + "main" + File.separator + "java";
 
     private final GeneratorConfig config;
 
@@ -69,6 +74,6 @@ public class GeneratorEngine {
         }
 
         log.info("为 {} 生成的代码已完成!", classMetadata.getClassName());
-        log.info("生成的文件位于: {}", new File(config.getOutputBaseDir(), "src/main/java").getAbsolutePath());
+        log.info("生成的文件位于: {}", new File(config.getOutputBaseDir(), SRC_MAIN_JAVA).getAbsolutePath());
     }
 }

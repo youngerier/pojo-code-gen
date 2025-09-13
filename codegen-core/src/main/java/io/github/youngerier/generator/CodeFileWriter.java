@@ -5,6 +5,7 @@ import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -19,6 +20,11 @@ import java.util.Arrays;
  */
 @Slf4j
 public class CodeFileWriter {
+
+    /**
+     * Standard Maven source directory path.
+     */
+    private static final String SRC_MAIN_JAVA = "src" + File.separator + "main" + File.separator + "java";
 
     private static final String DEFAULT_INDENT = "    "; // 默认4个空格缩进
     
@@ -52,7 +58,7 @@ public class CodeFileWriter {
         byte[] newHash = calculateHash(newContentBytes);
 
         // 检查文件是否已存在
-        Path outputDirPath = Paths.get(baseOutputDir, "src", "main", "java");
+        Path outputDirPath = Paths.get(baseOutputDir, SRC_MAIN_JAVA);
         Path packagePath = outputDirPath;
         if (!packageName.isEmpty()) {
             for (String packageComponent : packageName.split("\\.")) {

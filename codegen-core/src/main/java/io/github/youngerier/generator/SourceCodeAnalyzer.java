@@ -30,6 +30,11 @@ import java.nio.file.Paths;
 public class SourceCodeAnalyzer {
 
     /**
+     * Standard Maven source directory path.
+     */
+    private static final String SRC_MAIN_JAVA = "src" + File.separator + "main" + File.separator + "java";
+
+    /**
      * Parse a POJO class using Class object.
      *
      * @param clazz       The Class object of the POJO.
@@ -115,8 +120,14 @@ public class SourceCodeAnalyzer {
             
             // Replace target/classes or build/classes with src/main/java
             String sourcePath = classPath
-                .replaceAll("[/\\\\]target[/\\\\]classes", File.separator + "src" + File.separator + "main" + File.separator + "java")
-                .replaceAll("[/\\\\]build[/\\\\]classes[/\\\\]java[/\\\\]main", File.separator + "src" + File.separator + "main" + File.separator + "java");
+                .replaceAll("[/\\\\]target[/\\\\]classes", File.separator + SRC_MAIN_JAVA)
+                .replaceAll("[/\\\\]build[/\\\\]classes[/\\\\]java[/\\\\]main", File.separator + SRC_MAIN_JAVA);
+            
+            // For multi-level modules, we might need to adjust the path further
+            // Handle cases like target/classes -> ../../src/main/java
+            if (!sourcePath.contains(SRC_MAIN_JAVA)) {
+                sourcePath = adjustPathForMultiModule(sourcePath, simpleClassName);
+            }
             
             // Replace class file with java file
             sourcePath = sourcePath.replaceAll(simpleClassName + "\\.class$", simpleClassName + ".java");
@@ -134,7 +145,7 @@ public class SourceCodeAnalyzer {
         // Try to find src/main/java by walking up from the current directory
         File currentDir = new File(System.getProperty("user.dir")).getAbsoluteFile();
         while (currentDir != null) {
-            File srcDir = new File(currentDir, "src" + File.separator + "main" + File.separator + "java");
+            File srcDir = new File(currentDir, SRC_MAIN_JAVA);
             if (srcDir.exists()) {
                 File sourceFile = new File(srcDir, packagePath + File.separator + fileName);
                 if (sourceFile.exists()) {
@@ -144,7 +155,102 @@ public class SourceCodeAnalyzer {
             currentDir = currentDir.getParentFile();
         }
         
+        // For multi-level modules, try a more extensive search
+        return findSourceFileInMultiModuleStructure(packageName, simpleClassName);
+    }
+
+    /**
+     * Adjust path for multi-level Maven modules.
+     *
+     * @param classPath The original class path.
+     * @param simpleClassName The simple class name.
+     * @return Adjusted path for source file.
+     */
+    private String adjustPathForMultiModule(String classPath, String simpleClassName) {
+        // Handle multi-level module structure
+        // For example: /project/module1/module2/target/classes -> /project/module1/module2/src/main/java
+        // Or: /project/module1/module2/target/classes -> /project/src/main/java
+        
+        Path path = Paths.get(classPath);
+        Path current = path;
+        
+        // Walk up the directory tree to find a suitable src/main/java
+        int maxDepth = 10;
+        for (int i = 0; i < maxDepth && current != null; i++) {
+            Path srcMainJava = current.getParent().resolve(SRC_MAIN_JAVA);
+            if (srcMainJava.toFile().exists()) {
+                return srcMainJava.resolve(Paths.get(classPath).getFileName().toString()).toString();
+            }
+            current = current.getParent();
+        }
+        
+        // If not found, try a more general approach
+        return classPath.replaceFirst("[/\\\\]target[/\\\\]classes.*", 
+            File.separator + SRC_MAIN_JAVA + 
+            classPath.substring(classPath.indexOf(simpleClassName) - 1));
+    }
+
+    /**
+     * Find source file in multi-module structure.
+     *
+     * @param packageName The package name.
+     * @param simpleClassName The simple class name.
+     * @return The source file.
+     * @throws IOException If the source file cannot be found.
+     */
+    private File findSourceFileInMultiModuleStructure(String packageName, String simpleClassName) throws IOException {
+        String packagePath = packageName.replace('.', File.separatorChar);
+        String fileName = simpleClassName + ".java";
+        
+        // Get the current working directory
+        String userDir = System.getProperty("user.dir");
+        if (userDir != null) {
+            Path userDirPath = Paths.get(userDir).toAbsolutePath().normalize();
+            
+            // Search in the current directory and its subdirectories
+            File sourceFile = searchForSourceFile(userDirPath, packagePath, fileName);
+            if (sourceFile != null) {
+                return sourceFile;
+            }
+        }
+        
         throw new IOException("Source file not found for class: " + packageName + "." + simpleClassName);
+    }
+
+    /**
+     * Recursively search for source file in directory structure.
+     *
+     * @param rootPath The root path to start searching from.
+     * @param packagePath The package path.
+     * @param fileName The file name.
+     * @return The source file if found, null otherwise.
+     */
+    private File searchForSourceFile(Path rootPath, String packagePath, String fileName) {
+        File srcMainJava = rootPath.resolve(SRC_MAIN_JAVA).toFile();
+        if (srcMainJava.exists()) {
+            File sourceFile = new File(srcMainJava, packagePath + File.separator + fileName);
+            if (sourceFile.exists()) {
+                return sourceFile;
+            }
+        }
+        
+        // Recursively search subdirectories
+        File[] subDirs = rootPath.toFile().listFiles(File::isDirectory);
+        if (subDirs != null) {
+            for (File subDir : subDirs) {
+                // Skip target and build directories
+                if ("target".equals(subDir.getName()) || "build".equals(subDir.getName())) {
+                    continue;
+                }
+                
+                File result = searchForSourceFile(subDir.toPath(), packagePath, fileName);
+                if (result != null) {
+                    return result;
+                }
+            }
+        }
+        
+        return null;
     }
 
     /**
@@ -159,16 +265,65 @@ public class SourceCodeAnalyzer {
         // Walk up the directory tree to find src/main/java
         Path current = sourcePath.getParent();
         while (current != null) {
-            Path srcMainJava = current.resolve("src").resolve("main").resolve("java");
+            Path srcMainJava = current.resolve(SRC_MAIN_JAVA);
             if (srcMainJava.toFile().exists()) {
                 return srcMainJava.toFile();
             }
             current = current.getParent();
         }
         
+        // For multi-level Maven modules, we need to search more extensively
+        // Walk up further to find the correct src/main/java directory
+        current = sourcePath.getParent();
+        int maxDepth = 10; // Limit search depth to prevent infinite loops
+        int depth = 0;
+        
+        while (current != null && depth < maxDepth) {
+            // Check if current directory contains pom.xml (indicating a Maven module)
+            File pomFile = current.resolve("pom.xml").toFile();
+            if (pomFile.exists()) {
+                // Look for src/main/java in this directory
+                Path srcMainJava = current.resolve(SRC_MAIN_JAVA);
+                if (srcMainJava.toFile().exists()) {
+                    return srcMainJava.toFile();
+                }
+            }
+            
+            // Also check common multi-module patterns
+            // Try looking in parent directories for src/main/java
+            Path parentSrcMainJava = current.resolve(SRC_MAIN_JAVA);
+            if (parentSrcMainJava.toFile().exists()) {
+                return parentSrcMainJava.toFile();
+            }
+            
+            current = current.getParent();
+            depth++;
+        }
+        
         // Fallback: return the parent directory of the source file's parent directory
         // This assumes the structure is something like src/main/java/package/Class.java
-        return sourceFile.getParentFile().getParentFile().getParentFile();
+        File parent = sourceFile.getParentFile();
+        if (parent != null) {
+            parent = parent.getParentFile();
+            if (parent != null) {
+                parent = parent.getParentFile();
+                if (parent != null && parent.exists()) {
+                    return parent;
+                }
+            }
+        }
+        
+        // Last resort: try to find any src/main/java directory by walking up from the project base
+        String userDir = System.getProperty("user.dir");
+        if (userDir != null) {
+            Path userDirPath = Paths.get(userDir);
+            Path srcMainJava = userDirPath.resolve(SRC_MAIN_JAVA);
+            if (srcMainJava.toFile().exists()) {
+                return srcMainJava.toFile();
+            }
+        }
+        
+        throw new IllegalStateException("Cannot find src/main/java directory for source file: " + sourceFile.getAbsolutePath());
     }
 
     /**

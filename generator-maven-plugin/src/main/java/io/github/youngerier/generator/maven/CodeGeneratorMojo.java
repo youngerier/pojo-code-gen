@@ -26,6 +26,11 @@ import java.util.stream.Collectors;
 @Mojo(name = "generate", defaultPhase = LifecyclePhase.PROCESS_CLASSES, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class CodeGeneratorMojo extends AbstractMojo {
 
+    /**
+     * Standard Maven source directory path.
+     */
+    private static final String SRC_MAIN_JAVA = "src" + File.separator + "main" + File.separator + "java";
+
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
 
@@ -88,7 +93,7 @@ public class CodeGeneratorMojo extends AbstractMojo {
             engine.execute();
 
             // 3. Add the generated sources to the project's compile source roots
-            File generatedSourcesDir = new File(outputDir, "src/main/java");
+            File generatedSourcesDir = new File(outputDir, SRC_MAIN_JAVA);
             project.addCompileSourceRoot(generatedSourcesDir.getAbsolutePath());
 
             getLog().info("Code generation completed successfully.");

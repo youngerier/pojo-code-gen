@@ -45,7 +45,7 @@ public class RequestGenerator implements CodeGenerator {
             }
 
             // 创建字段类型
-            TypeName fieldType = ClassName.bestGuess(field.getFullType());
+            TypeName fieldType = field.getType();
 
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                     fieldType,

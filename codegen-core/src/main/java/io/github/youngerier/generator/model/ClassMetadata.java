@@ -1,5 +1,7 @@
 package io.github.youngerier.generator.model;
 
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.TypeName;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -24,9 +26,14 @@ public class ClassMetadata {
     @Data
     public static class FieldInfo {
         private String name;         // 字段名
-        private String type;         // 字段类型
+        private TypeName type;       // 字段类型 (使用JavaPoet的TypeName)
         private String fullType;     // 字段完整类型
         private String comment;      // 字段注释
         private boolean isPrimaryKey; // 是否为主键
+        
+        // 为了向后兼容，提供一个便捷方法来获取类型的字符串表示
+        public String getTypeString() {
+            return type != null ? type.toString() : null;
+        }
     }
 }

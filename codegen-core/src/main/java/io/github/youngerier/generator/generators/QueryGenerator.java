@@ -37,7 +37,7 @@ public class QueryGenerator implements CodeGenerator {
         // 添加字段
         for (ClassMetadata.FieldInfo field : classMetadata.getFields()) {
             // 创建字段类型
-            TypeName fieldType = ClassName.bestGuess(field.getFullType());
+            TypeName fieldType = field.getType();
 
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                     fieldType,

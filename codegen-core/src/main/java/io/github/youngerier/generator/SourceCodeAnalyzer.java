@@ -7,10 +7,13 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.TypeName;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -19,7 +22,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 
 /**
  * 源码分析器，使用JavaParser解析Java源码并提取类元数据信息
@@ -38,7 +40,6 @@ public class SourceCodeAnalyzer {
     public ClassMetadata parse(Class<?> clazz, String moduleName) throws IOException {
         try {
             // Get class information directly from Class object
-            String className = clazz.getName();
             String packageName = clazz.getPackage().getName();
             String simpleClassName = clazz.getSimpleName();
             
@@ -130,19 +131,17 @@ public class SourceCodeAnalyzer {
         String packagePath = packageName.replace('.', File.separatorChar);
         String fileName = simpleClassName + ".java";
         
-        // Try common source directory structures
-        String[] possiblePaths = {
-            "src" + File.separator + "main" + File.separator + "java",
-            "example" + File.separator + "src" + File.separator + "main" + File.separator + "java",
-            "example" + File.separator + "sub-module" + File.separator + "src" + File.separator + "main" + File.separator + "java"
-        };
-        
-        for (String possiblePath : possiblePaths) {
-            String filePath = possiblePath + File.separator + packagePath + File.separator + fileName;
-            File sourceFile = new File(filePath);
-            if (sourceFile.exists()) {
-                return sourceFile;
+        // Try to find src/main/java by walking up from the current directory
+        File currentDir = new File(System.getProperty("user.dir")).getAbsoluteFile();
+        while (currentDir != null) {
+            File srcDir = new File(currentDir, "src" + File.separator + "main" + File.separator + "java");
+            if (srcDir.exists()) {
+                File sourceFile = new File(srcDir, packagePath + File.separator + fileName);
+                if (sourceFile.exists()) {
+                    return sourceFile;
+                }
             }
+            currentDir = currentDir.getParentFile();
         }
         
         throw new IOException("Source file not found for class: " + packageName + "." + simpleClassName);
@@ -185,16 +184,21 @@ public class SourceCodeAnalyzer {
             for (VariableDeclarator var : fieldDecl.getVariables()) {
                 ClassMetadata.FieldInfo fieldInfo = new ClassMetadata.FieldInfo();
                 fieldInfo.setName(var.getNameAsString());
-                fieldInfo.setType(var.getTypeAsString());
-                fieldInfo.setComment(extractComment(fieldDecl));
-
-                // Try to resolve and set the full type
+                
+                // 设置字段类型为TypeName
                 try {
-                    fieldInfo.setFullType(var.getType().resolve().describe());
+                    // 尝试解析类型
+                    ResolvedType resolvedType = var.getType().resolve();
+                    fieldInfo.setFullType(resolvedType.describe());
+                    // 使用解析的类型创建TypeName
+                    fieldInfo.setType(ClassName.bestGuess(resolvedType.describe()));
                 } catch (Exception e) {
-                    // Fallback to simple type if resolution fails
+                    // 如果解析失败，使用bestGuess方法
+                    fieldInfo.setType(ClassName.bestGuess(var.getTypeAsString()));
                     fieldInfo.setFullType(var.getTypeAsString());
                 }
+                
+                fieldInfo.setComment(extractComment(fieldDecl));
 
                 // Check if it's a primary key (simple check: field name is "id" or ends with "Id")
                 fieldInfo.setPrimaryKey(isPrimaryKey(fieldInfo.getName()));

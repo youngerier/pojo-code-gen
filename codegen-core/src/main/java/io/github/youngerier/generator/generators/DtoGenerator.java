@@ -39,7 +39,7 @@ public class DtoGenerator implements CodeGenerator {
         // 添加字段
         for (ClassMetadata.FieldInfo field : classMetadata.getFields()) {
             // 创建字段类型
-            TypeName fieldType = ClassName.bestGuess(field.getFullType());
+            TypeName fieldType = field.getType();
 
             // 创建字段构建器
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(fieldType, field.getName(), Modifier.PRIVATE);

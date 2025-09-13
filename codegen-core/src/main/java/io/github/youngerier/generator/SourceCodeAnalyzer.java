@@ -40,7 +40,7 @@ public class SourceCodeAnalyzer {
         combinedTypeSolver.add(new ReflectionTypeSolver());
         
         // 更智能地确定源代码路径
-        String srcPath = findSourcePath(moduleName);
+        String srcPath = findSourcePath(className, moduleName);
         if (srcPath == null) {
             throw new IOException("无法找到模块 " + moduleName + " 的源代码目录");
         }
@@ -88,10 +88,11 @@ public class SourceCodeAnalyzer {
 
     /**
      * 智能查找源代码路径
+     * @param className 类的全限定名
      * @param moduleName 模块名称
      * @return 源代码路径，如果找不到则返回null
      */
-    private String findSourcePath(String moduleName) {
+    private String findSourcePath(String className, String moduleName) {
         String userDir = System.getProperty("user.dir");
         log.info("当前工作目录: {}", userDir);
         log.info("模块名称: {}", moduleName);
@@ -111,13 +112,16 @@ public class SourceCodeAnalyzer {
             Paths.get(userDir).getParent().toString() + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java",
             
             // 更复杂的嵌套结构 (userDir/../../moduleName/src/main/java)
-            Paths.get(userDir).getParent().getParent().toString() + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java"
+            Paths.get(userDir).getParent().getParent().toString() + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java",
+            
+            // ping-biz目录结构 (userDir/ping-biz/moduleName/src/main/java)
+            userDir + File.separator + "ping-biz" + File.separator + moduleName + File.separator + "src" + File.separator + "main" + File.separator + "java"
         };
         
         // 检查每个可能的路径
         for (String path : possiblePaths) {
             File srcDir = new File(path);
-            if (srcDir.exists() && srcDir.isDirectory()) {
+            if (srcDir.exists() && srcDir.isDirectory() && isValidSourcePath(path, className)) {
                 log.info("找到源代码目录: {}", path);
                 return path;
             }
@@ -129,6 +133,7 @@ public class SourceCodeAnalyzer {
             Path foundPath = Files.walk(startPath, 5)
                 .filter(path -> path.toString().endsWith("src" + File.separator + "main" + File.separator + "java"))
                 .filter(Files::isDirectory)
+                .filter(path -> isValidSourcePath(path.toString(), className))
                 .findFirst()
                 .orElse(null);
                 
@@ -147,6 +152,30 @@ public class SourceCodeAnalyzer {
         }
         
         return null;
+    }
+
+    /**
+     * 验证源代码路径是否有效（包含指定的类文件）
+     * @param srcPath 源代码路径
+     * @param className 类的全限定名
+     * @return 如果路径有效返回true，否则返回false
+     */
+    private boolean isValidSourcePath(String srcPath, String className) {
+        try {
+            // 根据类名构造文件路径
+            String packagePath = className.replace('.', File.separatorChar);
+            String filePath = srcPath + File.separator + packagePath + ".java";
+            File sourceFile = new File(filePath);
+            
+            boolean exists = sourceFile.exists();
+            if (!exists) {
+                log.debug("路径 {} 中未找到类文件: {}", srcPath, filePath);
+            }
+            return exists;
+        } catch (Exception e) {
+            log.debug("验证源代码路径时发生错误: {}", e.getMessage());
+            return false;
+        }
     }
 
     /**

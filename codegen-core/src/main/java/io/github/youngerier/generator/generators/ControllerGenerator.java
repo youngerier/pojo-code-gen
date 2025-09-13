@@ -84,7 +84,7 @@ public class ControllerGenerator implements CodeGenerator {
                         classMetadata.getCamelClassName() + "Service",
                         classMetadata.getClassName(),
                         classMetadata.getCamelClassName() + "DTO")
-                .addStatement("return $T.success(result)", responseType)
+                .addStatement("return $T.ok(result)", responseType)
                 .build();
         classBuilder.addMethod(createMethod);
 
@@ -106,7 +106,7 @@ public class ControllerGenerator implements CodeGenerator {
                         dtoType,
                         classMetadata.getCamelClassName() + "Service",
                         classMetadata.getClassName())
-                .addStatement("return $T.success(result)", responseType)
+                .addStatement("return $T.ok(result)", responseType)
                 .build();
         classBuilder.addMethod(getByIdMethod);
 
@@ -128,7 +128,7 @@ public class ControllerGenerator implements CodeGenerator {
                         listType, dtoType,
                         classMetadata.getCamelClassName() + "Service",
                         classMetadata.getClassName())
-                .addStatement("return $T.success(result)", responseType)
+                .addStatement("return $T.ok(result)", responseType)
                 .build();
         classBuilder.addMethod(queryListMethod);
 
@@ -150,7 +150,7 @@ public class ControllerGenerator implements CodeGenerator {
                         paginationType, dtoType,
                         classMetadata.getCamelClassName() + "Service",
                         classMetadata.getClassName())
-                .addStatement("return $T.success(result)", responseType)
+                .addStatement("return $T.ok(result)", responseType)
                 .build();
         classBuilder.addMethod(pageQueryMethod);
 
@@ -179,7 +179,7 @@ public class ControllerGenerator implements CodeGenerator {
                         classMetadata.getCamelClassName() + "Service",
                         classMetadata.getClassName(),
                         classMetadata.getCamelClassName() + "DTO")
-                .addStatement("return $T.success(result)", responseType)
+                .addStatement("return $T.ok(result)", responseType)
                 .build();
         classBuilder.addMethod(updateMethod);
 
@@ -200,7 +200,7 @@ public class ControllerGenerator implements CodeGenerator {
                 .addStatement("boolean result = $L.delete$L(id)", 
                         classMetadata.getCamelClassName() + "Service",
                         classMetadata.getClassName())
-                .addStatement("return $T.success(result)", responseType)
+                .addStatement("return $T.ok(result)", responseType)
                 .build();
         classBuilder.addMethod(deleteMethod);
 

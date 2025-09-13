@@ -56,6 +56,7 @@ public class GeneratorEngine {
                 new ServiceGenerator(packageStructure),
                 new ServiceImplGenerator(packageStructure),
                 new RepositoryGenerator(packageStructure),
+                new ControllerGenerator(packageStructure),
                 new RequestGenerator(packageStructure),
                 new QueryGenerator(packageStructure),
                 new ResponseGenerator(packageStructure),

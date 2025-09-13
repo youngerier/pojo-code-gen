@@ -14,6 +14,7 @@ public class PackageStructure {
     private final String requestPackage;
     private final String responsePackage;
     private final String convertorPackage;
+    private final String controllerPackage;
 
     public PackageStructure(String basePackage) {
         this.basePackage = basePackage;
@@ -24,6 +25,7 @@ public class PackageStructure {
         this.requestPackage = basePackage + ".model.request";
         this.responsePackage = basePackage + ".model.response";
         this.convertorPackage = basePackage + ".convertor";
+        this.controllerPackage = basePackage + ".controller";
     }
 
     public String getDtoClassName(String entityName) {
@@ -56,5 +58,9 @@ public class PackageStructure {
 
     public String getServiceImplClassName(String entityName) {
         return entityName + "ServiceImpl";
+    }
+
+    public String getControllerClassName(String entityName) {
+        return entityName + "Controller";
     }
 }

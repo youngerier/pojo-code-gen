@@ -3,6 +3,8 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    
+    <!-- 父项目配置 -->
     <parent>
         <groupId>io.github.youngerier</groupId>
         <artifactId>java-codegen-toolkit</artifactId>
@@ -10,33 +12,49 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <!-- 示例模块信息 -->
     <artifactId>example</artifactId>
     <name>Java Code Generation Toolkit - Example</name>
-    <description>Example usage and demonstration of Java code generation toolkit</description>
+    <description>Java代码生成工具包的使用示例和演示</description>
 
+    <!-- ============================ -->
+    <!-- 项目属性 -->
+    <!-- ============================ -->
     <properties>
-        <!-- Skip deployment for example project -->
+        <!-- 跳过示例项目的部署 -->
         <maven.deploy.skip>true</maven.deploy.skip>
         <central.publishing.skip>true</central.publishing.skip>
     </properties>
 
+    <!-- ============================ -->
+    <!-- 项目依赖 -->
+    <!-- ============================ -->
     <dependencies>
+        <!-- 代码生成核心模块 -->
         <dependency>
             <groupId>io.github.youngerier</groupId>
             <artifactId>codegen-core</artifactId>
         </dependency>
+        
+        <!-- 工具包模块 -->
         <dependency>
             <groupId>io.github.youngerier</groupId>
             <artifactId>toolkit</artifactId>
         </dependency>
+        
+        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+        
+        <!-- 日志框架 -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
+        
+        <!-- Logback -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
@@ -46,8 +64,12 @@
             <artifactId>logback-classic</artifactId>
         </dependency>
     </dependencies>
+    <!-- ============================ -->
+    <!-- 构建配置 -->
+    <!-- ============================ -->
     <build>
         <plugins>
+            <!-- 代码生成插件 -->
             <plugin>
                 <groupId>io.github.youngerier</groupId>
                 <artifactId>generator-maven-plugin</artifactId>
@@ -65,13 +87,17 @@
                     <scanPackages>
                         <package>com.abc.entity</package>
                     </scanPackages>
-                    <!-- outputDir is not specified, so it will use the default: target/generated-sources/ -->
+                    <!-- 未指定outputDir，将使用默认值：target/generated-sources/ -->
                 </configuration>
             </plugin>
+            
+            <!-- 编译插件 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
+            
+            <!-- 执行插件 -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>

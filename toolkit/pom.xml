@@ -3,6 +3,8 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    
+    <!-- 父项目配置 -->
     <parent>
         <groupId>io.github.youngerier</groupId>
         <artifactId>java-codegen-toolkit</artifactId>
@@ -10,17 +12,28 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <!-- 工具包模块信息 -->
     <artifactId>toolkit</artifactId>
     <name>Java Code Generation Toolkit - Common</name>
-    <description>Common utilities and base classes for Java code generation</description>
+    <description>通用工具类和基础组件，用于Java代码生成</description>
 
     <dependencies>
-        <!-- Lombok -->
+        <!-- ============================ -->
+        <!-- 代码增强工具 -->
+        <!-- ============================ -->
+        
+        <!-- Lombok - 代码简化工具 -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- ============================ -->
+        <!-- ORM框架支持 -->
+        <!-- ============================ -->
+        
+        <!-- MyBatis Flex - ORM框架 -->
         <dependency>
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-core</artifactId>
@@ -29,40 +42,69 @@
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-spring</artifactId>
         </dependency>
+        
+        <!-- ============================ -->
+        <!-- 验证框架 -->
+        <!-- ============================ -->
+        
+        <!-- Bean验证API -->
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
-        <!-- Spring Web and WebMVC for audit interceptors -->
+        
+        <!-- ============================ -->
+        <!-- Spring框架集成 -->
+        <!-- ============================ -->
+        
+        <!-- Spring Web模块 -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
         </dependency>
+        
+        <!-- Spring WebMVC模块 -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
         
-        <!-- Spring AOP for audit aspects -->
+        <!-- Spring AOP模块 -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-aop</artifactId>
         </dependency>
+        
+        <!-- AspectJ -->
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
         </dependency>
+        
+        <!-- AOP Alliance -->
         <dependency>
             <groupId>aopalliance</groupId>
             <artifactId>aopalliance</artifactId>
             <version>1.0</version>
         </dependency>
         
-        <!-- Jackson for JSON serialization -->
+        <!-- Spring表达式语言 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-expression</artifactId>
+        </dependency>
+        
+        <!-- Spring上下文 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        
+        <!-- ============================ -->
+        <!-- JSON处理 -->
+        <!-- ============================ -->
+        
+        <!-- Jackson - JSON序列化 -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -72,23 +114,50 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
         
-        <!-- Spring Expression Language -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-expression</artifactId>
-        </dependency>
+        <!-- ============================ -->
+        <!-- Web支持 -->
+        <!-- ============================ -->
         
-        <!-- Servlet API for web request handling -->
+        <!-- Servlet API -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <scope>provided</scope>
         </dependency>
         
-        <!-- Spring Context for async support -->
+        <!-- ============================ -->
+        <!-- 日志框架 -->
+        <!-- ============================ -->
+        
+        <!-- SLF4J -->
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
     </dependencies>
+    <!-- ============================ -->
+    <!-- 构建配置 -->
+    <!-- ============================ -->
+    <build>
+        <plugins>
+            <!-- 编译插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            
+            <!-- 源码打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+            
+            <!-- Javadoc插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

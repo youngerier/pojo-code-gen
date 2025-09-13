@@ -3,6 +3,8 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    
+    <!-- 父项目配置 -->
     <parent>
         <groupId>io.github.youngerier</groupId>
         <artifactId>java-codegen-toolkit</artifactId>
@@ -10,73 +12,80 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <!-- 插件模块信息 -->
     <artifactId>generator-maven-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-
     <name>Generator Maven Plugin</name>
-    <description>Maven plugin to generate DTOs, Services, etc. from POJO entities.</description>
+    <description>Maven插件，用于从POJO实体类生成DTO、Service、Repository等代码</description>
 
     <dependencies>
-        <!-- Maven Plugin API -->
+        <!-- ============================ -->
+        <!-- Maven 插件开发核心依赖 -->
+        <!-- ============================ -->
+        
+        <!-- Maven 插件 API -->
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
-            <version>3.9.4</version>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- Maven 插件注解 -->
         <dependency>
             <groupId>org.apache.maven.plugin-tools</groupId>
             <artifactId>maven-plugin-annotations</artifactId>
-            <version>3.9.0</version>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- Maven 核心 -->
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-core</artifactId>
-            <version>3.9.4</version>
             <scope>provided</scope>
         </dependency>
 
-
-        <!-- Project's Core Logic -->
+        <!-- ============================ -->
+        <!-- 代码生成核心功能 -->
+        <!-- ============================ -->
+        
+        <!-- 项目核心代码生成逻辑 -->
         <dependency>
             <groupId>io.github.youngerier</groupId>
             <artifactId>codegen-core</artifactId>
-            <version>${project.version}</version>
         </dependency>
+        
+        <!-- 反射工具 - 用于扫描注解类 -->
         <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
-            <version>0.10.2</version>
         </dependency>
     </dependencies>
 
+    <!-- ============================ -->
+    <!-- 构建配置 -->
+    <!-- ============================ -->
     <build>
         <plugins>
-            <!-- Maven Compiler Plugin with proper configuration -->
+            <!-- 编译插件 - 专用于Maven插件 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
                 <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                    <!-- Exclude annotation processors that may interfere with plugin generation -->
+                    <!-- 排除可能干扰插件生成的注解处理器 -->
                     <annotationProcessorPaths>
-                        <!-- Only include essential annotation processors for this module -->
+                        <!-- Maven插件模块仅包含必要的注解处理器 -->
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
             
-            <!-- Maven Plugin Plugin for generating plugin descriptor -->
+            <!-- Maven插件描述符生成插件 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
-                <version>3.9.0</version>
                 <configuration>
-                    <!-- Ensure goal prefix is set -->
+                    <!-- 设置插件目标前缀 -->
                     <goalPrefix>pojo-codegen</goalPrefix>
-                    <!-- Skip documentation generation for now -->
+                    <!-- 跳过描述符未找到错误 -->
                     <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
                 </configuration>
                 <executions>
@@ -94,6 +103,18 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            
+            <!-- 源码打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+            
+            <!-- Javadoc插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

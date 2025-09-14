@@ -7,6 +7,7 @@
         <version>${revision}</version>
     </parent>
     <artifactId>sub-module</artifactId>
+    <name>Java Code Generation Toolkit - SubModule Example</name>
 
     <properties>
         <!-- 跳过示例项目的部署 -->

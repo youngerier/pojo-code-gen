@@ -34,11 +34,10 @@ public class SourceCodeAnalyzer {
      * Parse a POJO class using Class object.
      *
      * @param clazz The Class object of the POJO.
-     * @param moduleName The name of the module.
      * @return The parsed POJO information.
      * @throws IOException If an I/O error occurs.
      */
-    public ClassMetadata parse(Class<?> clazz, String moduleName) throws IOException {
+    public ClassMetadata parse(Class<?> clazz) throws IOException {
         // Find the source file
         File sourceFile = findSourceFile(clazz);
         

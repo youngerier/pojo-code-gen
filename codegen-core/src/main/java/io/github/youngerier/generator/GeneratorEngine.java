@@ -53,11 +53,11 @@ public class GeneratorEngine {
     private void generateSinglePojo(Class<?> pojoClass) throws IOException, NoSuchAlgorithmException {
         // 1. Parse the POJO class
         SourceCodeAnalyzer analyzer = new SourceCodeAnalyzer();
-        ClassMetadata classMetadata = analyzer.parse(pojoClass, config.getModuleName());
+        ClassMetadata classMetadata = analyzer.parse(pojoClass);
         log.info("Successfully parsed POJO: {}", classMetadata.getClassName());
 
         // 2. 创建包配置
-        String basePackage = classMetadata.getPackageName().substring(0, classMetadata.getPackageName().lastIndexOf("."));
+        String basePackage = classMetadata.getBasePackageName();
         PackageStructure packageStructure = new PackageStructure(basePackage, classMetadata.getClassName());
 
         // 3. 创建文件生成器

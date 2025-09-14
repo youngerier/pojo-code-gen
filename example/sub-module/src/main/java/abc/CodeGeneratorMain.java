@@ -22,7 +22,7 @@ public class CodeGeneratorMain {
         // 2. 构建 GeneratorConfig
         GeneratorConfig config = GeneratorConfig.builder()
                 .moduleName(moduleName)
-                .outputBaseDir("target" + File.separator + "generated-sources")
+                .outputBaseDir("example/sub-module/target" + File.separator + "generated-sources")
                 .pojoClasses(Collections.singletonList(pojoClass))
                 .build();
 

@@ -92,6 +92,6 @@ public class QueryGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(ClassMetadata classMetadata) {
-        return packageStructure.getQueryClassName(classMetadata.getClassName());
+        return packageStructure.getQueryClassName();
     }
 }

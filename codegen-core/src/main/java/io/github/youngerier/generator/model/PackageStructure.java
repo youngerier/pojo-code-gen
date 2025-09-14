@@ -1,8 +1,10 @@
-
 package io.github.youngerier.generator.model;
 
 import lombok.Getter;
 
+/**
+ * 包结构配置类，用于管理代码生成过程中各个组件的包路径和类名模板
+ */
 @Getter
 public class PackageStructure {
 
@@ -16,7 +18,23 @@ public class PackageStructure {
     private final String convertorPackage;
     private final String controllerPackage;
 
-    public PackageStructure(String basePackage) {
+    // 类名模板字段
+    private final String dtoClassName;
+    private final String serviceClassName;
+    private final String serviceImplClassName;
+    private final String repositoryClassName;
+    private final String requestClassName;
+    private final String responseClassName;
+    private final String convertorClassName;
+    private final String controllerClassName;
+    private final String queryClassName;
+
+    /**
+     * 使用基础包名创建包结构配置，默认各组件包名和类名模板基于标准约定生成
+     *
+     * @param basePackage 基础包名
+     */
+    public PackageStructure(String basePackage, String entityName) {
         this.basePackage = basePackage;
         this.dtoPackage = basePackage + ".model.dto";
         this.servicePackage = basePackage + ".service";
@@ -26,41 +44,16 @@ public class PackageStructure {
         this.responsePackage = basePackage + ".model.response";
         this.convertorPackage = basePackage + ".convertor";
         this.controllerPackage = basePackage + ".controller";
+
+        this.dtoClassName = entityName + "DTO";
+        this.serviceClassName = entityName + "Service";
+        this.serviceImplClassName = entityName + "ServiceImpl";
+        this.repositoryClassName = entityName + "Repository";
+        this.requestClassName = entityName + "Request";
+        this.responseClassName = entityName + "Response";
+        this.convertorClassName = entityName + "Convertor";
+        this.controllerClassName = entityName + "Controller";
+        this.queryClassName = entityName + "Query";
     }
 
-    public String getDtoClassName(String entityName) {
-        return entityName + "DTO";
-    }
-
-    public String getRequestClassName(String entityName) {
-        return entityName + "Request";
-    }
-
-    public String getResponseClassName(String entityName) {
-        return entityName + "Response";
-    }
-
-    public String getConvertorClassName(String entityName) {
-        return entityName + "Convertor";
-    }
-
-    public String getQueryClassName(String entityName) {
-        return entityName + "Query";
-    }
-
-    public String getRepositoryClassName(String entityName) {
-        return entityName + "Repository";
-    }
-
-    public String getServiceClassName(String entityName) {
-        return entityName + "Service";
-    }
-
-    public String getServiceImplClassName(String entityName) {
-        return entityName + "ServiceImpl";
-    }
-
-    public String getControllerClassName(String entityName) {
-        return entityName + "Controller";
-    }
 }

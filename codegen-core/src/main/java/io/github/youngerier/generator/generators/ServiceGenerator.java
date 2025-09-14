@@ -27,7 +27,7 @@ public class ServiceGenerator implements CodeGenerator {
 
     @Override
     public TypeSpec generate(ClassMetadata classMetadata) {
-        String dtoClassName = packageStructure.getDtoClassName(classMetadata.getClassName());
+        String dtoClassName = packageStructure.getDtoClassName();
         ClassName dtoType = ClassName.get(packageStructure.getDtoPackage(), dtoClassName);
         ClassName listType = ClassName.get(List.class);
         ParameterizedTypeName listOfDto = ParameterizedTypeName.get(listType, dtoType);
@@ -70,7 +70,7 @@ public class ServiceGenerator implements CodeGenerator {
         MethodSpec getAllMethod = MethodSpec.methodBuilder("query" + classMetadata.getClassName() + "s")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(listOfDto)
-                .addParameter(ClassName.get(packageStructure.getRequestPackage(), packageStructure.getQueryClassName(classMetadata.getClassName())), "query")
+                .addParameter(ClassName.get(packageStructure.getRequestPackage(), packageStructure.getQueryClassName()), "query")
                 .addJavadoc("查询所有$L\n", classMetadata.getClassName())
                 .addJavadoc("@return $L对象列表\n", classMetadata.getClassName())
                 .build();
@@ -80,7 +80,7 @@ public class ServiceGenerator implements CodeGenerator {
         MethodSpec pageQueryMethod = MethodSpec.methodBuilder("pageQuery" + classMetadata.getClassName() + "s")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(ParameterizedTypeName.get(ClassName.get(Pagination.class), dtoType))
-                .addParameter(ClassName.get(packageStructure.getRequestPackage(), packageStructure.getQueryClassName(classMetadata.getClassName())), "query")
+                .addParameter(ClassName.get(packageStructure.getRequestPackage(), packageStructure.getQueryClassName()), "query")
                 .addJavadoc("分页查询$L\n", classMetadata.getClassName())
                 .addJavadoc("@return $L对象列表\n", classMetadata.getClassName())
                 .build();
@@ -122,6 +122,6 @@ public class ServiceGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(ClassMetadata classMetadata) {
-        return packageStructure.getServiceClassName(classMetadata.getClassName());
+        return packageStructure.getServiceClassName();
     }
 }

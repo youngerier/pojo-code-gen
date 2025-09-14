@@ -63,6 +63,6 @@ public class ResponseGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(ClassMetadata classMetadata) {
-        return packageStructure.getResponseClassName(classMetadata.getClassName());
+        return packageStructure.getResponseClassName();
     }
 }

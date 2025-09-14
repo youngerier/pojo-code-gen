@@ -77,6 +77,6 @@ public class RequestGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(ClassMetadata classMetadata) {
-        return packageStructure.getRequestClassName(classMetadata.getClassName());
+        return packageStructure.getRequestClassName();
     }
 }

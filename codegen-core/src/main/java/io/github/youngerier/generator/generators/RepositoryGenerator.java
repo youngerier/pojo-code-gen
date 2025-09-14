@@ -123,7 +123,7 @@ public class RepositoryGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(ClassMetadata pojoInfo) {
-        return packageLayout.getRepositoryClassName(pojoInfo.getClassName());
+        return packageLayout.getRepositoryClassName();
     }
 
 

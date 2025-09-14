@@ -32,9 +32,9 @@ public class ControllerGenerator implements CodeGenerator {
 
     @Override
     public TypeSpec generate(ClassMetadata classMetadata) {
-        String dtoClassName = packageStructure.getDtoClassName(classMetadata.getClassName());
-        String serviceClassName = packageStructure.getServiceClassName(classMetadata.getClassName());
-        String queryClassName = packageStructure.getQueryClassName(classMetadata.getClassName());
+        String dtoClassName = packageStructure.getDtoClassName();
+        String serviceClassName = packageStructure.getServiceClassName();
+        String queryClassName = packageStructure.getQueryClassName();
         
         ClassName dtoType = ClassName.get(packageStructure.getDtoPackage(), dtoClassName);
         ClassName serviceType = ClassName.get(packageStructure.getServicePackage(), serviceClassName);
@@ -214,6 +214,6 @@ public class ControllerGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(ClassMetadata classMetadata) {
-        return packageStructure.getControllerClassName(classMetadata.getClassName());
+        return packageStructure.getControllerClassName();
     }
 }

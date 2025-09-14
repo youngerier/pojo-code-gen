@@ -67,6 +67,6 @@ public class DtoGenerator implements CodeGenerator {
 
     @Override
     public String getClassName(ClassMetadata classMetadata) {
-        return packageStructure.getDtoClassName(classMetadata.getClassName());
+        return packageStructure.getDtoClassName();
     }
 }

@@ -48,7 +48,7 @@
 
     <properties>
         <!-- Version Management -->
-        <revision>1.0.1</revision>
+        <revision>1.0.2</revision>
         <changelist></changelist>
         <sha1></sha1>
 

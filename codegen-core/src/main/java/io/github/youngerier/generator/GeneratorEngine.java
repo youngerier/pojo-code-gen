@@ -60,7 +60,6 @@ public class GeneratorEngine {
         // 2. 创建包配置
         String basePackage = classMetadata.getBasePackageName();
         PackageStructure packageStructure = new PackageStructure(basePackage, classMetadata.getClassName());
-        classMetadata.setPackageStructure(packageStructure);
 
         // 3. 创建文件生成器
         CodeFileWriter codeFileWriter = new CodeFileWriter(config.getOutputBaseDir());

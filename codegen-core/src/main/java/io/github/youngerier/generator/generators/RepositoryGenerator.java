@@ -32,9 +32,8 @@ public class RepositoryGenerator implements CodeGenerator {
     public TypeSpec generate(ClassMetadata pojoInfo) {
         // 创建实体类类型
         ClassName entityType = ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
-        PackageStructure packageStructure = pojoInfo.getPackageStructure();
         // 创建Mapper类型
-        ClassName mapperType = ClassName.get(packageStructure.getMapperPackage(), packageStructure.getMapperClassName());
+        ClassName mapperType = ClassName.get(packageLayout.getMapperPackage(), packageLayout.getMapperClassName());
         // 创建ServiceImpl类型
         ClassName serviceImplType = ClassName.get("com.mybatisflex.spring.service.impl", "ServiceImpl");
         // 创建IService类型

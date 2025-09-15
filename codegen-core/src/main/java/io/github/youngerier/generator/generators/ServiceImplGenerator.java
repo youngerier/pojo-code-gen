@@ -81,7 +81,7 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .addParameter(dtoType, pojoInfo.getCamelClassName() + "DTO")
                 .returns(dtoType)
                 .addStatement("$T entity = $N.toEntity($N)", entityType, mapperFieldName, pojoInfo.getCamelClassName() + "DTO")
-                .addStatement("$N.insert(entity)", repositoryFieldName)
+                .addStatement("$N.save(entity)", repositoryFieldName)
                 .addStatement("return $N.toDto(entity)", mapperFieldName)
                 .build();
         classBuilder.addMethod(createMethod);
@@ -92,7 +92,7 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .addAnnotation(Override.class)
                 .addParameter(TypeName.LONG, "id")
                 .returns(dtoType)
-                .addStatement("$T entity = $N.selectOneById(id)", entityType, repositoryFieldName)
+                .addStatement("$T entity = $N.getById(id)", entityType, repositoryFieldName)
                 .addStatement("return $N.toDto(entity)", mapperFieldName)
                 .build();
         classBuilder.addMethod(getByIdMethod);
@@ -129,13 +129,13 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .addParameter(TypeName.LONG, "id")
                 .addParameter(dtoType, pojoInfo.getCamelClassName() + "DTO")
                 .returns(dtoType)
-                .addStatement("$T existingEntity = $N.selectOneById(id)", entityType, repositoryFieldName)
+                .addStatement("$T existingEntity = $N.getById(id)", entityType, repositoryFieldName)
                 .beginControlFlow("if (existingEntity == null)")
                 .addStatement("return null")
                 .endControlFlow()
                 .addStatement("$T updatedEntity = $N.toEntity($N)", entityType, mapperFieldName, pojoInfo.getCamelClassName() + "DTO")
                 .addStatement("updatedEntity.setId(id)") // Ensure ID is set for update
-                .addStatement("$N.update(updatedEntity)", repositoryFieldName)
+                .addStatement("$N.updateById(updatedEntity)", repositoryFieldName)
                 .addStatement("return $N.toDto(updatedEntity)", mapperFieldName)
                 .build();
         classBuilder.addMethod(updateMethod);
@@ -146,7 +146,7 @@ public class ServiceImplGenerator implements CodeGenerator {
                 .addAnnotation(Override.class)
                 .addParameter(long.class, "id")
                 .returns(TypeName.BOOLEAN)
-                .addStatement("return $N.deleteById(id) > 0", repositoryFieldName)
+                .addStatement("return $N.removeById(id)", repositoryFieldName)
                 .build();
         classBuilder.addMethod(deleteMethod);
 

@@ -17,6 +17,7 @@ public class PackageStructure {
     private final String responsePackage;
     private final String convertorPackage;
     private final String controllerPackage;
+    private final String mapperPackage;
 
     // 类名模板字段
     private final String dtoClassName;
@@ -28,6 +29,7 @@ public class PackageStructure {
     private final String convertorClassName;
     private final String controllerClassName;
     private final String queryClassName;
+    private final String mapperClassName;
 
     /**
      * 使用基础包名创建包结构配置，默认各组件包名和类名模板基于标准约定生成
@@ -39,7 +41,8 @@ public class PackageStructure {
         this.dtoPackage = basePackage + ".model.dto";
         this.servicePackage = basePackage + ".service";
         this.serviceImplPackage = basePackage + ".service.impl";
-        this.repositoryPackage = basePackage + ".repository";
+        this.repositoryPackage = basePackage + ".dal.repository";
+        this.mapperPackage = basePackage + ".dal.mapper";
         this.requestPackage = basePackage + ".model.request";
         this.responsePackage = basePackage + ".model.response";
         this.convertorPackage = basePackage + ".convertor";
@@ -54,6 +57,7 @@ public class PackageStructure {
         this.convertorClassName = entityName + "Convertor";
         this.controllerClassName = entityName + "Controller";
         this.queryClassName = entityName + "Query";
+        this.mapperClassName = entityName + "Mapper";
     }
 
 }

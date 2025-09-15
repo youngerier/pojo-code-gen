@@ -9,6 +9,7 @@ import io.github.youngerier.generator.generators.RequestGenerator;
 import io.github.youngerier.generator.generators.ResponseGenerator;
 import io.github.youngerier.generator.generators.ServiceGenerator;
 import io.github.youngerier.generator.generators.ServiceImplGenerator;
+import io.github.youngerier.generator.generators.MapperGenerator;
 import io.github.youngerier.generator.model.ClassMetadata;
 import io.github.youngerier.generator.model.PackageStructure;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +60,7 @@ public class GeneratorEngine {
         // 2. 创建包配置
         String basePackage = classMetadata.getBasePackageName();
         PackageStructure packageStructure = new PackageStructure(basePackage, classMetadata.getClassName());
+        classMetadata.setPackageStructure(packageStructure);
 
         // 3. 创建文件生成器
         CodeFileWriter codeFileWriter = new CodeFileWriter(config.getOutputBaseDir());
@@ -68,12 +70,13 @@ public class GeneratorEngine {
                 new DtoGenerator(packageStructure),
                 new ServiceGenerator(packageStructure),
                 new ServiceImplGenerator(packageStructure),
-                new RepositoryGenerator(packageStructure),
+                new MapperGenerator(packageStructure),
                 new ControllerGenerator(packageStructure),
                 new RequestGenerator(packageStructure),
                 new QueryGenerator(packageStructure),
                 new ResponseGenerator(packageStructure),
-                new MapstructGenerator(packageStructure)
+                new MapstructGenerator(packageStructure),
+                new RepositoryGenerator(packageStructure)
         );
 
         // 5. 生成所有代码

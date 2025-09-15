@@ -16,6 +16,8 @@ public class ClassMetadata {
     private String classComment; // 类注释
     private List<FieldInfo> fields = new ArrayList<>(); // 字段信息列表
 
+    private PackageStructure packageStructure;
+
     public String getBasePackageName() {
         return getPackageName().substring(0, getPackageName().lastIndexOf("."));
     }

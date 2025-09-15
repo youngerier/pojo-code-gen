@@ -11,14 +11,14 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.service.IService;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.lang.model.element.Modifier;
 import java.util.List;
 
-
 /**
- * Repository接口生成器 - 基于MyBatis Flex
+ * Repository实现类生成器 - 基于MyBatis Flex ServiceImpl
  */
 @Slf4j
 public class RepositoryGenerator implements CodeGenerator {
@@ -30,26 +30,32 @@ public class RepositoryGenerator implements CodeGenerator {
 
     @Override
     public TypeSpec generate(ClassMetadata pojoInfo) {
-        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(getClassName(pojoInfo))
+        // 创建实体类类型
+        ClassName entityType = ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
+        PackageStructure packageStructure = pojoInfo.getPackageStructure();
+        // 创建Mapper类型
+        ClassName mapperType = ClassName.get(packageStructure.getMapperPackage(), packageStructure.getMapperClassName());
+        // 创建ServiceImpl类型
+        ClassName serviceImplType = ClassName.get("com.mybatisflex.spring.service.impl", "ServiceImpl");
+        // 创建IService类型
+        ClassName serviceType = ClassName.get("com.mybatisflex.core.service", "IService");
+        
+        // 创建类构建器，继承ServiceImpl<UserMapper, User>
+        TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getClassName(pojoInfo))
                 .addModifiers(Modifier.PUBLIC)
-                .addSuperinterface(createBaseMapperType(pojoInfo));
+                .superclass(ParameterizedTypeName.get(serviceImplType, mapperType, entityType))
+                .addSuperinterface(ParameterizedTypeName.get(serviceType, entityType));
 
         if (pojoInfo.getClassComment() != null && !pojoInfo.getClassComment().isEmpty()) {
-            interfaceBuilder.addJavadoc(pojoInfo.getClassComment() + "\n");
-            interfaceBuilder.addJavadoc("数据访问层接口\n");
+            classBuilder.addJavadoc(pojoInfo.getClassComment() + "\n");
+            classBuilder.addJavadoc("数据访问层实现类\n");
         }
 
-        interfaceBuilder.addMethod(buildQueryWrapperMethod(pojoInfo));
-        interfaceBuilder.addMethod(buildSelectListByQueryMethod(pojoInfo));
-        interfaceBuilder.addMethod(buildPageMethod(pojoInfo));
+        classBuilder.addMethod(buildQueryWrapperMethod(pojoInfo));
+        classBuilder.addMethod(buildSelectListByQueryMethod(pojoInfo));
+        classBuilder.addMethod(buildPageMethod(pojoInfo));
 
-        return interfaceBuilder.build();
-    }
-
-    private ParameterizedTypeName createBaseMapperType(ClassMetadata pojoInfo) {
-        ClassName entityType = ClassName.get(pojoInfo.getPackageName(), pojoInfo.getClassName());
-        ClassName baseMapperType = ClassName.get("com.mybatisflex.core", "BaseMapper");
-        return ParameterizedTypeName.get(baseMapperType, entityType);
+        return classBuilder.build();
     }
 
     private MethodSpec buildSelectListByQueryMethod(ClassMetadata pojoInfo) {
@@ -57,10 +63,10 @@ public class RepositoryGenerator implements CodeGenerator {
         ClassName queryType = getQueryType(pojoInfo);
 
         return MethodSpec.methodBuilder("selectListByQuery")
-                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameter(queryType, "query")
                 .returns(ParameterizedTypeName.get(ClassName.get(List.class), entityType))
-                .addStatement("return selectListByQuery(buildQueryWrapper(query))")
+                .addStatement("return getMapper().selectListByQuery(buildQueryWrapper(query))")
                 .build();
     }
 
@@ -69,11 +75,12 @@ public class RepositoryGenerator implements CodeGenerator {
         ClassName queryType = getQueryType(pojoInfo);
 
         return MethodSpec.methodBuilder("page")
-                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameter(queryType, "query")
                 .returns(ParameterizedTypeName.get(ClassName.get(Page.class), entityType))
-                .addStatement("$T<$T> page = new Page<>(query.getQueryPage(), query.getQuerySize())", Page.class, entityType)
-                .addStatement("return paginate(page, buildQueryWrapper(query))")
+                .addStatement("$T<$T> page = new $T<>(query.getQueryPage(), query.getQuerySize())", 
+                    ClassName.get(Page.class), entityType, ClassName.get(Page.class))
+                .addStatement("return getMapper().paginate(page, buildQueryWrapper(query))")
                 .build();
     }
 
@@ -84,7 +91,7 @@ public class RepositoryGenerator implements CodeGenerator {
         String staticTableFieldName = toCamelCase(pojoInfo.getClassName());
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("buildQueryWrapper")
-                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .addModifiers(Modifier.PRIVATE)
                 .addParameter(queryType, "query")
                 .returns(QueryWrapper.class);
 
@@ -99,6 +106,7 @@ public class RepositoryGenerator implements CodeGenerator {
         for (ClassMetadata.FieldInfo field : pojoInfo.getFields()) {
             String fieldName = field.getName();
             String getterName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+            // 为每个字段添加条件查询
             queryWrapperBuilder.add(".where($L.$L.eq(query.$L()))\n",
                     tableVarName, fieldName, getterName);
         }
@@ -114,8 +122,6 @@ public class RepositoryGenerator implements CodeGenerator {
         return methodBuilder.build();
     }
 
-
-
     @Override
     public String getPackageName() {
         return packageLayout.getRepositoryPackage();
@@ -125,8 +131,6 @@ public class RepositoryGenerator implements CodeGenerator {
     public String getClassName(ClassMetadata pojoInfo) {
         return packageLayout.getRepositoryClassName();
     }
-
-
 
     /**
      * 获取实体类型

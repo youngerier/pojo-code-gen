@@ -1,6 +1,5 @@
 package io.github.youngerier.generator;
 
-import io.github.youngerier.generator.model.ClassMetadata;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
@@ -13,6 +12,7 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSol
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import com.squareup.javapoet.ClassName;
+import io.github.youngerier.generator.model.ClassMetadata;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -37,10 +37,10 @@ public class SourceCodeAnalyzer {
      * @return The parsed POJO information.
      * @throws IOException If an I/O error occurs.
      */
-    public ClassMetadata parse(Class<?> clazz) throws IOException {
+    public ClassMetadata parse(Class<?> clazz, String moduleName) throws IOException {
         // Find the source file
-        File sourceFile = findSourceFile(clazz);
-        
+        File sourceFile = findSourceFile(moduleName, clazz);
+
         // Configure symbol solver
         configureSymbolSolver(sourceFile);
 
@@ -68,16 +68,16 @@ public class SourceCodeAnalyzer {
      * @return The source file.
      * @throws IOException If the source file cannot be found.
      */
-    private File findSourceFile(Class<?> clazz) throws IOException {
+    private File findSourceFile(String moduleName, Class<?> clazz) throws IOException {
         try {
             // Try to get source file from classpath
             File sourceFile = getSourceFileFromClasspath(clazz);
             if (sourceFile != null && sourceFile.exists()) {
                 return sourceFile;
             }
-            
+
             // Fallback to package structure search
-            return getSourceFileFromPackageStructure(clazz);
+            return getSourceFileFromPackageStructure(moduleName, clazz);
         } catch (Exception e) {
             throw new IOException("Failed to find source file for class: " + clazz.getName(), e);
         }
@@ -109,9 +109,9 @@ public class SourceCodeAnalyzer {
      */
     private String convertClassPathToSourcePath(String classPath, String className) {
         return classPath
-            .replaceAll("[/\\\\]target[/\\\\]classes", File.separator + SRC_MAIN_JAVA)
-            .replaceAll("[/\\\\]build[/\\\\]classes[/\\\\]java[/\\\\]main", File.separator + SRC_MAIN_JAVA)
-            .replaceAll(className + "\\.class$", className + ".java");
+                .replaceAll("[/\\\\]target[/\\\\]classes", File.separator + SRC_MAIN_JAVA)
+                .replaceAll("[/\\\\]build[/\\\\]classes[/\\\\]java[/\\\\]main", File.separator + SRC_MAIN_JAVA)
+                .replaceAll(className + "\\.class$", className + ".java");
     }
 
     /**
@@ -121,23 +121,102 @@ public class SourceCodeAnalyzer {
      * @return The source file.
      * @throws IOException If the source file cannot be found.
      */
-    private File getSourceFileFromPackageStructure(Class<?> clazz) throws IOException {
+    private File getSourceFileFromPackageStructure(String moduleName, Class<?> clazz) throws IOException {
+        try {
+            // 尝试使用Class的ProtectionDomain获取源文件位置
+            java.security.ProtectionDomain protectionDomain = clazz.getProtectionDomain();
+            if (protectionDomain != null) {
+                java.security.CodeSource codeSource = protectionDomain.getCodeSource();
+                if (codeSource != null && codeSource.getLocation() != null) {
+                    // 获取类所在的JAR或目录
+                    String classLocation = codeSource.getLocation().getPath();
+                    // 如果是class文件，尝试找到对应的源文件
+                    if (classLocation.endsWith(".jar")) {
+                        // 如果是JAR包，尝试在项目中查找源文件
+                        return findSourceInProject(moduleName, clazz);
+                    } else {
+                        // 如果是目录，直接构建源文件路径
+                        String packagePath = clazz.getPackage().getName().replace('.', File.separatorChar);
+                        String sourceFilePath = classLocation.replace("target/classes", "src/main/java") + 
+                                               packagePath + File.separator + clazz.getSimpleName() + ".java";
+                        File sourceFile = new File(sourceFilePath);
+                        if (sourceFile.exists()) {
+                            return sourceFile;
+                        }
+                    }
+                }
+            }
+            
+            // 如果通过ProtectionDomain无法获取，回退到项目搜索
+            return findSourceInProject(moduleName, clazz);
+        } catch (Exception e) {
+            // 如果出现异常，回退到项目搜索
+            return findSourceInProject(moduleName, clazz);
+        }
+    }
+    
+    /**
+     * 在项目中查找源文件
+     */
+    private File findSourceInProject(String moduleName, Class<?> clazz) throws IOException {
         String packageName = clazz.getPackage().getName();
         String className = clazz.getSimpleName();
         String packagePath = packageName.replace('.', File.separatorChar);
         String fileName = className + ".java";
         
-        // Search from current directory up
+        // 获取项目根目录
         File currentDir = new File(System.getProperty("user.dir")).getAbsoluteFile();
-        while (currentDir != null) {
-            File srcDir = new File(currentDir, SRC_MAIN_JAVA);
-            if (srcDir.exists()) {
-                File sourceFile = new File(srcDir, packagePath + File.separator + fileName);
-                if (sourceFile.exists()) {
-                    return sourceFile;
+        
+        // 如果指定了模块名，优先在该模块中查找
+        if (moduleName != null && !moduleName.isEmpty()) {
+            File moduleDir = new File(currentDir, moduleName);
+            if (moduleDir.exists()) {
+                // 尝试在src/main/java目录查找
+                File srcMainJava = new File(moduleDir, SRC_MAIN_JAVA);
+                if (srcMainJava.exists()) {
+                    File sourceFile = new File(srcMainJava, packagePath + File.separator + fileName);
+                    if (sourceFile.exists()) {
+                        return sourceFile;
+                    }
+                }
+                
+                // 尝试在src/test/java目录查找
+                File srcTestJava = new File(moduleDir, "src/test/java");
+                if (srcTestJava.exists()) {
+                    File sourceFile = new File(srcTestJava, packagePath + File.separator + fileName);
+                    if (sourceFile.exists()) {
+                        return sourceFile;
+                    }
                 }
             }
-            currentDir = currentDir.getParentFile();
+        }
+        
+        // 在所有模块中查找
+        File[] potentialModules = currentDir.listFiles(File::isDirectory);
+        if (potentialModules != null) {
+            for (File module : potentialModules) {
+                // 检查是否是Maven模块（包含pom.xml）
+                File pomFile = new File(module, "pom.xml");
+                if (pomFile.exists()) {
+                    // 尝试在src/main/java目录查找
+                    File srcMainJava = new File(module, SRC_MAIN_JAVA);
+                    if (srcMainJava.exists()) {
+                        File sourceFile = new File(srcMainJava, packagePath + File.separator + fileName);
+                        if (sourceFile.exists()) {
+                            return sourceFile;
+                        }
+                    }
+                    
+                    // 尝试在src/test/java目录查找
+                    File srcTestJava = new File(module, "src/test/java");
+                    if (srcTestJava.exists()) {
+                        File sourceFile = new File(srcTestJava, packagePath + File.separator + fileName);
+                        if (sourceFile.exists()) {
+                            return sourceFile;
+                        }
+                    }
+                }
+            }
         }
         
         throw new IOException("Source file not found for class: " + packageName + "." + className);
@@ -166,7 +245,7 @@ public class SourceCodeAnalyzer {
     private File findSrcMainJavaDir(File sourceFile) {
         Path sourcePath = sourceFile.toPath().toAbsolutePath().normalize();
         Path current = sourcePath.getParent();
-        
+
         // Walk up the directory tree to find src/main/java
         while (current != null) {
             Path srcMainJava = current.resolve(SRC_MAIN_JAVA);
@@ -175,7 +254,7 @@ public class SourceCodeAnalyzer {
             }
             current = current.getParent();
         }
-        
+
         throw new IllegalStateException("Cannot find src/main/java directory for source file: " + sourceFile.getAbsolutePath());
     }
 
@@ -192,7 +271,7 @@ public class SourceCodeAnalyzer {
             for (VariableDeclarator var : fieldDecl.getVariables()) {
                 ClassMetadata.FieldInfo fieldInfo = new ClassMetadata.FieldInfo();
                 fieldInfo.setName(var.getNameAsString());
-                
+
                 // Set field type
                 try {
                     ResolvedType resolvedType = var.getType().resolve();
@@ -202,7 +281,7 @@ public class SourceCodeAnalyzer {
                     fieldInfo.setType(ClassName.bestGuess(var.getTypeAsString()));
                     fieldInfo.setFullType(var.getTypeAsString());
                 }
-                
+
                 fieldInfo.setComment(extractComment(fieldDecl));
                 fieldInfo.setPrimaryKey(isPrimaryKey(fieldInfo.getName()));
 
@@ -219,8 +298,8 @@ public class SourceCodeAnalyzer {
      */
     private String extractComment(Node node) {
         return node.getComment()
-            .map(comment -> comment.getContent().trim().replaceAll("\\*", "").trim())
-            .orElse("");
+                .map(comment -> comment.getContent().trim().replaceAll("\\*", "").trim())
+                .orElse("");
     }
 
     /**

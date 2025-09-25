@@ -16,7 +16,7 @@ public class CodeGeneratorMain {
 
     public static void main(String[] args) {
         // 1. 定义配置
-        String moduleName = "sub-module";
+        String moduleName = "";
         Class<?> pojoClass = User.class;
 
         // 2. 构建 GeneratorConfig

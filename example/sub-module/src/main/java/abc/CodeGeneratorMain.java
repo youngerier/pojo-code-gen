@@ -16,12 +16,10 @@ public class CodeGeneratorMain {
 
     public static void main(String[] args) {
         // 1. 定义配置
-        String moduleName = "";
         Class<?> pojoClass = User.class;
 
         // 2. 构建 GeneratorConfig
         GeneratorConfig config = GeneratorConfig.builder()
-                .moduleName(moduleName)
                 .outputBaseDir("example/sub-module/target" + File.separator + "generated-sources")
                 .pojoClasses(Collections.singletonList(pojoClass))
                 .build();

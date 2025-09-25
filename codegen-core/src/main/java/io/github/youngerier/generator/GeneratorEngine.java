@@ -2,6 +2,7 @@ package io.github.youngerier.generator;
 
 import io.github.youngerier.generator.generators.ControllerGenerator;
 import io.github.youngerier.generator.generators.DtoGenerator;
+import io.github.youngerier.generator.generators.MapperGenerator;
 import io.github.youngerier.generator.generators.MapstructGenerator;
 import io.github.youngerier.generator.generators.QueryGenerator;
 import io.github.youngerier.generator.generators.RepositoryGenerator;
@@ -9,7 +10,6 @@ import io.github.youngerier.generator.generators.RequestGenerator;
 import io.github.youngerier.generator.generators.ResponseGenerator;
 import io.github.youngerier.generator.generators.ServiceGenerator;
 import io.github.youngerier.generator.generators.ServiceImplGenerator;
-import io.github.youngerier.generator.generators.MapperGenerator;
 import io.github.youngerier.generator.model.ClassMetadata;
 import io.github.youngerier.generator.model.PackageStructure;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +43,7 @@ public class GeneratorEngine {
     public void execute() {
         for (Class<?> pojoClass : config.getPojoClasses()) {
             try {
-                generateSinglePojo(pojoClass);
+                generateSinglePojo(pojoClass, config.getModuleName());
             } catch (IOException | NoSuchAlgorithmException e) {
                 log.error("Error generating code for {}: {}", pojoClass.getName(), e.getMessage(), e);
             }
@@ -51,10 +51,10 @@ public class GeneratorEngine {
         log.info("所有代码生成任务完成!");
     }
 
-    private void generateSinglePojo(Class<?> pojoClass) throws IOException, NoSuchAlgorithmException {
+    private void generateSinglePojo(Class<?> pojoClass, String moduleName) throws IOException, NoSuchAlgorithmException {
         // 1. Parse the POJO class
         SourceCodeAnalyzer analyzer = new SourceCodeAnalyzer();
-        ClassMetadata classMetadata = analyzer.parse(pojoClass);
+        ClassMetadata classMetadata = analyzer.parse(pojoClass, moduleName);
         log.info("Successfully parsed POJO: {}", classMetadata.getClassName());
 
         // 2. 创建包配置

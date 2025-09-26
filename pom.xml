@@ -41,6 +41,7 @@
     <modules>
         <module>codegen-core</module>
         <module>toolkit</module>
+        <module>example</module>
         <module>generator-maven-plugin</module>
     </modules>
 

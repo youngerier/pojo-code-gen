@@ -17,6 +17,10 @@
     <name>Java Code Generation Toolkit - Example</name>
     <description>Java代码生成工具包的使用示例和演示</description>
     <packaging>pom</packaging>
+    
+    <modules>
+        <module>sub-module</module>
+    </modules>
 
     <!-- ============================ -->
     <!-- 项目属性 -->

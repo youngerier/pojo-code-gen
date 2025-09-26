@@ -18,6 +18,15 @@
 
     <build>
         <plugins>
+            <!-- 显式禁用central-publishing-maven-plugin -->
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            
             <!-- 代码生成插件 -->
             <plugin>
                 <groupId>io.github.youngerier</groupId>

@@ -106,11 +106,11 @@
 
     <distributionManagement>
         <snapshotRepository>
-            <id>cc5a8e4c-3b03-4fb7-bcff-afdfe91a90ce</id>
+            <id>ossrh</id>
             <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>
-            <id>cc5a8e4c-3b03-4fb7-bcff-afdfe91a90ce</id>
+            <id>ossrh</id>
             <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>

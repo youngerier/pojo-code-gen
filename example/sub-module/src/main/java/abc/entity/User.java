@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 
 /**
  * 用户实体
+ * @author wp
  */
 @Table(value = User.TABLE_NAME)
 @Data

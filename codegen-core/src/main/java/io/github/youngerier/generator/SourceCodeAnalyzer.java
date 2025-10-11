@@ -9,8 +9,6 @@ import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.resolution.types.ResolvedType;
-import com.github.javaparser.resolution.types.ResolvedReferenceType;
-import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
@@ -29,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 源码分析器，使用JavaParser解析Java源码并提取类元数据信息
@@ -37,6 +36,13 @@ import java.util.Set;
 public class SourceCodeAnalyzer {
 
     private static final String SRC_MAIN_JAVA = "src" + File.separator + "main" + File.separator + "java";
+
+    private static final String SRC_TEST_JAVA = "src" + File.separator + "test" + File.separator + "java";
+
+    private static final List<File> PROJECT_SOURCE_ROOTS = new ArrayList<>();
+
+    private static final AtomicBoolean PROJECT_ROOTS_SCANNED = new AtomicBoolean(false);
+
     // 缓存符号求解器与已注册的源根，避免重复初始化与提升解析性能
     private static CombinedTypeSolver CACHED_SOLVER;
 
@@ -170,37 +176,90 @@ public class SourceCodeAnalyzer {
      * @throws IOException If the source file cannot be found.
      */
     private File getSourceFileFromPackageStructure(String moduleName, Class<?> clazz) throws IOException {
+        // 首先尝试从ProtectionDomain获取源文件位置
+        File sourceFile = tryGetSourceFromProtectionDomain(clazz);
+        if (sourceFile != null && sourceFile.exists()) {
+            return sourceFile;
+        }
+
+        // 回退到项目搜索
+        return findSourceInProject(moduleName, clazz);
+    }
+
+    /**
+     * 尝试从ProtectionDomain获取源文件
+     */
+    private File tryGetSourceFromProtectionDomain(Class<?> clazz) {
         try {
-            // 尝试使用Class的ProtectionDomain获取源文件位置
             java.security.ProtectionDomain protectionDomain = clazz.getProtectionDomain();
-            if (protectionDomain != null) {
-                java.security.CodeSource codeSource = protectionDomain.getCodeSource();
-                if (codeSource != null && codeSource.getLocation() != null) {
-                    // 获取类所在的JAR或目录
-                    String classLocation = codeSource.getLocation().getPath();
-                    // 如果是class文件，尝试找到对应的源文件
-                    if (classLocation.endsWith(".jar")) {
-                        // 如果是JAR包，尝试在项目中查找源文件
-                        return findSourceInProject(moduleName, clazz);
-                    } else {
-                        // 如果是目录，直接构建源文件路径
-                        String packagePath = clazz.getPackage().getName().replace('.', File.separatorChar);
-                        String sourceFilePath = classLocation.replace("target/classes", "src/main/java") +
-                                packagePath + File.separator + clazz.getSimpleName() + ".java";
-                        File sourceFile = new File(sourceFilePath);
-                        if (sourceFile.exists()) {
-                            return sourceFile;
-                        }
-                    }
-                }
+            if (protectionDomain == null) {
+                return null;
             }
 
-            // 如果通过ProtectionDomain无法获取，回退到项目搜索
-            return findSourceInProject(moduleName, clazz);
-        } catch (Exception e) {
-            // 如果出现异常，回退到项目搜索
-            return findSourceInProject(moduleName, clazz);
+            java.security.CodeSource codeSource = protectionDomain.getCodeSource();
+            if (codeSource == null || codeSource.getLocation() == null) {
+                return null;
+            }
+
+            String classLocation = codeSource.getLocation().getPath();
+
+            // JAR包情况直接返回null，让调用方使用项目搜索
+            if (classLocation.endsWith(".jar")) {
+                return null;
+            }
+
+            // 目录情况：尝试构建源文件路径
+            return buildSourceFileFromClassLocation(classLocation, clazz);
+
+        } catch (SecurityException | IllegalArgumentException e) {
+            // 记录具体异常但不抛出，让调用方使用备选方案
+            log.debug("Failed to get source from ProtectionDomain for class {}: {}",
+                    clazz.getName(), e.getMessage());
+            return null;
         }
+    }
+
+    /**
+     * 从类文件位置构建源文件路径
+     */
+    private File buildSourceFileFromClassLocation(String classLocation, Class<?> clazz) {
+        if (clazz.getPackage() == null) {
+            return null;
+        }
+
+        String packagePath = clazz.getPackage().getName().replace('.', File.separatorChar);
+        String fileName = clazz.getSimpleName() + ".java";
+
+        // 尝试多种可能的源码路径转换
+        String[] possibleSourcePaths = {
+                convertClassPathToSourcePath(classLocation, "target/classes", "src/main/java"),
+                convertClassPathToSourcePath(classLocation, "target/test-classes", "src/test/java"),
+                convertClassPathToSourcePath(classLocation, "build/classes/java/main", "src/main/java"),
+                convertClassPathToSourcePath(classLocation, "build/classes/java/test", "src/test/java"),
+                convertClassPathToSourcePath(classLocation, "out/production/classes", "src/main/java"),
+                convertClassPathToSourcePath(classLocation, "out/test/classes", "src/test/java")
+        };
+
+        for (String sourcePath : possibleSourcePaths) {
+            if (sourcePath != null) {
+                File sourceFile = new File(sourcePath, packagePath + File.separator + fileName);
+                if (sourceFile.exists()) {
+                    return sourceFile;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 转换类路径到源码路径
+     */
+    private String convertClassPathToSourcePath(String classLocation, String classDir, String sourceDir) {
+        if (classLocation.contains(classDir)) {
+            return classLocation.replace(classDir, sourceDir);
+        }
+        return null;
     }
 
     /**
@@ -212,58 +271,28 @@ public class SourceCodeAnalyzer {
         String packagePath = packageName.replace('.', File.separatorChar);
         String fileName = className + ".java";
 
-        // 获取项目根目录
-        File currentDir = new File(System.getProperty("user.dir")).getAbsoluteFile();
+        File projectRoot = new File(System.getProperty("user.dir")).getAbsoluteFile();
+        List<File> searchRoots = new ArrayList<>();
 
-        // 如果指定了模块名，优先在该模块中查找
+        // 优先使用指定模块（包含其子模块）的源根
         if (moduleName != null && !moduleName.isEmpty()) {
-            File moduleDir = new File(currentDir, moduleName);
+            File moduleDir = new File(projectRoot, moduleName);
             if (moduleDir.exists()) {
-                // 尝试在src/main/java目录查找
-                File srcMainJava = new File(moduleDir, SRC_MAIN_JAVA);
-                if (srcMainJava.exists()) {
-                    File sourceFile = new File(srcMainJava, packagePath + File.separator + fileName);
-                    if (sourceFile.exists()) {
-                        return sourceFile;
-                    }
-                }
-
-                // 尝试在src/test/java目录查找
-                File srcTestJava = new File(moduleDir, "src/test/java");
-                if (srcTestJava.exists()) {
-                    File sourceFile = new File(srcTestJava, packagePath + File.separator + fileName);
-                    if (sourceFile.exists()) {
-                        return sourceFile;
-                    }
-                }
+                searchRoots.addAll(getModuleSourceRoots(moduleDir));
             }
         }
 
-        // 在所有模块中查找
-        File[] potentialModules = currentDir.listFiles(File::isDirectory);
-        if (potentialModules != null) {
-            for (File module : potentialModules) {
-                // 检查是否是Maven模块（包含pom.xml）
-                File pomFile = new File(module, "pom.xml");
-                if (pomFile.exists()) {
-                    // 尝试在src/main/java目录查找
-                    File srcMainJava = new File(module, SRC_MAIN_JAVA);
-                    if (srcMainJava.exists()) {
-                        File sourceFile = new File(srcMainJava, packagePath + File.separator + fileName);
-                        if (sourceFile.exists()) {
-                            return sourceFile;
-                        }
-                    }
+        // 回退到项目全局源根（递归扫描包含 pom.xml 的模块及其 src/main/java 与 src/test/java）
+        for (File root : getProjectSourceRoots(projectRoot)) {
+            if (!searchRoots.contains(root)) {
+                searchRoots.add(root);
+            }
+        }
 
-                    // 尝试在src/test/java目录查找
-                    File srcTestJava = new File(module, "src/test/java");
-                    if (srcTestJava.exists()) {
-                        File sourceFile = new File(srcTestJava, packagePath + File.separator + fileName);
-                        if (sourceFile.exists()) {
-                            return sourceFile;
-                        }
-                    }
-                }
+        for (File srcRoot : searchRoots) {
+            File sourceFile = new File(srcRoot, packagePath + File.separator + fileName);
+            if (sourceFile.exists()) {
+                return sourceFile;
             }
         }
 
@@ -404,5 +433,48 @@ public class SourceCodeAnalyzer {
      */
     private boolean isPrimaryKey(String fieldName) {
         return "id".equals(fieldName) || fieldName.endsWith("Id");
+    }
+
+    // Cached project/module source roots utilities
+    private synchronized List<File> getProjectSourceRoots(File projectRoot) {
+        if (!PROJECT_ROOTS_SCANNED.get()) {
+            PROJECT_SOURCE_ROOTS.clear();
+            collectModuleSourceRootsRecursive(projectRoot, 0, 5, PROJECT_SOURCE_ROOTS);
+            PROJECT_ROOTS_SCANNED.set(true);
+        }
+        return PROJECT_SOURCE_ROOTS;
+    }
+
+    private List<File> getModuleSourceRoots(File moduleDir) {
+        List<File> roots = new ArrayList<>();
+        collectModuleSourceRootsRecursive(moduleDir, 0, 5, roots);
+        return roots;
+    }
+
+    private void collectModuleSourceRootsRecursive(File dir, int depth, int maxDepth, List<File> out) {
+        if (dir == null || !dir.isDirectory() || depth > maxDepth) return;
+
+        File pom = new File(dir, "pom.xml");
+        if (pom.exists()) {
+            File main = new File(dir, SRC_MAIN_JAVA);
+            if (main.exists() && out.stream().noneMatch(f -> f.getAbsolutePath().equals(main.getAbsolutePath()))) {
+                out.add(main);
+            }
+            File test = new File(dir, SRC_TEST_JAVA);
+            if (test.exists() && out.stream().noneMatch(f -> f.getAbsolutePath().equals(test.getAbsolutePath()))) {
+                out.add(test);
+            }
+        }
+
+        File[] children = dir.listFiles(File::isDirectory);
+        if (children != null) {
+            for (File child : children) {
+                String name = child.getName();
+                if (name.equals("target") || name.equals("build") || name.startsWith(".")) {
+                    continue;
+                }
+                collectModuleSourceRootsRecursive(child, depth + 1, maxDepth, out);
+            }
+        }
     }
 }

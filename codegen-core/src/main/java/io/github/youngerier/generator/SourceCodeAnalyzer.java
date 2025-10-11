@@ -6,6 +6,7 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
@@ -335,8 +336,28 @@ public class SourceCodeAnalyzer {
      * @return The extracted comment content, or an empty string if there is no comment.
      */
     private String extractComment(Node node) {
+        // 优先解析 Javadoc 注释（通过判断 Comment 类型），其次处理普通块/行注释
         return node.getComment()
-                .map(comment -> comment.getContent().trim().replaceAll("\\*", "").trim())
+                .map(c -> {
+                    if (c instanceof JavadocComment) {
+                        return ((JavadocComment) c)
+                                .parse()
+                                .getDescription()
+                                .toText()
+                                .trim();
+                    }
+                    // 对普通注释逐行清洗，移除前导的 * 与多余空白，保留换行与可读性
+                    String[] lines = c.getContent().split("\\R");
+                    StringBuilder sb = new StringBuilder();
+                    for (String line : lines) {
+                        String cleaned = line.replaceFirst("^\\s*\\*+\\s?", "").trim();
+                        if (!cleaned.isEmpty()) {
+                            if (!sb.isEmpty()) sb.append('\n');
+                            sb.append(cleaned);
+                        }
+                    }
+                    return sb.toString();
+                })
                 .orElse("");
     }
 

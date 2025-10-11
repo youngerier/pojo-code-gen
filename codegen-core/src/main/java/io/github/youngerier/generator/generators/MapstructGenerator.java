@@ -102,6 +102,14 @@ public class MapstructGenerator implements CodeGenerator {
                 .build();
         interfaceBuilder.addMethod(entityToResponseMethod);
 
+        // 添加DTO到Response的转换方法
+        MethodSpec dtoToResponseMethod = MethodSpec.methodBuilder("toResponse")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .addParameter(dtoType, lowerFirstChar(entityName))
+                .returns(responseType)
+                .build();
+        interfaceBuilder.addMethod(dtoToResponseMethod);
+
         // 添加实体列表到DTO列表的转换方法
         MethodSpec entityListToDtoListMethod = MethodSpec.methodBuilder("toDtoList")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)

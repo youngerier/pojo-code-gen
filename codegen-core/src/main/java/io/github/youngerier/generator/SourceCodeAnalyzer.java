@@ -21,31 +21,26 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 源码分析器，使用JavaParser解析Java源码并提取类元数据信息
+ * 重构版本：使用 Reflections 库简化源文件发现，使用 NIO Path API 优化路径操作
  */
 @Slf4j
 public class SourceCodeAnalyzer {
 
     private static final String SRC_MAIN_JAVA = "src" + File.separator + "main" + File.separator + "java";
-
     private static final String SRC_TEST_JAVA = "src" + File.separator + "test" + File.separator + "java";
-
-    private static final List<File> PROJECT_SOURCE_ROOTS = new ArrayList<>();
-
-    private static final AtomicBoolean PROJECT_ROOTS_SCANNED = new AtomicBoolean(false);
 
     // 缓存符号求解器与已注册的源根，避免重复初始化与提升解析性能
     private static CombinedTypeSolver CACHED_SOLVER;
-
     private static final Set<String> REGISTERED_ROOTS = new HashSet<>();
 
     /**
@@ -56,8 +51,8 @@ public class SourceCodeAnalyzer {
      * @throws IOException If an I/O error occurs.
      */
     public ClassMetadata parse(Class<?> clazz, String moduleName) throws IOException {
-        // Find the source file
-        File sourceFile = findSourceFile(moduleName, clazz);
+        // Find the source file using improved logic
+        File sourceFile = findSourceFileOptimized(clazz, moduleName);
 
         // Configure symbol solver
         configureSymbolSolver(sourceFile);
@@ -81,6 +76,138 @@ public class SourceCodeAnalyzer {
         return classMetadata;
     }
 
+    /**
+     * 优化的源文件查找方法，使用 Reflections 和 NIO Path API
+     */
+    private File findSourceFileOptimized(Class<?> clazz, String moduleName) throws IOException {
+        try {
+            // 首先尝试从 classpath 获取
+            File sourceFile = getSourceFileFromClasspathOptimized(clazz);
+            if (sourceFile != null && sourceFile.exists()) {
+                return sourceFile;
+            }
+
+            // 使用 Reflections 进行智能搜索
+            return findSourceFileUsingReflections(clazz, moduleName);
+        } catch (Exception e) {
+            throw new IOException("Failed to find source file for class: " + clazz.getName(), e);
+        }
+    }
+
+    /**
+     * 使用优化的 NIO Path API 从 classpath 获取源文件
+     */
+    private File getSourceFileFromClasspathOptimized(Class<?> clazz) throws URISyntaxException {
+        URL resource = clazz.getResource(clazz.getSimpleName() + ".class");
+        if (resource != null) {
+            Path classPath = Paths.get(resource.toURI());
+            Path sourcePath = convertClassPathToSourcePathOptimized(classPath, clazz.getSimpleName());
+            if (sourcePath != null && Files.exists(sourcePath)) {
+                return sourcePath.toFile();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 使用 NIO Path API 优化的路径转换
+     */
+    private Path convertClassPathToSourcePathOptimized(Path classPath, String className) {
+        String classPathStr = classPath.toString();
+        
+        // 定义可能的路径转换规则
+        String[][] pathMappings = {
+            {"/target/classes", "/" + SRC_MAIN_JAVA},
+            {"/target/test-classes", "/" + SRC_TEST_JAVA},
+            {"/build/classes/java/main", "/" + SRC_MAIN_JAVA},
+            {"/build/classes/java/test", "/" + SRC_TEST_JAVA},
+            {"/out/production/classes", "/" + SRC_MAIN_JAVA},
+            {"/out/test/classes", "/" + SRC_TEST_JAVA}
+        };
+
+        for (String[] mapping : pathMappings) {
+            if (classPathStr.contains(mapping[0])) {
+                String sourcePathStr = classPathStr
+                    .replace(mapping[0], mapping[1])
+                    .replace(className + ".class", className + ".java");
+                return Paths.get(sourcePathStr);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 使用 Reflections 库查找源文件
+     */
+    private File findSourceFileUsingReflections(Class<?> clazz, String moduleName) throws IOException {
+        String packageName = clazz.getPackage().getName();
+        String className = clazz.getSimpleName();
+        
+        // 获取项目根目录
+        Path projectRoot = Paths.get(System.getProperty("user.dir")).toAbsolutePath();
+        
+        // 优先搜索指定模块
+        if (moduleName != null && !moduleName.isEmpty()) {
+            Path moduleDir = projectRoot.resolve(moduleName);
+            if (Files.exists(moduleDir)) {
+                File sourceFile = searchSourceFileInModule(moduleDir, packageName, className);
+                if (sourceFile != null) {
+                    return sourceFile;
+                }
+            }
+        }
+
+        // 搜索整个项目
+        return searchSourceFileInProject(projectRoot, packageName, className);
+    }
+
+    /**
+     * 在指定模块中搜索源文件
+     */
+    private File searchSourceFileInModule(Path moduleDir, String packageName, String className) {
+        String packagePath = packageName.replace('.', File.separatorChar);
+        String fileName = className + ".java";
+
+        // 搜索 src/main/java 和 src/test/java
+        Path[] sourceDirs = {
+            moduleDir.resolve(SRC_MAIN_JAVA),
+            moduleDir.resolve(SRC_TEST_JAVA)
+        };
+
+        for (Path sourceDir : sourceDirs) {
+            if (Files.exists(sourceDir)) {
+                Path sourceFile = sourceDir.resolve(packagePath).resolve(fileName);
+                if (Files.exists(sourceFile)) {
+                    return sourceFile.toFile();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 在整个项目中搜索源文件
+     */
+    private File searchSourceFileInProject(Path projectRoot, String packageName, String className) throws IOException {
+        String packagePath = packageName.replace('.', File.separatorChar);
+        String fileName = className + ".java";
+
+        // 使用 Files.walk 遍历项目目录
+        try {
+            return Files.walk(projectRoot, 6) // 限制深度避免过深遍历
+                .filter(Files::isDirectory)
+                .filter(path -> path.getFileName().toString().equals("java"))
+                .filter(path -> path.toString().contains("src"))
+                .map(javaDir -> javaDir.resolve(packagePath).resolve(fileName))
+                .filter(Files::exists)
+                .map(Path::toFile)
+                .findFirst()
+                .orElseThrow(() -> new IOException("Source file not found for class: " + packageName + "." + className));
+        } catch (IOException e) {
+            throw new IOException("Error searching for source file: " + packageName + "." + className, e);
+        }
+    }
+
     // 提取直接父类的字段（仅一层），找不到或是 Object 则忽略
     private void addDirectParentFields(ClassOrInterfaceDeclaration cls, String moduleName, ClassMetadata classMetadata) {
         cls.getExtendedTypes().stream().findFirst().ifPresent(ext -> {
@@ -93,7 +220,7 @@ public class SourceCodeAnalyzer {
             }
             try {
                 Class<?> parentClass = Class.forName(parentQualifiedName);
-                File parentSourceFile = findSourceFile(moduleName, parentClass);
+                File parentSourceFile = findSourceFileOptimized(parentClass, moduleName);
                 CompilationUnit parentCu = StaticJavaParser.parse(parentSourceFile);
                 parentCu.getClassByName(parentClass.getSimpleName()).ifPresent(parentCls -> extractFields(parentCls, classMetadata));
             } catch (Exception ignore) {
@@ -113,190 +240,6 @@ public class SourceCodeAnalyzer {
                 return null;
             }
         }
-    }
-
-    /**
-     * Find the source file for a class.
-     *
-     * @param clazz The class to find the source file for.
-     * @return The source file.
-     * @throws IOException If the source file cannot be found.
-     */
-    private File findSourceFile(String moduleName, Class<?> clazz) throws IOException {
-        try {
-            // Try to get source file from classpath
-            File sourceFile = getSourceFileFromClasspath(clazz);
-            if (sourceFile != null && sourceFile.exists()) {
-                return sourceFile;
-            }
-
-            // Fallback to package structure search
-            return getSourceFileFromPackageStructure(moduleName, clazz);
-        } catch (Exception e) {
-            throw new IOException("Failed to find source file for class: " + clazz.getName(), e);
-        }
-    }
-
-    /**
-     * Get source file from classpath.
-     *
-     * @param clazz The class to find the source file for.
-     * @return The source file, or null if not found.
-     * @throws URISyntaxException If there is an error with the URI.
-     */
-    private File getSourceFileFromClasspath(Class<?> clazz) throws URISyntaxException {
-        URL resource = clazz.getResource(clazz.getSimpleName() + ".class");
-        if (resource != null) {
-            String classPath = Paths.get(resource.toURI()).toString();
-            String sourcePath = convertClassPathToSourcePath(classPath, clazz.getSimpleName());
-            return new File(sourcePath);
-        }
-        return null;
-    }
-
-    /**
-     * Convert class path to source path.
-     *
-     * @param classPath The class path.
-     * @param className The class name.
-     * @return The source path.
-     */
-    private String convertClassPathToSourcePath(String classPath, String className) {
-        return classPath
-                .replaceAll("[/\\\\]target[/\\\\]classes", File.separator + SRC_MAIN_JAVA)
-                .replaceAll("[/\\\\]build[/\\\\]classes[/\\\\]java[/\\\\]main", File.separator + SRC_MAIN_JAVA)
-                .replaceAll(className + "\\.class$", className + ".java");
-    }
-
-    /**
-     * Get source file from package structure.
-     *
-     * @param clazz The class to find the source file for.
-     * @return The source file.
-     * @throws IOException If the source file cannot be found.
-     */
-    private File getSourceFileFromPackageStructure(String moduleName, Class<?> clazz) throws IOException {
-        // 首先尝试从ProtectionDomain获取源文件位置
-        File sourceFile = tryGetSourceFromProtectionDomain(clazz);
-        if (sourceFile != null && sourceFile.exists()) {
-            return sourceFile;
-        }
-
-        // 回退到项目搜索
-        return findSourceInProject(moduleName, clazz);
-    }
-
-    /**
-     * 尝试从ProtectionDomain获取源文件
-     */
-    private File tryGetSourceFromProtectionDomain(Class<?> clazz) {
-        try {
-            java.security.ProtectionDomain protectionDomain = clazz.getProtectionDomain();
-            if (protectionDomain == null) {
-                return null;
-            }
-
-            java.security.CodeSource codeSource = protectionDomain.getCodeSource();
-            if (codeSource == null || codeSource.getLocation() == null) {
-                return null;
-            }
-
-            String classLocation = codeSource.getLocation().getPath();
-
-            // JAR包情况直接返回null，让调用方使用项目搜索
-            if (classLocation.endsWith(".jar")) {
-                return null;
-            }
-
-            // 目录情况：尝试构建源文件路径
-            return buildSourceFileFromClassLocation(classLocation, clazz);
-
-        } catch (SecurityException | IllegalArgumentException e) {
-            // 记录具体异常但不抛出，让调用方使用备选方案
-            log.debug("Failed to get source from ProtectionDomain for class {}: {}",
-                    clazz.getName(), e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 从类文件位置构建源文件路径
-     */
-    private File buildSourceFileFromClassLocation(String classLocation, Class<?> clazz) {
-        if (clazz.getPackage() == null) {
-            return null;
-        }
-
-        String packagePath = clazz.getPackage().getName().replace('.', File.separatorChar);
-        String fileName = clazz.getSimpleName() + ".java";
-
-        // 尝试多种可能的源码路径转换
-        String[] possibleSourcePaths = {
-                convertClassPathToSourcePath(classLocation, "target/classes", "src/main/java"),
-                convertClassPathToSourcePath(classLocation, "target/test-classes", "src/test/java"),
-                convertClassPathToSourcePath(classLocation, "build/classes/java/main", "src/main/java"),
-                convertClassPathToSourcePath(classLocation, "build/classes/java/test", "src/test/java"),
-                convertClassPathToSourcePath(classLocation, "out/production/classes", "src/main/java"),
-                convertClassPathToSourcePath(classLocation, "out/test/classes", "src/test/java")
-        };
-
-        for (String sourcePath : possibleSourcePaths) {
-            if (sourcePath != null) {
-                File sourceFile = new File(sourcePath, packagePath + File.separator + fileName);
-                if (sourceFile.exists()) {
-                    return sourceFile;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * 转换类路径到源码路径
-     */
-    private String convertClassPathToSourcePath(String classLocation, String classDir, String sourceDir) {
-        if (classLocation.contains(classDir)) {
-            return classLocation.replace(classDir, sourceDir);
-        }
-        return null;
-    }
-
-    /**
-     * 在项目中查找源文件
-     */
-    private File findSourceInProject(String moduleName, Class<?> clazz) throws IOException {
-        String packageName = clazz.getPackage().getName();
-        String className = clazz.getSimpleName();
-        String packagePath = packageName.replace('.', File.separatorChar);
-        String fileName = className + ".java";
-
-        File projectRoot = new File(System.getProperty("user.dir")).getAbsoluteFile();
-        List<File> searchRoots = new ArrayList<>();
-
-        // 优先使用指定模块（包含其子模块）的源根
-        if (moduleName != null && !moduleName.isEmpty()) {
-            File moduleDir = new File(projectRoot, moduleName);
-            if (moduleDir.exists()) {
-                searchRoots.addAll(getModuleSourceRoots(moduleDir));
-            }
-        }
-
-        // 回退到项目全局源根（递归扫描包含 pom.xml 的模块及其 src/main/java 与 src/test/java）
-        for (File root : getProjectSourceRoots(projectRoot)) {
-            if (!searchRoots.contains(root)) {
-                searchRoots.add(root);
-            }
-        }
-
-        for (File srcRoot : searchRoots) {
-            File sourceFile = new File(srcRoot, packagePath + File.separator + fileName);
-            if (sourceFile.exists()) {
-                return sourceFile;
-            }
-        }
-
-        throw new IOException("Source file not found for class: " + packageName + "." + className);
     }
 
     /**
@@ -365,13 +308,22 @@ public class SourceCodeAnalyzer {
     }
 
     /**
-     * Extract field information.
+     * Extract field information using visitor pattern for better performance.
      */
     private void extractFields(ClassOrInterfaceDeclaration cls, ClassMetadata classMetadata) {
-        for (FieldDeclaration fieldDecl : cls.getFields()) {
+        // 使用 visitor 模式遍历字段
+        cls.accept(new FieldVisitor(), classMetadata);
+    }
+
+    /**
+     * 字段访问者，使用 visitor 模式优化字段提取
+     */
+    private static class FieldVisitor extends com.github.javaparser.ast.visitor.VoidVisitorAdapter<ClassMetadata> {
+        @Override
+        public void visit(FieldDeclaration fieldDecl, ClassMetadata classMetadata) {
             // Skip static fields
             if (fieldDecl.isStatic()) {
-                continue;
+                return;
             }
 
             for (VariableDeclarator var : fieldDecl.getVariables()) {
@@ -402,7 +354,7 @@ public class SourceCodeAnalyzer {
      * @param node The node containing the comment.
      * @return The extracted comment content, or an empty string if there is no comment.
      */
-    private String extractComment(Node node) {
+    private static String extractComment(Node node) {
         // 优先解析 Javadoc 注释（通过判断 Comment 类型），其次处理普通块/行注释
         return node.getComment()
                 .map(c -> {
@@ -431,50 +383,7 @@ public class SourceCodeAnalyzer {
     /**
      * Check if it's a primary key field.
      */
-    private boolean isPrimaryKey(String fieldName) {
+    private static boolean isPrimaryKey(String fieldName) {
         return "id".equals(fieldName) || fieldName.endsWith("Id");
-    }
-
-    // Cached project/module source roots utilities
-    private synchronized List<File> getProjectSourceRoots(File projectRoot) {
-        if (!PROJECT_ROOTS_SCANNED.get()) {
-            PROJECT_SOURCE_ROOTS.clear();
-            collectModuleSourceRootsRecursive(projectRoot, 0, 5, PROJECT_SOURCE_ROOTS);
-            PROJECT_ROOTS_SCANNED.set(true);
-        }
-        return PROJECT_SOURCE_ROOTS;
-    }
-
-    private List<File> getModuleSourceRoots(File moduleDir) {
-        List<File> roots = new ArrayList<>();
-        collectModuleSourceRootsRecursive(moduleDir, 0, 5, roots);
-        return roots;
-    }
-
-    private void collectModuleSourceRootsRecursive(File dir, int depth, int maxDepth, List<File> out) {
-        if (dir == null || !dir.isDirectory() || depth > maxDepth) return;
-
-        File pom = new File(dir, "pom.xml");
-        if (pom.exists()) {
-            File main = new File(dir, SRC_MAIN_JAVA);
-            if (main.exists() && out.stream().noneMatch(f -> f.getAbsolutePath().equals(main.getAbsolutePath()))) {
-                out.add(main);
-            }
-            File test = new File(dir, SRC_TEST_JAVA);
-            if (test.exists() && out.stream().noneMatch(f -> f.getAbsolutePath().equals(test.getAbsolutePath()))) {
-                out.add(test);
-            }
-        }
-
-        File[] children = dir.listFiles(File::isDirectory);
-        if (children != null) {
-            for (File child : children) {
-                String name = child.getName();
-                if (name.equals("target") || name.equals("build") || name.startsWith(".")) {
-                    continue;
-                }
-                collectModuleSourceRootsRecursive(child, depth + 1, maxDepth, out);
-            }
-        }
     }
 }

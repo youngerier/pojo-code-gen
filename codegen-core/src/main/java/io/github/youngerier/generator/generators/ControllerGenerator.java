@@ -158,26 +158,21 @@ public class ControllerGenerator implements CodeGenerator {
         MethodSpec updateMethod = MethodSpec.methodBuilder("update" + classMetadata.getClassName())
                 .addModifiers(Modifier.PUBLIC)
                 .returns(ParameterizedTypeName.get(responseType, dtoType))
-                .addAnnotation(AnnotationSpec.builder(ClassName.get("org.springframework.web.bind.annotation", "PutMapping"))
-                        .addMember("value", "$S", "/{id}")
-                        .build())
-                .addParameter(ParameterSpec.builder(TypeName.LONG, "id")
-                        .addAnnotation(AnnotationSpec.builder(ClassName.get("org.springframework.web.bind.annotation", "PathVariable")).build())
-                        .build())
+                .addAnnotation(AnnotationSpec.builder(ClassName.get("org.springframework.web.bind.annotation", "PutMapping")).build())
                 .addParameter(ParameterSpec.builder(dtoType, classMetadata.getCamelClassName() + "DTO")
                         .addAnnotation(AnnotationSpec.builder(ClassName.get("org.springframework.web.bind.annotation", "RequestBody")).build())
                         .build())
                 .addJavadoc("更新$L\n", classMetadata.getClassName())
-                .addJavadoc("@param id 主键ID\n")
                 .addJavadoc("@param $L $L数据传输对象\n",
                         classMetadata.getCamelClassName() + "DTO",
                         classMetadata.getClassName())
                 .addJavadoc("@return 更新后的$L对象\n", classMetadata.getClassName())
-                .addStatement("log.info(\"更新$L: id={}, data={}\", id, $L)", classMetadata.getClassName(), classMetadata.getCamelClassName() + "DTO")
-                .addStatement("$T result = $L.update$L(id, $L)", 
+                .addStatement("log.info(\"更新$L: id={}, data={}\", $L.getId(), $L)", classMetadata.getClassName(), classMetadata.getCamelClassName() + "DTO", classMetadata.getCamelClassName() + "DTO")
+                .addStatement("$T result = $L.update$L($L.getId(), $L)", 
                         dtoType,
                         classMetadata.getCamelClassName() + "Service",
                         classMetadata.getClassName(),
+                        classMetadata.getCamelClassName() + "DTO",
                         classMetadata.getCamelClassName() + "DTO")
                 .addStatement("return $T.ok(result)", responseType)
                 .build();

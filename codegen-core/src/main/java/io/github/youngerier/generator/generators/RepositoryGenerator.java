@@ -102,12 +102,19 @@ public class RepositoryGenerator implements CodeGenerator {
         queryWrapperBuilder.add(".from($L)\n", tableVarName);
 
         // Add conditional where clauses for each field
+        boolean firstField = true;
         for (ClassMetadata.FieldInfo field : pojoInfo.getFields()) {
             String fieldName = field.getName();
             String getterName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
             // 为每个字段添加条件查询
-            queryWrapperBuilder.add(".where($L.$L.eq(query.$L()))\n",
-                    tableVarName, fieldName, getterName);
+            if (firstField) {
+                queryWrapperBuilder.add(".where($L.$L.eq(query.$L()))\n",
+                        tableVarName, fieldName, getterName);
+                firstField = false;
+            } else {
+                queryWrapperBuilder.add(".and($L.$L.eq(query.$L()))\n",
+                        tableVarName, fieldName, getterName);
+            }
         }
 
         // Add time range conditions

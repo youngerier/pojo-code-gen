@@ -7,6 +7,8 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.resolution.types.ResolvedType;
+import com.github.javaparser.resolution.types.ResolvedReferenceType;
+import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
@@ -56,6 +58,32 @@ public class SourceCodeAnalyzer {
             classMetadata.setClassName(cls.getNameAsString());
             classMetadata.setClassComment(extractComment(cls));
             extractFields(cls, classMetadata);
+            // 解析直接父类（仅一层），如果父类是 Object 则跳过
+            cls.getExtendedTypes().stream().findFirst().ifPresent(ext -> {
+                try {
+                    String parentQualifiedName;
+                    try {
+                        parentQualifiedName = ext.resolve().asReferenceType().getQualifiedName();
+                    } catch (Exception resolveEx) {
+                        parentQualifiedName = ext.getNameAsString();
+                    }
+                    if ("java.lang.Object".equals(parentQualifiedName) || "Object".equals(parentQualifiedName)) {
+                        return;
+                    }
+                    try {
+                        Class<?> parentClass = Class.forName(parentQualifiedName);
+                        File parentSourceFile = findSourceFile(moduleName, parentClass);
+                        CompilationUnit parentCu = StaticJavaParser.parse(parentSourceFile);
+                        parentCu.getClassByName(parentClass.getSimpleName()).ifPresent(parentCls -> {
+                            extractFields(parentCls, classMetadata);
+                        });
+                    } catch (Exception ignore) {
+                        // 父类解析失败时忽略，不影响当前类解析
+                    }
+                } catch (Exception e) {
+                    // 父类解析失败时忽略，不影响当前类解析
+                }
+            });
         });
 
         return classMetadata;
@@ -137,8 +165,8 @@ public class SourceCodeAnalyzer {
                     } else {
                         // 如果是目录，直接构建源文件路径
                         String packagePath = clazz.getPackage().getName().replace('.', File.separatorChar);
-                        String sourceFilePath = classLocation.replace("target/classes", "src/main/java") + 
-                                               packagePath + File.separator + clazz.getSimpleName() + ".java";
+                        String sourceFilePath = classLocation.replace("target/classes", "src/main/java") +
+                                packagePath + File.separator + clazz.getSimpleName() + ".java";
                         File sourceFile = new File(sourceFilePath);
                         if (sourceFile.exists()) {
                             return sourceFile;
@@ -146,7 +174,7 @@ public class SourceCodeAnalyzer {
                     }
                 }
             }
-            
+
             // 如果通过ProtectionDomain无法获取，回退到项目搜索
             return findSourceInProject(moduleName, clazz);
         } catch (Exception e) {
@@ -154,7 +182,7 @@ public class SourceCodeAnalyzer {
             return findSourceInProject(moduleName, clazz);
         }
     }
-    
+
     /**
      * 在项目中查找源文件
      */
@@ -163,10 +191,10 @@ public class SourceCodeAnalyzer {
         String className = clazz.getSimpleName();
         String packagePath = packageName.replace('.', File.separatorChar);
         String fileName = className + ".java";
-        
+
         // 获取项目根目录
         File currentDir = new File(System.getProperty("user.dir")).getAbsoluteFile();
-        
+
         // 如果指定了模块名，优先在该模块中查找
         if (moduleName != null && !moduleName.isEmpty()) {
             File moduleDir = new File(currentDir, moduleName);
@@ -179,7 +207,7 @@ public class SourceCodeAnalyzer {
                         return sourceFile;
                     }
                 }
-                
+
                 // 尝试在src/test/java目录查找
                 File srcTestJava = new File(moduleDir, "src/test/java");
                 if (srcTestJava.exists()) {
@@ -190,7 +218,7 @@ public class SourceCodeAnalyzer {
                 }
             }
         }
-        
+
         // 在所有模块中查找
         File[] potentialModules = currentDir.listFiles(File::isDirectory);
         if (potentialModules != null) {
@@ -206,7 +234,7 @@ public class SourceCodeAnalyzer {
                             return sourceFile;
                         }
                     }
-                    
+
                     // 尝试在src/test/java目录查找
                     File srcTestJava = new File(module, "src/test/java");
                     if (srcTestJava.exists()) {
@@ -218,7 +246,7 @@ public class SourceCodeAnalyzer {
                 }
             }
         }
-        
+
         throw new IOException("Source file not found for class: " + packageName + "." + className);
     }
 

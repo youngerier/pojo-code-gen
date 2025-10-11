@@ -25,6 +25,10 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * 源码分析器，使用JavaParser解析Java源码并提取类元数据信息
@@ -33,6 +37,10 @@ import java.nio.file.Paths;
 public class SourceCodeAnalyzer {
 
     private static final String SRC_MAIN_JAVA = "src" + File.separator + "main" + File.separator + "java";
+    // 缓存符号求解器与已注册的源根，避免重复初始化与提升解析性能
+    private static CombinedTypeSolver CACHED_SOLVER;
+
+    private static final Set<String> REGISTERED_ROOTS = new HashSet<>();
 
     /**
      * Parse a POJO class using Class object.
@@ -100,6 +108,7 @@ public class SourceCodeAnalyzer {
             }
         }
     }
+
     /**
      * Find the source file for a class.
      *
@@ -267,12 +276,41 @@ public class SourceCodeAnalyzer {
      * @param sourceFile The source file to configure symbol solver for.
      */
     private void configureSymbolSolver(File sourceFile) {
-        CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
-        combinedTypeSolver.add(new ReflectionTypeSolver());
-        combinedTypeSolver.add(new JavaParserTypeSolver(findSrcMainJavaDir(sourceFile)));
+        synchronized (SourceCodeAnalyzer.class) {
+            if (CACHED_SOLVER == null) {
+                CACHED_SOLVER = new CombinedTypeSolver();
+                CACHED_SOLVER.add(new ReflectionTypeSolver());
+            }
+            // 收集并注册源根（支持多模块 src/main/java 与 src/test/java）
+            for (File root : collectSourceRoots(sourceFile)) {
+                String path = root.getAbsolutePath();
+                if (REGISTERED_ROOTS.add(path)) {
+                    try {
+                        CACHED_SOLVER.add(new JavaParserTypeSolver(root));
+                        // 注册成功，避免重复日志依赖
+                    } catch (Exception e) {
+                        // 注册失败不影响整体流程，安全忽略
+                    }
+                }
+            }
+            // 统一设置符号解析器（指向缓存的 solver）
+            JavaSymbolSolver symbolSolver = new JavaSymbolSolver(CACHED_SOLVER);
+            StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
+        }
+    }
 
-        JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
-        StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
+    // 收集项目中的源根目录（当前源文件所在模块，以及工作空间所有包含 pom.xml 的模块）
+    private List<File> collectSourceRoots(File sourceFile) {
+        List<File> roots = new ArrayList<>();
+        try {
+            File srcMainJava = findSrcMainJavaDir(sourceFile);
+            if (srcMainJava.exists()) {
+                roots.add(srcMainJava);
+            }
+        } catch (Exception e) {
+            // 找不到当前模块源根时忽略，继续收集工作空间其他模块
+        }
+        return roots;
     }
 
     /**

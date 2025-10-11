@@ -6,6 +6,7 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
@@ -58,37 +59,46 @@ public class SourceCodeAnalyzer {
             classMetadata.setClassName(cls.getNameAsString());
             classMetadata.setClassComment(extractComment(cls));
             extractFields(cls, classMetadata);
-            // 解析直接父类（仅一层），如果父类是 Object 则跳过
-            cls.getExtendedTypes().stream().findFirst().ifPresent(ext -> {
-                try {
-                    String parentQualifiedName;
-                    try {
-                        parentQualifiedName = ext.resolve().asReferenceType().getQualifiedName();
-                    } catch (Exception resolveEx) {
-                        parentQualifiedName = ext.getNameAsString();
-                    }
-                    if ("java.lang.Object".equals(parentQualifiedName) || "Object".equals(parentQualifiedName)) {
-                        return;
-                    }
-                    try {
-                        Class<?> parentClass = Class.forName(parentQualifiedName);
-                        File parentSourceFile = findSourceFile(moduleName, parentClass);
-                        CompilationUnit parentCu = StaticJavaParser.parse(parentSourceFile);
-                        parentCu.getClassByName(parentClass.getSimpleName()).ifPresent(parentCls -> {
-                            extractFields(parentCls, classMetadata);
-                        });
-                    } catch (Exception ignore) {
-                        // 父类解析失败时忽略，不影响当前类解析
-                    }
-                } catch (Exception e) {
-                    // 父类解析失败时忽略，不影响当前类解析
-                }
-            });
+            // 解析直接父类字段（仅一层），如果父类是 Object 则跳过
+            addDirectParentFields(cls, moduleName, classMetadata);
         });
 
         return classMetadata;
     }
 
+    // 提取直接父类的字段（仅一层），找不到或是 Object 则忽略
+    private void addDirectParentFields(ClassOrInterfaceDeclaration cls, String moduleName, ClassMetadata classMetadata) {
+        cls.getExtendedTypes().stream().findFirst().ifPresent(ext -> {
+            String parentQualifiedName = resolveParentQualifiedName(ext);
+            if (parentQualifiedName == null) {
+                return;
+            }
+            if ("java.lang.Object".equals(parentQualifiedName) || "Object".equals(parentQualifiedName)) {
+                return;
+            }
+            try {
+                Class<?> parentClass = Class.forName(parentQualifiedName);
+                File parentSourceFile = findSourceFile(moduleName, parentClass);
+                CompilationUnit parentCu = StaticJavaParser.parse(parentSourceFile);
+                parentCu.getClassByName(parentClass.getSimpleName()).ifPresent(parentCls -> extractFields(parentCls, classMetadata));
+            } catch (Exception ignore) {
+                // 父类解析失败时忽略，不影响当前类解析
+            }
+        });
+    }
+
+    // 将扩展类型解析为父类全限定名，失败时返回简单名或 null
+    private String resolveParentQualifiedName(ClassOrInterfaceType ext) {
+        try {
+            return ext.resolve().asReferenceType().getQualifiedName();
+        } catch (Exception e) {
+            try {
+                return ext.getNameAsString();
+            } catch (Exception ignored) {
+                return null;
+            }
+        }
+    }
     /**
      * Find the source file for a class.
      *

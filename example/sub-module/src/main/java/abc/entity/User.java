@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Table(value = User.TABLE_NAME)
 @Data
 @GenModel
-public class User {
+public class User extends Base{
     public static final String TABLE_NAME = "t_user";
 
     /**

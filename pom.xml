@@ -69,27 +69,27 @@
         <swagger-openapiv3.version>2.2.36</swagger-openapiv3.version>
         <easyexcel.version>4.0.3</easyexcel.version>
         <commons.lang3.version>3.19.0</commons.lang3.version>
-        
+
         <!-- Spring Framework Versions -->
         <spring.version>6.2.7</spring.version>
         <aspectj.version>1.9.24</aspectj.version>
-        
+
         <!-- Jackson Versions -->
         <jackson.version>2.19.1</jackson.version>
-        
+
         <!-- Logging Versions -->
         <slf4j.version>2.0.16</slf4j.version>
         <logback.version>1.5.13</logback.version>
-        
+
         <!-- Validation Versions -->
         <jakarta.validation.version>3.0.2</jakarta.validation.version>
         <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
-        
+
         <!-- Maven Plugin Versions -->
         <maven.plugin.api.version>3.9.4</maven.plugin.api.version>
         <maven.plugin.annotations.version>3.9.0</maven.plugin.annotations.version>
         <reflections.version>0.10.2</reflections.version>
-        
+
         <!-- Maven Plugin Versions -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
@@ -98,10 +98,10 @@
         <maven-plugin-plugin.version>3.15.1</maven-plugin-plugin.version>
         <flatten-maven-plugin.version>1.6.0</flatten-maven-plugin.version>
         <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
-        
+
         <!-- GPG signing control - disabled by default, enabled in release profile -->
         <gpg.skip>true</gpg.skip>
-        
+
         <!-- Skip tests by default for faster builds -->
         <maven.test.skip>false</maven.test.skip>
         <skipTests>false</skipTests>
@@ -263,7 +263,7 @@
                 <artifactId>jakarta.validation-api</artifactId>
                 <version>${jakarta.validation.version}</version>
             </dependency>
-            
+
             <!-- Maven Plugin Dependencies -->
             <dependency>
                 <groupId>org.apache.maven</groupId>
@@ -295,6 +295,11 @@
             </dependency>
             <dependency>
                 <groupId>io.github.youngerier</groupId>
+                <artifactId>office</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
                 <artifactId>codegen-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -303,7 +308,7 @@
                 <artifactId>example</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
+
             <!-- Test Dependencies -->
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
@@ -484,7 +489,7 @@
                         </execution>
                     </executions>
                 </plugin>
-                
+
                 <!-- Maven Plugin Plugin -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

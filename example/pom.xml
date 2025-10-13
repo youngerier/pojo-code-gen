@@ -3,7 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <!-- 父项目配置 -->
     <parent>
         <groupId>io.github.youngerier</groupId>
@@ -17,7 +17,7 @@
     <name>Java Code Generation Toolkit - Example</name>
     <description>Java代码生成工具包的使用示例和演示</description>
     <packaging>pom</packaging>
-    
+
     <modules>
         <module>sub-module</module>
     </modules>
@@ -40,25 +40,29 @@
             <groupId>io.github.youngerier</groupId>
             <artifactId>codegen-core</artifactId>
         </dependency>
-        
+
         <!-- 工具包模块 -->
         <dependency>
             <groupId>io.github.youngerier</groupId>
             <artifactId>toolkit</artifactId>
         </dependency>
-        
+        <dependency>
+            <groupId>io.github.youngerier</groupId>
+            <artifactId>office</artifactId>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
-        
+
         <!-- 日志框架 -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        
+
         <!-- Logback -->
         <dependency>
             <groupId>ch.qos.logback</groupId>

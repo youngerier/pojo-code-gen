@@ -15,6 +15,13 @@
         <central.publishing.skip>true</central.publishing.skip>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+        </dependency>
+    </dependencies>
+
 
     <build>
         <plugins>

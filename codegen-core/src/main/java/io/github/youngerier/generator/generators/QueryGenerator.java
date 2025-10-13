@@ -10,7 +10,7 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import lombok.extern.slf4j.Slf4j;
 
-import io.github.youngerier.support.AbstractPageQuery;
+import io.github.youngerier.support.page.AbstractPageQuery;
 import io.github.youngerier.support.enums.DefaultOrderField;
 
 import javax.lang.model.element.Modifier;

@@ -1,6 +1,6 @@
 package io.github.youngerier.support.enums;
 
-import io.github.youngerier.support.QueryOrderField;
+import io.github.youngerier.support.page.QueryOrderField;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

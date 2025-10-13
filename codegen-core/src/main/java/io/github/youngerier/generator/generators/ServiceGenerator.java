@@ -1,6 +1,6 @@
 package io.github.youngerier.generator.generators;
 
-import io.github.youngerier.support.Pagination;
+import io.github.youngerier.support.page.Pagination;
 import io.github.youngerier.generator.CodeGenerator;
 import io.github.youngerier.generator.model.PackageStructure;
 import io.github.youngerier.generator.model.ClassMetadata;

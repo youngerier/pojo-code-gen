@@ -1,6 +1,6 @@
 package io.github.youngerier.generator.generators;
 
-import io.github.youngerier.support.QueryWrapperHelper;
+import io.github.youngerier.support.page.QueryWrapperHelper;
 import io.github.youngerier.generator.CodeGenerator;
 import io.github.youngerier.generator.model.PackageStructure;
 import io.github.youngerier.generator.model.ClassMetadata;
@@ -11,7 +11,6 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.core.service.IService;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.lang.model.element.Modifier;

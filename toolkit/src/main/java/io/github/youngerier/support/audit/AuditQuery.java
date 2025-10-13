@@ -1,6 +1,6 @@
 package io.github.youngerier.support.audit;
 
-import io.github.youngerier.support.AbstractPageQuery;
+import io.github.youngerier.support.page.AbstractPageQuery;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

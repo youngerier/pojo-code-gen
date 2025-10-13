@@ -41,6 +41,7 @@
     <modules>
         <module>codegen-core</module>
         <module>toolkit</module>
+        <module>office</module>
         <module>example</module>
         <module>generator-maven-plugin</module>
     </modules>
@@ -65,6 +66,9 @@
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <org.mapstruct.version>1.6.2</org.mapstruct.version>
         <mybatis-flex.version>1.10.1</mybatis-flex.version>
+        <swagger-openapiv3.version>2.2.36</swagger-openapiv3.version>
+        <easyexcel.version>4.0.3</easyexcel.version>
+        <commons.lang3.version>3.19.0</commons.lang3.version>
         
         <!-- Spring Framework Versions -->
         <spring.version>6.2.7</spring.version>
@@ -239,7 +243,21 @@
                 <artifactId>logback-classic</artifactId>
                 <version>${logback.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>easyexcel</artifactId>
+                <version>${easyexcel.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations-jakarta</artifactId>
+                <version>${swagger-openapiv3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons.lang3.version}</version>
+            </dependency>
             <dependency>
                 <groupId>jakarta.validation</groupId>
                 <artifactId>jakarta.validation-api</artifactId>

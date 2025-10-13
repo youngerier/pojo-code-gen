@@ -4,7 +4,7 @@ import io.github.youngerier.generator.CodeGenerator;
 import io.github.youngerier.generator.model.PackageStructure;
 import io.github.youngerier.generator.model.ClassMetadata;
 import io.github.youngerier.support.Response;
-import io.github.youngerier.support.Pagination;
+import io.github.youngerier.support.page.Pagination;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;

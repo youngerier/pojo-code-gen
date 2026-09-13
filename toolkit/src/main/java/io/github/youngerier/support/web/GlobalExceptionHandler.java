@@ -30,11 +30,18 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
- * 全局异常处理器，把异常统一转换为 {@link Response} 响应体，
- * 并按 {@link ExceptionLogLevel} 分级记录日志。
+ * 全局异常处理器，是异常体系的边缘组件，负责把 {@link BaseException} 转换成两种视图：
  *
- * <p>消息解析顺序：应用 {@link MessageSource}（支持 {@code Accept-Language}）
- * -> toolkit 内置中英文 bundle -> 异常码描述/字面量消息。
+ * <ul>
+ *     <li><b>用户视图</b>（HTTP 响应体 message）：按请求 {@code Accept-Language} 解析。
+ *     friendly 异常只返回异常码对应的通用提示，真实细节不暴露。</li>
+ *     <li><b>系统视图</b>（服务端日志）：携带错误码与可读详情，按 {@link ExceptionLogLevel}
+ *     分级；i18n 异常按系统语言解析，ERROR 级别输出完整堆栈。</li>
+ * </ul>
+ *
+ * <p>消息模板来源顺序由 {@link ExceptionMessageResolver} 决定：
+ * 应用 {@link MessageSource} → {@link ExceptionMessageProvider}（如数据库）→
+ * toolkit 内置中英文 bundle → 异常码 desc；占位符统一为 slf4j 风格的 {@code {}}。
  */
 @Slf4j
 @RestControllerAdvice
@@ -50,24 +57,20 @@ public class GlobalExceptionHandler {
         this.messageResolver = new ExceptionMessageResolver(messageSource, providers);
     }
 
+    // ---------------- 业务异常 ----------------
+
     /**
-     * 业务异常
+     * 业务异常：用户视图与系统视图分别处理
      */
     @ExceptionHandler(BaseException.class)
     public ResponseEntity<Response<Void>> handleBaseException(BaseException ex) {
+        logSystemView(ex);
         ExceptionCode code = ex.getCode();
-        logByLevel(ex.getLogLevel(), ex);
-
-        String message;
-        if (ex.isFriendly() || ex.isI18n()) {
-            // 友好异常与 i18n 异常：按请求 Locale 解析消息键，找不到时回退异常码描述
-            message = resolveCodeMessage(code, ex.getMessageArgs());
-        } else {
-            message = ex.getMessage();
-        }
         return ResponseEntity.status(code.httpStatus())
-                .body(Response.error(toIntCode(code), message));
+                .body(Response.error(toIntCode(code), toUserMessage(ex)));
     }
+
+    // ---------------- 框架异常 ----------------
 
     /**
      * @RequestBody 参数校验失败
@@ -128,7 +131,7 @@ public class GlobalExceptionHandler {
         log.warn("Upload size exceeded: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(Response.error(HttpStatus.PAYLOAD_TOO_LARGE.value(),
-                        resolveCodeMessage(DefaultExceptionCode.PAYLOAD_TOO_LARGE, null)));
+                        resolveCodeMessage(DefaultExceptionCode.PAYLOAD_TOO_LARGE, null, requestLocale())));
     }
 
     /**
@@ -147,17 +150,62 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Response<Void>> handleNoResourceFound(NoResourceFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Response.error(HttpStatus.NOT_FOUND.value(),
-                        resolveCodeMessage(DefaultExceptionCode.NOT_FOUND, null)));
+                        resolveCodeMessage(DefaultExceptionCode.NOT_FOUND, null, requestLocale())));
     }
 
     /**
-     * 兜底异常
+     * 兜底异常：用户只见通用提示，真实异常（含堆栈）只进系统日志
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Response<Void>> handleException(Exception ex) {
         log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Response.error(resolveCodeMessage(DefaultExceptionCode.INTERNAL_SERVER_ERROR, null)));
+                .body(Response.error(resolveCodeMessage(
+                        DefaultExceptionCode.INTERNAL_SERVER_ERROR, null, requestLocale())));
+    }
+
+    // ---------------- 两种视图 ----------------
+
+    /**
+     * 用户视图：按请求语言生成响应消息。
+     * <ul>
+     *     <li>friendly：只返回异常码对应的通用文案，绝不携带具体参数/内部细节</li>
+     *     <li>i18n：按消息键 + 请求语言解析模板并替换参数</li>
+     *     <li>字面量：原样返回（调用方自行保证文案可对外展示）</li>
+     * </ul>
+     */
+    private String toUserMessage(BaseException ex) {
+        if (ex.isFriendly()) {
+            // friendly：与具体异常码无关，用户只见统一通用提示（随请求语言），
+            // 异常码仅决定 HTTP 状态；真实细节只进系统日志
+            return resolveCodeMessage(DefaultExceptionCode.INTERNAL_SERVER_ERROR, null, requestLocale());
+        }
+        if (ex.isI18n()) {
+            return resolveCodeMessage(ex.getCode(), ex.getMessageArgs(), requestLocale());
+        }
+        return ex.getMessage();
+    }
+
+    /**
+     * 系统视图：日志给开发排查用，必须包含错误码和可读详情。
+     * i18n 异常按系统语言解析出完整消息（含参数），避免日志里只有消息键。
+     */
+    private void logSystemView(BaseException ex) {
+        String detail = ex.isI18n()
+                ? resolveCodeMessage(ex.getCode(), ex.getMessageArgs(), Locale.getDefault())
+                : ex.getMessage();
+        String line = "Business exception [{}]: {}";
+        switch (ex.getLogLevel()) {
+            case NONE -> {
+            }
+            case INFO -> log.info(line, ex.getTextCode(), detail);
+            case WARN -> log.warn(line, ex.getTextCode(), detail);
+            case ERROR -> log.error(line, ex.getTextCode(), detail, ex);
+        }
+    }
+
+    private Locale requestLocale() {
+        return LocaleContextHolder.getLocale();
     }
 
     private ResponseEntity<Response<Void>> badRequest(String message) {
@@ -166,44 +214,23 @@ public class GlobalExceptionHandler {
     }
 
     private String fieldErrorMessages(BindException ex) {
-        Locale locale = LocaleContextHolder.getLocale();
+        Locale locale = requestLocale();
         return ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> {
                     // 校验注解 message 可写为消息键，由 MessageSource 解析；解析不了返回注解原文
-                    String resolved = messageResolverRaw(error.getDefaultMessage(), locale);
+                    String resolved = messageResolver.resolve(
+                            error.getDefaultMessage(), null, locale, error.getDefaultMessage());
                     return error.getField() + ": " + resolved;
                 })
                 .collect(Collectors.joining("; "));
     }
 
-    private String resolveCodeMessage(ExceptionCode code, Object[] args) {
-        Locale locale = LocaleContextHolder.getLocale();
+    private String resolveCodeMessage(ExceptionCode code, Object[] args, Locale locale) {
         String key = code.getMessageKey();
         if (key != null) {
             return messageResolver.resolve(key, args, locale, code.getDesc());
         }
         return code.getDesc();
-    }
-
-    private String messageResolverRaw(String key, Locale locale) {
-        if (key == null) {
-            return null;
-        }
-        // 仅当消息确实存在时解析，避免把普通中文提示当成消息键
-        return messageResolver.resolve(key, null, locale, key);
-    }
-
-    /**
-     * 业务异常默认 WARN 且不打印堆栈，只有显式 ERROR 级别才记录完整堆栈
-     */
-    private void logByLevel(ExceptionLogLevel level, BaseException ex) {
-        switch (level) {
-            case NONE -> {
-            }
-            case INFO -> log.info("Business exception: {}", ex.getMessage());
-            case WARN -> log.warn("Business exception: {}", ex.getMessage());
-            case ERROR -> log.error("Business exception", ex);
-        }
     }
 
     private int toIntCode(ExceptionCode code) {

@@ -49,7 +49,7 @@ public class BaseException extends RuntimeException {
     private final boolean i18n;
 
     /**
-     * 国际化消息参数（MessageFormat 风格 {0}/{1}）
+     * 国际化消息参数（slf4j 风格 {}，按顺序替换）
      */
     private final Object[] messageArgs;
 
@@ -94,7 +94,7 @@ public class BaseException extends RuntimeException {
 
     /**
      * 构造国际化异常：消息在边缘按 {@link ExceptionCode#getMessageKey()} 与请求 Locale 解析，
-     * 参数使用 MessageFormat 风格（{0}、{1}）。
+     * 参数使用 slf4j 风格的 {} 占位符。
      *
      * @param code        异常码（需提供 messageKey）
      * @param messageArgs 消息参数
@@ -164,7 +164,7 @@ public class BaseException extends RuntimeException {
     }
 
     /**
-     * 友好异常：真实信息只进日志，响应统一返回通用提示，避免内部细节泄漏给调用方
+     * 友好异常：真实信息只进日志，响应统一返回异常码对应的通用提示，避免内部细节泄漏给调用方
      */
     public static BaseException friendly(String message) {
         return friendly(DefaultExceptionCode.INTERNAL_SERVER_ERROR, message);
@@ -172,6 +172,15 @@ public class BaseException extends RuntimeException {
 
     public static BaseException friendly(ExceptionCode code, String message) {
         return new BaseException(code, ExceptionLogLevel.WARN, message, null, true, false, null);
+    }
+
+    /**
+     * 友好的国际化异常：响应只返回异常码对应的通用提示（按请求语言），
+     * 真实消息参数仅出现在服务端日志（按系统语言解析）。
+     */
+    public static BaseException friendlyI18n(ExceptionCode code, Object... messageArgs) {
+        return new BaseException(code, defaultLogLevel(code), code.getMessageKey(),
+                null, true, true, messageArgs);
     }
 
     public String getTextCode() {

@@ -6,35 +6,28 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.springframework.lang.NonNull;
 
-import java.beans.Transient;
-import java.util.concurrent.atomic.AtomicInteger;
-
+/**
+ * 分页查询参数基类
+ */
 @Data
 public abstract class AbstractPageQuery<OrderField extends QueryOrderField> implements PageQuery<OrderField> {
 
     /**
-     * 避免查询页面数据过大，拖垮数据库
+     * 单次查询最大条数，避免查询页面数据过大拖垮数据库
      */
-    private static final AtomicInteger MAX_QUERY_SIZE = new AtomicInteger(3000);
-    
-    /**
-     * 默认查询页码
-     */
+    public static final int MAX_QUERY_SIZE = 3000;
+
     private static final int DEFAULT_PAGE = 1;
-    
-    /**
-     * 默认查询大小
-     */
     private static final int DEFAULT_SIZE = 20;
 
     /**
-     * 查询页码
+     * 查询页码（从 1 开始）
      */
     @NotNull
     private Integer queryPage = DEFAULT_PAGE;
 
     /**
-     * 查询大小
+     * 每页条数
      */
     @NotNull
     private Integer querySize = DEFAULT_SIZE;
@@ -45,7 +38,7 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> impl
     private QueryType queryType = QueryType.QUERY_BOTH;
 
     /**
-     * 排序字段
+     * 排序字段，与 {@link #orderTypes} 按数组顺序一一对应
      */
     private OrderField[] orderFields;
 
@@ -56,8 +49,8 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> impl
 
     @Override
     public void setQuerySize(@NonNull Integer querySize) {
-        if (querySize > MAX_QUERY_SIZE.get()) {
-            throw new IllegalArgumentException("查询大小不能超过" + MAX_QUERY_SIZE.get());
+        if (querySize > MAX_QUERY_SIZE) {
+            throw new IllegalArgumentException("查询大小不能超过" + MAX_QUERY_SIZE);
         }
         this.querySize = querySize;
     }
@@ -69,8 +62,6 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> impl
 
     /**
      * 是否需要处理排序
-     *
-     * @return <code>true</code> 需要处理排序
      */
     public boolean requireOrderBy() {
         if (orderFields == null || orderTypes == null) {
@@ -78,25 +69,4 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> impl
         }
         return orderFields.length > 0 && orderFields.length == orderTypes.length;
     }
-
-    /**
-     * 配置查询大小最大值
-     *
-     * @param querySize 查询大小
-     */
-    public static void configureMaxQuerySize(int querySize) {
-        if (querySize <= 0) {
-            throw new IllegalArgumentException("查询大小必须大于0");
-        }
-        MAX_QUERY_SIZE.set(querySize);
-    }
-
-    /**
-     * @return 查询大小最大值
-     */
-    @Transient
-    public int getMaxQuerySize() {
-        return MAX_QUERY_SIZE.get();
-    }
-
 }

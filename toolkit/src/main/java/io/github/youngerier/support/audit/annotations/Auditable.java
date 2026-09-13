@@ -1,100 +1,58 @@
 package io.github.youngerier.support.audit.annotations;
 
-import io.github.youngerier.support.audit.AuditEventType;
-
-import java.lang.annotation.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * 审计注解
- * 用于标记需要进行审计记录的方法
- * 
- * @author toolkit
- * @since 1.0.0
+ * 标记需要审计的方法或类。标注在类上时，该类的所有 public 方法都会被审计。
+ *
+ * <p>{@code businessKey} 与 {@code condition} 支持 SpEL，可直接引用方法参数名
+ * （编译需开启 {@code -parameters}，本项目已开启），也可用 {@code #param0} 形式：
+ * <pre>{@code
+ * @Auditable(operation = "创建用户", businessKey = "#user.id")
+ * public void create(User user) { ... }
+ * }</pre>
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Auditable {
-    
+
     /**
-     * 操作名称
+     * 操作名称，默认取方法名
      */
     String operation() default "";
-    
+
     /**
-     * 操作描述
+     * 操作类型（如 LOGIN / CREATE / UPDATE），由使用方自定义
      */
-    String description() default "";
-    
+    String type() default "";
+
     /**
-     * 事件类型
-     */
-    AuditEventType eventType() default AuditEventType.BUSINESS_OPERATION;
-    
-    /**
-     * 资源类型
-     */
-    String resourceType() default "";
-    
-    /**
-     * 模块名称
-     */
-    String module() default "";
-    
-    /**
-     * 是否记录参数
-     */
-    boolean includeParameters() default true;
-    
-    /**
-     * 是否记录返回值
-     */
-    boolean includeResult() default false;
-    
-    /**
-     * 是否记录异常信息
-     */
-    boolean includeException() default true;
-    
-    /**
-     * 是否异步记录
-     */
-    boolean async() default true;
-    
-    /**
-     * 敏感参数名称（这些参数将被脱敏）
-     * 示例：{"password", "creditCardNumber"}
-     */
-    String[] sensitiveParamNames() default {};
-    
-    /**
-     * 敏感参数SpEL表达式
-     * 用于复杂的敏感数据识别和脱敏逻辑
-     * 示例："#request.password != null" 或 "#user.email.contains('@')"
-     */
-    String sensitiveParamExpression() default "";
-    
-    /**
-     * 忽略的参数名称
-     * 示例：{"request", "response"}
-     */
-    String[] ignoreParamNames() default {};
-    
-    /**
-     * 业务标识SpEL表达式
-     * 例如：#user.id 或 #request.orderId
+     * 业务主键的 SpEL 表达式，例如 "#id"、"#user.id"
      */
     String businessKey() default "";
-    
+
     /**
-     * 条件SpEL表达式
-     * 只有条件为true时才记录审计日志
+     * 记录条件的 SpEL 表达式，求值为 false 时跳过本次审计
      */
     String condition() default "";
-    
+
     /**
-     * 是否启用参数注解扫描
-     * 当为true时，会扫描方法参数上的@SensitiveParam和@IgnoreParam注解
+     * 是否记录方法参数
      */
-    boolean enableParamAnnotations() default true;
+    boolean includeParameters() default true;
+
+    /**
+     * 是否记录方法返回值
+     */
+    boolean includeResult() default false;
+
+    /**
+     * 是否异步记录（默认异步，不阻塞业务线程）
+     */
+    boolean async() default true;
 }

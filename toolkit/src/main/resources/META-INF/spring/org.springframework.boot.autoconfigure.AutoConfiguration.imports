@@ -1,0 +1,3 @@
+io.github.youngerier.support.autoconfigure.WebSupportAutoConfiguration
+io.github.youngerier.support.autoconfigure.I18nSupportAutoConfiguration
+io.github.youngerier.support.autoconfigure.AuditAutoConfiguration

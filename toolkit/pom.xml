@@ -135,6 +135,16 @@
         </dependency>
 
         <!-- ============================ -->
+        <!-- Spring Boot 自动装配（仅编译期，使用方 Boot 环境已自带） -->
+        <!-- ============================ -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <version>${spring-boot.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ============================ -->
         <!-- Office (Excel) 支持，可选依赖 -->
         <!-- 使用 support.office 下的类时需自行引入 -->
         <!-- ============================ -->
@@ -158,6 +168,13 @@
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-annotations-jakarta</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <!-- ============================ -->

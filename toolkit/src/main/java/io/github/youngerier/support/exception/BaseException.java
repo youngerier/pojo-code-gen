@@ -96,7 +96,7 @@ public class BaseException extends RuntimeException {
     }
 
     public static BaseException forbidden(ExceptionLogLevel level, String message) {
-        return new BaseException(level, message);
+        return new BaseException(DefaultExceptionCode.FORBIDDEN, level, message);
     }
 
     public static BaseException forbidden(MessagePlaceholder message) {
@@ -128,7 +128,6 @@ public class BaseException extends RuntimeException {
      *
      * @param message 原始错误信息，如果会响应给用户，将会自动转换友好消息
      * @return 业务异常
-     * @see DefaultExceptionCode#COMMON_FRIENDLY_ERROR
      */
     public static BaseException friendly(String message) {
         return new BaseException(DefaultExceptionCode.COMMON_FRIENDLY_ERROR, message);

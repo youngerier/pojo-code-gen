@@ -26,8 +26,8 @@ public enum DefaultExceptionCode implements ExceptionCode {
     COMMON_ERROR("500", "通用业务错误"),
 
     /**
-     * 对于某些场景的通用业务异常不希望被用户感知到。
-     * 在异常消息处理时 {@link com.wind.server.web.restful.FriendlyExceptionMessageConverter}返回一个通用（易于理解）的业务错误信息
+     * 不希望把内部错误信息直接暴露给用户时使用，
+     * 全局异常处理器统一返回通用提示。
      */
     COMMON_FRIENDLY_ERROR("500", "业务异常，请稍后重试");
 

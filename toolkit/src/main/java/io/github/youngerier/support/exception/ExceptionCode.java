@@ -1,33 +1,17 @@
 package io.github.youngerier.support.exception;
 
+/**
+ * 异常码
+ */
 public interface ExceptionCode {
-    /**
-     * 统一表示成功的 code
-     */
-    String SUCCESSFUL_CODE = "0";
 
     /**
-     * 表示成功的 code
-     */
-    ExceptionCode SUCCESSFUL = new ExceptionCode() {
-        @Override
-        public String getCode() {
-            return SUCCESSFUL_CODE;
-        }
-
-        @Override
-        public String getDesc() {
-            return "操作成功";
-        }
-    };
-
-    /**
-     * @return 异常码
+     * @return 异常码（默认与 HTTP 状态码一致，业务码可自定义）
      */
     String getCode();
 
     /**
-     * @return 异常描述
+     * @return 异常描述，可直接展示给调用方
      */
     String getDesc();
 }

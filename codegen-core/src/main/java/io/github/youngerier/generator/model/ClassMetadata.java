@@ -11,33 +11,35 @@ import java.util.List;
  */
 @Data
 public class ClassMetadata {
-    private String packageName; // 包名
-    private String className;   // 类名
-    private String classComment; // 类注释
-    private List<FieldInfo> fields = new ArrayList<>(); // 字段信息列表
 
+    private String packageName;
+    private String className;
+    private String classComment;
+    private List<FieldInfo> fields = new ArrayList<>();
+
+    /**
+     * 去掉最后一段包名后的基础包名，例如 {@code com.abc.entity} -> {@code com.abc}。
+     */
     public String getBasePackageName() {
-        return getPackageName().substring(0, getPackageName().lastIndexOf("."));
-    }
-
-    public String getCamelClassName() {
-        return className.substring(0, 1).toLowerCase() + className.substring(1);
+        return packageName.substring(0, packageName.lastIndexOf('.'));
     }
 
     /**
-     * 字段信息内部类
+     * 首字母小写的类名，例如 {@code User} -> {@code user}。
+     */
+    public String getCamelClassName() {
+        return Character.toLowerCase(className.charAt(0)) + className.substring(1);
+    }
+
+    /**
+     * 字段信息
      */
     @Data
     public static class FieldInfo {
-        private String name;         // 字段名
-        private TypeName type;       // 字段类型 (使用JavaPoet的TypeName)
-        private String fullType;     // 字段完整类型
-        private String comment;      // 字段注释
-        private boolean isPrimaryKey; // 是否为主键
-
-        // 为了向后兼容，提供一个便捷方法来获取类型的字符串表示
-        public String getTypeString() {
-            return type != null ? type.toString() : null;
-        }
+        private String name;
+        private TypeName type;
+        private String fullType;
+        private String comment;
+        private boolean primaryKey;
     }
 }

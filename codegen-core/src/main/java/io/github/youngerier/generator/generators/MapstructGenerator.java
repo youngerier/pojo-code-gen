@@ -1,157 +1,72 @@
 package io.github.youngerier.generator.generators;
 
-import io.github.youngerier.generator.CodeGenerator;
-import io.github.youngerier.generator.model.PackageStructure;
-import io.github.youngerier.generator.model.ClassMetadata;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-import lombok.extern.slf4j.Slf4j;
+import io.github.youngerier.generator.model.ClassMetadata;
+import io.github.youngerier.generator.model.GeneratedType;
+import io.github.youngerier.generator.model.PackageStructure;
 
 import javax.lang.model.element.Modifier;
 import java.util.List;
 
 /**
- * MapStruct转换器生成器
+ * MapStruct 转换器生成器
  */
-@Slf4j
-public class MapstructGenerator implements CodeGenerator {
+public class MapstructGenerator extends BaseGenerator {
 
-    private final PackageStructure packageLayout;
+    private static final ClassName MAPPER_ANNOTATION = ClassName.get("org.mapstruct", "Mapper");
+    private static final ClassName MAPSTRUCT_MAPPERS = ClassName.get("org.mapstruct.factory", "Mappers");
 
     public MapstructGenerator(PackageStructure packageLayout) {
-        this.packageLayout = packageLayout;
+        super(packageLayout, GeneratedType.CONVERTOR);
     }
 
     @Override
-    public TypeSpec generate(ClassMetadata pojoInfo) {
-        // 获取实体类名
-        String entityName = pojoInfo.getClassName();
-        // 创建实体类类型
-        ClassName entityType = ClassName.get(pojoInfo.getPackageName(), entityName);
-        // 创建DTO类型
-        ClassName dtoType = ClassName.get(packageLayout.getDtoPackage(), packageLayout.getDtoClassName());
-        // 创建Request类型
-        ClassName requestType = ClassName.get(packageLayout.getRequestPackage(), packageLayout.getRequestClassName());
-        // 创建Response类型
-        ClassName responseType = ClassName.get(packageLayout.getResponsePackage(), packageLayout.getResponseClassName());
+    public TypeSpec generate(ClassMetadata metadata) {
+        ClassName entityType = ClassName.get(metadata.getPackageName(), metadata.getClassName());
+        ClassName dtoType = packages.dto();
+        ClassName requestType = packages.request();
+        ClassName responseType = packages.response();
 
-        // 创建List<Entity>类型
-        ParameterizedTypeName listOfEntity = ParameterizedTypeName.get(
-                ClassName.get(List.class), entityType);
-        // 创建List<DTO>类型
-        ParameterizedTypeName listOfDto = ParameterizedTypeName.get(
-                ClassName.get(List.class), dtoType);
-        // 创建List<Response>类型
-        ParameterizedTypeName listOfResponse = ParameterizedTypeName.get(
-                ClassName.get(List.class), responseType);
+        ParameterizedTypeName listOfEntity = ParameterizedTypeName.get(ClassName.get(List.class), entityType);
+        ParameterizedTypeName listOfDto = ParameterizedTypeName.get(ClassName.get(List.class), dtoType);
+        ParameterizedTypeName listOfResponse = ParameterizedTypeName.get(ClassName.get(List.class), responseType);
 
-        // 创建接口构建器
-        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(getClassName(pojoInfo))
+        String entity = metadata.getCamelClassName();
+
+        TypeSpec.Builder builder = TypeSpec.interfaceBuilder(getClassName())
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(ClassName.get("org.mapstruct", "Mapper"));
+                .addAnnotation(MAPPER_ANNOTATION);
 
-        // 添加INSTANCE常量
-        ClassName convertorType = ClassName.get(packageLayout.getConvertorPackage(), getClassName(pojoInfo));
-        FieldSpec instanceField = FieldSpec.builder(convertorType, "INSTANCE")
+        // INSTANCE 常量
+        builder.addField(FieldSpec.builder(packages.convertor(), "INSTANCE")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                .initializer("$T.getMapper($T.class)", 
-                    ClassName.get("org.mapstruct.factory", "Mappers"), convertorType)
-                .build();
-        interfaceBuilder.addField(instanceField);
+                .initializer("$T.getMapper($T.class)", MAPSTRUCT_MAPPERS, packages.convertor())
+                .build());
 
-        // 添加实体到DTO的转换方法
-        MethodSpec entityToDtoMethod = MethodSpec.methodBuilder("toDto")
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addParameter(entityType, lowerFirstChar(entityName))
-                .returns(dtoType)
-                .build();
-        interfaceBuilder.addMethod(entityToDtoMethod);
+        builder.addMethod(convertMethod("toDto", entityType, entity, dtoType));
+        builder.addMethod(convertMethod("toDto", requestType, entity + "Request", dtoType));
+        builder.addMethod(convertMethod("toEntity", dtoType, entity + "DTO", entityType));
+        builder.addMethod(convertMethod("toEntity", requestType, entity + "Request", entityType));
+        builder.addMethod(convertMethod("toResponse", entityType, entity, responseType));
+        builder.addMethod(convertMethod("toResponse", dtoType, entity, responseType));
+        builder.addMethod(convertMethod("toDtoList", listOfEntity, entity + "List", listOfDto));
+        builder.addMethod(convertMethod("toResponseList", listOfEntity, entity + "List", listOfResponse));
 
-        // 添加Request到DTO的转换方法
-        MethodSpec requestToDtoMethod = MethodSpec.methodBuilder("toDto")
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addParameter(requestType, lowerFirstChar(entityName) + "Request")
-                .returns(dtoType)
-                .build();
-        interfaceBuilder.addMethod(requestToDtoMethod);
-
-        // 添加DTO到实体的转换方法
-        MethodSpec dtoToEntityMethod = MethodSpec.methodBuilder("toEntity")
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addParameter(dtoType, lowerFirstChar(entityName) + "DTO")
-                .returns(entityType)
-                .build();
-        interfaceBuilder.addMethod(dtoToEntityMethod);
-
-        // 添加Request到实体的转换方法
-        MethodSpec requestToEntityMethod = MethodSpec.methodBuilder("toEntity")
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addParameter(requestType, lowerFirstChar(entityName) + "Request")
-                .returns(entityType)
-                .build();
-        interfaceBuilder.addMethod(requestToEntityMethod);
-
-        // 添加实体到Response的转换方法
-        MethodSpec entityToResponseMethod = MethodSpec.methodBuilder("toResponse")
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addParameter(entityType, lowerFirstChar(entityName))
-                .returns(responseType)
-                .build();
-        interfaceBuilder.addMethod(entityToResponseMethod);
-
-        // 添加DTO到Response的转换方法
-        MethodSpec dtoToResponseMethod = MethodSpec.methodBuilder("toResponse")
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addParameter(dtoType, lowerFirstChar(entityName))
-                .returns(responseType)
-                .build();
-        interfaceBuilder.addMethod(dtoToResponseMethod);
-
-        // 添加实体列表到DTO列表的转换方法
-        MethodSpec entityListToDtoListMethod = MethodSpec.methodBuilder("toDtoList")
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addParameter(listOfEntity, lowerFirstChar(entityName) + "List")
-                .returns(listOfDto)
-                .build();
-        interfaceBuilder.addMethod(entityListToDtoListMethod);
-
-        // 添加实体列表到Response列表的转换方法
-        MethodSpec entityListToResponseListMethod = MethodSpec.methodBuilder("toResponseList")
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addParameter(listOfEntity, lowerFirstChar(entityName) + "List")
-                .returns(listOfResponse)
-                .build();
-        interfaceBuilder.addMethod(entityListToResponseListMethod);
-
-        // 添加接口注释
-        if (pojoInfo.getClassComment() != null && !pojoInfo.getClassComment().isEmpty()) {
-            interfaceBuilder.addJavadoc(pojoInfo.getClassComment() + "\n");
-            interfaceBuilder.addJavadoc("对象转换器\n");
-        }
-
-        return interfaceBuilder.build();
+        Javadocs.appendClassComment(builder, metadata, "对象转换器");
+        return builder.build();
     }
 
-    @Override
-    public String getPackageName() {
-        return packageLayout.getConvertorPackage();
-    }
-
-    @Override
-    public String getClassName(ClassMetadata pojoInfo) {
-        return packageLayout.getConvertorClassName();
-    }
-
-    /**
-     * 将字符串的首字母转为小写
-     */
-    private String lowerFirstChar(String str) {
-        if (str == null || str.isEmpty()) {
-            return str;
-        }
-        return Character.toLowerCase(str.charAt(0)) + str.substring(1);
+    private MethodSpec convertMethod(String name, TypeName parameterType,
+                                     String parameterName, TypeName returnType) {
+        return MethodSpec.methodBuilder(name)
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .addParameter(parameterType, parameterName)
+                .returns(returnType)
+                .build();
     }
 }

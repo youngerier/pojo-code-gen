@@ -41,7 +41,6 @@
     <modules>
         <module>codegen-core</module>
         <module>toolkit</module>
-        <module>office</module>
         <module>example</module>
         <module>generator-maven-plugin</module>
     </modules>
@@ -291,11 +290,6 @@
             <dependency>
                 <groupId>io.github.youngerier</groupId>
                 <artifactId>toolkit</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.youngerier</groupId>
-                <artifactId>office</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

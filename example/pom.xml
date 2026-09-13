@@ -41,14 +41,18 @@
             <artifactId>codegen-core</artifactId>
         </dependency>
 
-        <!-- 工具包模块 -->
+        <!-- 工具包模块（含 support.office Excel 支持，EasyExcel 为 optional 依赖需显式引入） -->
         <dependency>
             <groupId>io.github.youngerier</groupId>
             <artifactId>toolkit</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.github.youngerier</groupId>
-            <artifactId>office</artifactId>
+            <groupId>com.alibaba</groupId>
+            <artifactId>easyexcel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
 
         <!-- Lombok -->

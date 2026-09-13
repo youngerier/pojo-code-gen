@@ -6,6 +6,7 @@ import io.github.youngerier.support.audit.annotations.IgnoreParam;
 import io.github.youngerier.support.audit.annotations.SensitiveParam;
 import io.github.youngerier.support.trace.TraceContext;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;

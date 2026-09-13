@@ -47,7 +47,7 @@ public final class DefaultFormatterFactory {
         DescriptiveEnum[] enumConstants = enumsClass.getEnumConstants();
         HashMap<String, Object> source = new HashMap<>();
         for (DescriptiveEnum e : enumConstants) {
-            source.put(e.name(), e.getDesc());
+            source.put(((Enum<?>) e).name(), e.getDesc());
         }
         return new MapFormatter<>(source);
     }

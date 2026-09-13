@@ -84,6 +84,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring Security：SecurityExceptionHandler 条件装配，使用方无 security 时不生效 -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <version>${spring-security.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Servlet API -->
         <dependency>
             <groupId>jakarta.servlet</groupId>

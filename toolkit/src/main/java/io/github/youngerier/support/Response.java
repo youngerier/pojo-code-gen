@@ -3,11 +3,17 @@ package io.github.youngerier.support;
 import io.github.youngerier.support.exception.ExceptionCode;
 import lombok.Data;
 
+import java.io.Serial;
+import java.io.Serializable;
+
 /**
- * 统一响应结构
+ * 统一响应结构。链路 traceId 通过响应头 X-Request-ID 返回，不放在响应体中。
  */
 @Data
-public class Response<T> {
+public class Response<T> implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     public static final int SUCCESS_CODE = 200;
     public static final String SUCCESS_MESSAGE = "success";

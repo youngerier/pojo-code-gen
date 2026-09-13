@@ -14,8 +14,11 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
@@ -60,12 +63,6 @@ public class GlobalExceptionHandler {
         return badRequest(fieldErrorMessages(ex));
     }
 
-    private String fieldErrorMessages(BindException ex) {
-        return ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining("; "));
-    }
-
     /**
      * 方法参数（@RequestParam / @PathVariable）校验失败
      */
@@ -78,11 +75,37 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 缺少必填请求参数
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Response<Void>> handleMissingParameter(MissingServletRequestParameterException ex) {
+        return badRequest("缺少必填参数: " + ex.getParameterName());
+    }
+
+    /**
+     * 参数类型不匹配，例如 ?id=abc 但 id 为 Long
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Response<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return badRequest("参数类型错误: " + ex.getName());
+    }
+
+    /**
      * 请求体不可读（JSON 格式错误等）
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Response<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         return badRequest("请求体格式错误");
+    }
+
+    /**
+     * 上传文件超过大小限制
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Response<Void>> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        log.warn("Upload size exceeded: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(Response.error(HttpStatus.PAYLOAD_TOO_LARGE.value(), "上传文件大小超过限制"));
     }
 
     /**
@@ -118,12 +141,21 @@ public class GlobalExceptionHandler {
                 .body(Response.error(HttpStatus.BAD_REQUEST.value(), message));
     }
 
+    private String fieldErrorMessages(BindException ex) {
+        return ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+    }
+
+    /**
+     * 业务异常默认 WARN 且不打印堆栈，只有显式 ERROR 级别才记录完整堆栈
+     */
     private void logByLevel(ExceptionLogLevel level, BaseException ex) {
         switch (level) {
             case NONE -> {
             }
-            case WARN -> log.warn("Business exception: {}", ex.getMessage());
             case INFO -> log.info("Business exception: {}", ex.getMessage());
+            case WARN -> log.warn("Business exception: {}", ex.getMessage());
             case ERROR -> log.error("Business exception", ex);
         }
     }

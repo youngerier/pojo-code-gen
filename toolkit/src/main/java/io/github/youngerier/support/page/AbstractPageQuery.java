@@ -10,7 +10,7 @@ import org.springframework.lang.NonNull;
  * 分页查询参数基类
  */
 @Data
-public abstract class AbstractPageQuery<OrderField extends QueryOrderField> implements PageQuery<OrderField> {
+public abstract class AbstractPageQuery<OrderField extends QueryOrderField> {
 
     /**
      * 单次查询最大条数，避免查询页面数据过大拖垮数据库
@@ -47,7 +47,6 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> impl
      */
     private QueryOrderType[] orderTypes;
 
-    @Override
     public void setQuerySize(@NonNull Integer querySize) {
         if (querySize > MAX_QUERY_SIZE) {
             throw new IllegalArgumentException("查询大小不能超过" + MAX_QUERY_SIZE);
@@ -61,7 +60,29 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> impl
     }
 
     /**
-     * 是否需要处理排序
+     * 页码别名，兼容主流框架的 pageNumber 命名
+     */
+    public Integer getPageNumber() {
+        return queryPage;
+    }
+
+    public void setPageNumber(Integer pageNumber) {
+        this.queryPage = pageNumber;
+    }
+
+    /**
+     * 每页条数别名，兼容主流框架的 pageSize 命名
+     */
+    public Integer getPageSize() {
+        return querySize;
+    }
+
+    public void setPageSize(Integer pageSize) {
+        setQuerySize(pageSize);
+    }
+
+    /**
+     * 是否需要处理排序：排序字段与排序类型都存在且长度一致
      */
     public boolean requireOrderBy() {
         if (orderFields == null || orderTypes == null) {

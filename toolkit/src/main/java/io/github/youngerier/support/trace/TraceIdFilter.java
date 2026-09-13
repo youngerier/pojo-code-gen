@@ -10,17 +10,27 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * 为每个 HTTP 请求准备 traceId：优先复用上游传入的 X-Request-ID，
+ * 为每个 HTTP 请求准备 traceId：优先复用上游传入的请求头（默认 X-Request-ID，可配置），
  * 否则生成新的 traceId 放入 MDC，并回写到响应头，请求结束后清理。
  */
 public class TraceIdFilter extends OncePerRequestFilter {
+
+    private final String headerName;
+
+    public TraceIdFilter() {
+        this(TraceContext.TRACE_ID_HEADER);
+    }
+
+    public TraceIdFilter(String headerName) {
+        this.headerName = headerName;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String traceId = resolveTraceId(request);
         TraceContext.setTraceId(traceId);
-        response.setHeader(TraceContext.TRACE_ID_HEADER, traceId);
+        response.setHeader(headerName, traceId);
         try {
             filterChain.doFilter(request, response);
         } finally {
@@ -29,7 +39,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
     }
 
     private String resolveTraceId(HttpServletRequest request) {
-        String header = request.getHeader(TraceContext.TRACE_ID_HEADER);
+        String header = request.getHeader(headerName);
         return StringUtils.hasText(header) ? header.trim() : TraceContext.generateTraceId();
     }
 }

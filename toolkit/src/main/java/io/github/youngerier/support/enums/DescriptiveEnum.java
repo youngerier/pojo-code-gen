@@ -1,29 +1,12 @@
 package io.github.youngerier.support.enums;
 
+/**
+ * 带中文描述的枚举，可用于下拉选项、字典展示等场景
+ */
 public interface DescriptiveEnum {
 
     /**
-     * 枚举名称
-     *
-     * @return 名称
-     */
-    default String name() {
-        return "";
-    }
-
-    /**
-     * 枚举描述中文说明
-     *
-     * @return 中文说明
+     * 枚举描述（中文说明）
      */
     String getDesc();
-
-    /**
-     * 获取英文的枚举描述说明
-     *
-     * @return 英文说明
-     */
-    default String getEnDesc() {
-        return "";
-    }
 }

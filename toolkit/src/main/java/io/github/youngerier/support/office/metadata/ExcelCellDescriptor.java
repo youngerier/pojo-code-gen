@@ -1,7 +1,6 @@
 package io.github.youngerier.support.office.metadata;
 
 import io.github.youngerier.support.AssertUtils;
-import io.github.youngerier.support.i18n.SpringI18nMessageUtils;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -82,7 +81,7 @@ public final class ExcelCellDescriptor {
     }
 
     public static ExcelCellDescriptorBuilder builder(String title, String expression) {
-        return new ExcelCellDescriptorBuilder(SpringI18nMessageUtils.getMessage(title, title), expression);
+        return new ExcelCellDescriptorBuilder(title, expression);
     }
 
     public static ExcelCellDescriptorBuilder withExpression(String expression) {

@@ -4,6 +4,9 @@ package io.github.youngerier.support.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * 排序方向
+ */
 @AllArgsConstructor
 @Getter
 public enum QueryOrderType {
@@ -13,32 +16,4 @@ public enum QueryOrderType {
     ASC("升序");
 
     private final String desc;
-
-    private static final QueryOrderType[] DESC_TYPES = of(QueryOrderType.DESC);
-
-    private static final QueryOrderType[] ASC_TYPES = of(QueryOrderType.ASC);
-
-    /**
-     * @return 降序排序
-     */
-    public static QueryOrderType[] desc() {
-        return DESC_TYPES;
-    }
-
-    /**
-     * @return 升序排序
-     */
-    public static QueryOrderType[] asc() {
-        return ASC_TYPES;
-    }
-
-    /**
-     * 工厂方法方便用户传参
-     *
-     * @param types 排序类型列表
-     * @return 排序类型列表
-     */
-    public static QueryOrderType[] of(QueryOrderType... types) {
-        return types;
-    }
 }

@@ -67,8 +67,9 @@ class PaginationTest {
         TestQuery query = new TestQuery();
         assertFalse(query.requireOrderBy());
 
-        query.setOrderFields(DefaultOrderField.gmtCreate());
-        query.setOrderTypes(io.github.youngerier.support.enums.QueryOrderType.asc());
+        query.setOrderFields(new DefaultOrderField[]{DefaultOrderField.GMT_CREATE});
+        query.setOrderTypes(new io.github.youngerier.support.enums.QueryOrderType[]{
+                io.github.youngerier.support.enums.QueryOrderType.ASC});
         assertTrue(query.requireOrderBy());
     }
 }

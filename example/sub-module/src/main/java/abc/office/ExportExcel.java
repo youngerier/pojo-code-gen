@@ -6,7 +6,6 @@ import io.github.youngerier.support.office.export.DefaultEasyExcelDocumentWriter
 import io.github.youngerier.support.office.export.ExportExcelTaskInfo;
 import io.github.youngerier.support.office.export.SpringExpressionExportExcelTask;
 import io.github.youngerier.support.office.metadata.ExcelCellDescriptor;
-import io.github.youngerier.support.office.util.NobeExcelUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -17,7 +16,6 @@ public class ExportExcel {
 //        List<ExcelCellDescriptor> heads = Arrays.asList(
 //                ExcelCellDescriptor.of("卡序列号", VccDTO.Fields.vccSeqNo)
 //        );
-//        NobeExcelUtils.appendFileHeaders(response, "查询 Vcc 列表导出");
 //
 //        ExcelDocumentWriter writer = DefaultEasyExcelDocumentWriter.of(response.getOutputStream(), heads);
 //

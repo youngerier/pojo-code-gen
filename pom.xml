@@ -73,6 +73,7 @@
         <aspectj.version>1.9.24</aspectj.version>
         <!-- 仅 toolkit 自动装配使用，optional 不向使用方传递 -->
         <spring-boot.version>3.5.6</spring-boot.version>
+        <spring-security.version>6.5.3</spring-security.version>
 
         <!-- Jackson Versions -->
         <jackson.version>2.19.1</jackson.version>

@@ -9,7 +9,7 @@ import java.time.temporal.TemporalAccessor;
 
 @AllArgsConstructor
 @Getter
-public enum DateFormater {
+public enum DateFormatter {
 
     ISO_8601_EXTENDED_DATETIME(DateTimeFormatter.ofPattern(DateFormatPatterns.ISO_8601_EXTENDED_DATETIME)),
 

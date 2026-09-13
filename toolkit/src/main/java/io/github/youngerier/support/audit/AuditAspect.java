@@ -212,7 +212,17 @@ public class AuditAspect {
                 return DataMaskingUtils.mask(value, sensitive.strategy(), sensitive.customExpression());
             }
         }
-        return value;
+        // 默认排除不可序列化的 Web / 持久化基础设施对象，无需使用者逐个标注 @IgnoreParam
+        return isInfrastructureValue(value) ? "<" + value.getClass().getSimpleName() + ">" : value;
+    }
+
+    private boolean isInfrastructureValue(Object value) {
+        return value instanceof HttpServletRequest
+                || value instanceof HttpServletResponse
+                || value instanceof org.springframework.web.multipart.MultipartFile
+                || value instanceof java.io.InputStream
+                || value instanceof java.io.OutputStream
+                || value instanceof org.springframework.validation.BindingResult;
     }
 
     private String toJson(Object value) {

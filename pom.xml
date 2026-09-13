@@ -41,7 +41,6 @@
     <modules>
         <module>codegen-core</module>
         <module>toolkit</module>
-        <module>example</module>
         <module>generator-maven-plugin</module>
     </modules>
 
@@ -516,14 +515,18 @@
     </build>
 
     <profiles>
+        <!-- 默认构建包含 example；显式激活其他 profile（如 -P release）时自动排除 -->
+        <profile>
+            <id>example</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>example</module>
+            </modules>
+        </profile>
         <profile>
             <id>release</id>
-            <modules>
-                <module>codegen-core</module>
-                <module>toolkit</module>
-                <module>generator-maven-plugin</module>
-                <!-- Exclude example module from release -->
-            </modules>
             <properties>
                 <!-- Enable GPG signing for release -->
                 <gpg.skip>false</gpg.skip>

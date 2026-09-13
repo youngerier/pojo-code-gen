@@ -16,6 +16,15 @@ Spring Boot Web 项目的统一基础设施：**统一响应、统一异常、�
 **无需任何配置**：工具包通过 Spring Boot 自动装配生效（`AutoConfiguration.imports`），
 引入依赖后全局异常处理器和 traceId 过滤器即已启用。
 
+toolkit 只强依赖 spring-context / validation-api / slf4j；Web、Jackson、MyBatis-Flex、AspectJ
+均为 optional，由使用方项目自带（Boot Web 项目通常已具备）。按需补充：
+
+| 需要的能力 | 额外依赖 |
+|---|---|
+| 操作审计 `@Auditable` | `org.aspectj:aspectjweaver`（或 `spring-boot-starter-aop`）、Jackson |
+| 分页 SQL 包装 `QueryWrapperHelper` | `com.mybatis-flex:mybatis-flex-core` |
+| Excel 导出 `support.office` | `com.alibaba:easyexcel`、`org.apache.commons:commons-lang3` |
+
 在日志 pattern 中加入 `%X{traceId}` 即可输出链路 ID，例如：
 
 ```xml

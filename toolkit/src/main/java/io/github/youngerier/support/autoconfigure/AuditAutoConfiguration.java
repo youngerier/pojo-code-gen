@@ -27,7 +27,7 @@ import java.util.concurrent.Executor;
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@ConditionalOnClass({Auditable.class, ProceedingJoinPoint.class})
+@ConditionalOnClass({Auditable.class, ProceedingJoinPoint.class, ObjectMapper.class})
 @ConditionalOnProperty(prefix = "youngerier.audit", name = "enabled", matchIfMissing = true)
 public class AuditAutoConfiguration {
 

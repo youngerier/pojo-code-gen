@@ -72,13 +72,10 @@
         </dependency>
 
         <!-- MyBatis Flex - ORM框架 -->
+        <!-- 仅生成代码中的字符串引用（com.mybatisflex.core.*），编译期需要 core -->
         <dependency>
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.mybatis-flex</groupId>
-            <artifactId>mybatis-flex-spring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.mybatis-flex</groupId>

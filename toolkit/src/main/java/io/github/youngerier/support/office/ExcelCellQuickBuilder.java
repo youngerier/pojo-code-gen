@@ -6,7 +6,7 @@ import io.github.youngerier.support.DateFormatPatterns;
 import io.github.youngerier.support.constants.Constants;
 import io.github.youngerier.support.enums.DescriptiveEnum;
 import io.github.youngerier.support.exception.BaseException;
-import io.github.youngerier.support.util.WindReflectUtils;
+import io.github.youngerier.support.util.ReflectUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.format.Printer;
@@ -48,9 +48,9 @@ public final class ExcelCellQuickBuilder {
 
     @NotNull
     public static List<ExcelCellDescriptor> forClass(@NotNull Class<?> clazz, @Nullable List<String> orderedFields) {
-        Map<String, Field> fields = Arrays.stream(WindReflectUtils.getFields(clazz))
+        Map<String, Field> fields = Arrays.stream(ReflectUtils.getFields(clazz))
                 .collect(Collectors.toMap(Field::getName, Function.identity()));
-        Map<String, Method> getterMethods = Arrays.stream(WindReflectUtils.getGetterMethods(clazz))
+        Map<String, Method> getterMethods = Arrays.stream(ReflectUtils.getGetterMethods(clazz))
                 .collect(Collectors.toMap(ExcelCellQuickBuilder::convertGetMethodNameToFieldName, Function.identity()));
         return getOrderedFields(clazz, orderedFields)
                 .stream()
@@ -85,8 +85,8 @@ public final class ExcelCellQuickBuilder {
 
     private static List<String> getOrderedFields(@NotNull Class<?> clazz, @Nullable List<String> orderedFields) {
         if (CollectionUtils.isEmpty(orderedFields)) {
-            Method[] getterMethods = WindReflectUtils.getGetterMethods(clazz);
-            List<String> result = Arrays.stream(WindReflectUtils.getFields(clazz)).map(Field::getName).collect(Collectors.toList());
+            Method[] getterMethods = ReflectUtils.getGetterMethods(clazz);
+            List<String> result = Arrays.stream(ReflectUtils.getFields(clazz)).map(Field::getName).collect(Collectors.toList());
             result.addAll(Arrays.stream(getterMethods)
                     .map(ExcelCellQuickBuilder::convertGetMethodNameToFieldName)
                     .filter(name -> !result.contains(name))

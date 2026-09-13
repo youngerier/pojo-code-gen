@@ -7,8 +7,6 @@ import lombok.Getter;
 /**
  * 异常输出的错误日志等级
  *
- * @author wuxp
- * @date 2024-12-23 10:23
  **/
 @AllArgsConstructor
 @Getter

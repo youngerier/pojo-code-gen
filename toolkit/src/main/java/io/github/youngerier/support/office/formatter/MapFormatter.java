@@ -11,7 +11,6 @@ import java.util.Map;
 /**
  * 根据 map 进行值转换
  *
- * @author wuxp
  */
 @Slf4j
 public record MapFormatter<T>(Map<String, Object> dataSource) implements Formatter<T> {

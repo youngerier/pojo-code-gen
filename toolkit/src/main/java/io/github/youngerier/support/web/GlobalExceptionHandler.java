@@ -5,9 +5,13 @@ import io.github.youngerier.support.exception.BaseException;
 import io.github.youngerier.support.exception.DefaultExceptionCode;
 import io.github.youngerier.support.exception.ExceptionCode;
 import io.github.youngerier.support.exception.ExceptionLogLevel;
+import io.github.youngerier.support.i18n.ExceptionMessageProvider;
+import io.github.youngerier.support.i18n.ExceptionMessageResolver;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -21,15 +25,30 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
  * 全局异常处理器，把异常统一转换为 {@link Response} 响应体，
  * 并按 {@link ExceptionLogLevel} 分级记录日志。
+ *
+ * <p>消息解析顺序：应用 {@link MessageSource}（支持 {@code Accept-Language}）
+ * -> toolkit 内置中英文 bundle -> 异常码描述/字面量消息。
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private final ExceptionMessageResolver messageResolver;
+
+    public GlobalExceptionHandler(MessageSource messageSource) {
+        this(messageSource, List.of());
+    }
+
+    public GlobalExceptionHandler(MessageSource messageSource, List<ExceptionMessageProvider> providers) {
+        this.messageResolver = new ExceptionMessageResolver(messageSource, providers);
+    }
 
     /**
      * 业务异常
@@ -39,11 +58,14 @@ public class GlobalExceptionHandler {
         ExceptionCode code = ex.getCode();
         logByLevel(ex.getLogLevel(), ex);
 
-        // 友好异常不向调用方暴露内部信息，统一返回通用提示
-        String message = DefaultExceptionCode.COMMON_FRIENDLY_ERROR == code
-                ? code.getDesc()
-                : ex.getMessage();
-        return ResponseEntity.status(resolveHttpStatus(code))
+        String message;
+        if (ex.isFriendly() || ex.isI18n()) {
+            // 友好异常与 i18n 异常：按请求 Locale 解析消息键，找不到时回退异常码描述
+            message = resolveCodeMessage(code, ex.getMessageArgs());
+        } else {
+            message = ex.getMessage();
+        }
+        return ResponseEntity.status(code.httpStatus())
                 .body(Response.error(toIntCode(code), message));
     }
 
@@ -105,7 +127,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Response<Void>> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
         log.warn("Upload size exceeded: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .body(Response.error(HttpStatus.PAYLOAD_TOO_LARGE.value(), "上传文件大小超过限制"));
+                .body(Response.error(HttpStatus.PAYLOAD_TOO_LARGE.value(),
+                        resolveCodeMessage(DefaultExceptionCode.PAYLOAD_TOO_LARGE, null)));
     }
 
     /**
@@ -123,7 +146,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Response<Void>> handleNoResourceFound(NoResourceFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Response.error(HttpStatus.NOT_FOUND.value(), "资源不存在"));
+                .body(Response.error(HttpStatus.NOT_FOUND.value(),
+                        resolveCodeMessage(DefaultExceptionCode.NOT_FOUND, null)));
     }
 
     /**
@@ -133,7 +157,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Response<Void>> handleException(Exception ex) {
         log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Response.error(DefaultExceptionCode.COMMON_ERROR.getDesc()));
+                .body(Response.error(resolveCodeMessage(DefaultExceptionCode.INTERNAL_SERVER_ERROR, null)));
     }
 
     private ResponseEntity<Response<Void>> badRequest(String message) {
@@ -142,9 +166,31 @@ public class GlobalExceptionHandler {
     }
 
     private String fieldErrorMessages(BindException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
         return ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .map(error -> {
+                    // 校验注解 message 可写为消息键，由 MessageSource 解析；解析不了返回注解原文
+                    String resolved = messageResolverRaw(error.getDefaultMessage(), locale);
+                    return error.getField() + ": " + resolved;
+                })
                 .collect(Collectors.joining("; "));
+    }
+
+    private String resolveCodeMessage(ExceptionCode code, Object[] args) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String key = code.getMessageKey();
+        if (key != null) {
+            return messageResolver.resolve(key, args, locale, code.getDesc());
+        }
+        return code.getDesc();
+    }
+
+    private String messageResolverRaw(String key, Locale locale) {
+        if (key == null) {
+            return null;
+        }
+        // 仅当消息确实存在时解析，避免把普通中文提示当成消息键
+        return messageResolver.resolve(key, null, locale, key);
     }
 
     /**
@@ -158,11 +204,6 @@ public class GlobalExceptionHandler {
             case WARN -> log.warn("Business exception: {}", ex.getMessage());
             case ERROR -> log.error("Business exception", ex);
         }
-    }
-
-    private int resolveHttpStatus(ExceptionCode code) {
-        int value = toIntCode(code);
-        return value >= 400 && value < 600 ? value : HttpStatus.INTERNAL_SERVER_ERROR.value();
     }
 
     private int toIntCode(ExceptionCode code) {

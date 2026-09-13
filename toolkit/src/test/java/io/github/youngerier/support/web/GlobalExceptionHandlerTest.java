@@ -3,6 +3,7 @@ package io.github.youngerier.support.web;
 import io.github.youngerier.support.Response;
 import io.github.youngerier.support.exception.BaseException;
 import io.github.youngerier.support.exception.DefaultExceptionCode;
+import io.github.youngerier.support.exception.ExceptionCode;
 import io.github.youngerier.support.exception.ExceptionLogLevel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,7 @@ class GlobalExceptionHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new GlobalExceptionHandler();
+        handler = new GlobalExceptionHandler(null);
     }
 
     @Test
@@ -49,7 +50,29 @@ class GlobalExceptionHandlerTest {
                 handler.handleBaseException(BaseException.friendly("内部细节：xxx"));
 
         assertEquals(500, response.getBody().getCode());
-        assertEquals(DefaultExceptionCode.COMMON_FRIENDLY_ERROR.getDesc(), response.getBody().getMessage());
+        assertEquals(DefaultExceptionCode.INTERNAL_SERVER_ERROR.getDesc(), response.getBody().getMessage());
+    }
+
+    @Test
+    void businessCodeMapsTo422AndKeepsRawCodeInBody() {
+        ExceptionCode businessCode = new ExceptionCode() {
+            @Override
+            public String getCode() {
+                return "10001";
+            }
+
+            @Override
+            public String getDesc() {
+                return "账号已禁用";
+            }
+        };
+
+        ResponseEntity<Response<Void>> response =
+                handler.handleBaseException(BaseException.business(businessCode, "账号已禁用"));
+
+        assertEquals(422, response.getStatusCode().value());
+        assertEquals(10001, response.getBody().getCode());
+        assertEquals("账号已禁用", response.getBody().getMessage());
     }
 
     @Test
@@ -71,7 +94,7 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals(500, response.getBody().getCode());
-        assertEquals(DefaultExceptionCode.COMMON_ERROR.getDesc(), response.getBody().getMessage());
+        assertEquals(DefaultExceptionCode.INTERNAL_SERVER_ERROR.getDesc(), response.getBody().getMessage());
         assertNull(response.getBody().getData());
     }
 }

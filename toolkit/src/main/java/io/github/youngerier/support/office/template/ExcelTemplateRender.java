@@ -84,7 +84,7 @@ public record ExcelTemplateRender(Path filepath, List<WriteHandler> writeHandler
             AssertUtils.isTrue(file.createNewFile(), () -> "create file = " + filepath + " failure");
             return Files.newOutputStream(filepath);
         } catch (IOException e) {
-            throw new BaseException(DefaultExceptionCode.COMMON_ERROR, "new file outstream exception, filepath = " + filepath, e);
+            throw new BaseException(DefaultExceptionCode.INTERNAL_SERVER_ERROR, "new file outstream exception, filepath = " + filepath, e);
         }
     }
 
@@ -92,7 +92,7 @@ public record ExcelTemplateRender(Path filepath, List<WriteHandler> writeHandler
         try {
             return withPath(Files.createTempFile(filename, ".xlsx"));
         } catch (IOException e) {
-            throw new BaseException(DefaultExceptionCode.COMMON_ERROR, "create temp file exception , file = " + filename, e);
+            throw new BaseException(DefaultExceptionCode.INTERNAL_SERVER_ERROR, "create temp file exception , file = " + filename, e);
         }
     }
 

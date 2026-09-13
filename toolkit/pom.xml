@@ -58,7 +58,7 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Spring Web / WebMVC：GlobalExceptionHandler、TraceIdFilter、审计请求信息 -->
+        <!-- Spring Web / WebMVC：GlobalExceptionHandler、TraceIdFilter -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
@@ -67,20 +67,6 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- AspectJ：@Auditable 审计切面 -->
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- Jackson：审计事件序列化，使用方无 Jackson 时审计自动不装配 -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
             <optional>true</optional>
         </dependency>
 

@@ -1,10 +1,13 @@
 package io.github.youngerier.support.autoconfigure;
 
+import io.github.youngerier.support.i18n.ExceptionMessageProvider;
 import io.github.youngerier.support.trace.TraceContext;
 import io.github.youngerier.support.trace.TraceIdFilter;
 import io.github.youngerier.support.web.GlobalExceptionHandler;
 import io.github.youngerier.support.web.SecurityExceptionHandler;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -16,6 +19,8 @@ import org.springframework.core.Ordered;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.List;
+
 /**
  * Web 基础能力自动装配：全局异常处理与 traceId 过滤器。
  */
@@ -26,8 +31,10 @@ public class WebSupportAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public GlobalExceptionHandler globalExceptionHandler() {
-        return new GlobalExceptionHandler();
+    public GlobalExceptionHandler globalExceptionHandler(ObjectProvider<MessageSource> messageSourceProvider,
+                                                          ObjectProvider<ExceptionMessageProvider> messageProviders) {
+        List<ExceptionMessageProvider> providers = messageProviders.orderedStream().toList();
+        return new GlobalExceptionHandler(messageSourceProvider.getIfAvailable(), providers);
     }
 
     /**

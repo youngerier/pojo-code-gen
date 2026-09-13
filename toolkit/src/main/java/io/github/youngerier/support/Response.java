@@ -49,20 +49,10 @@ public class Response<T> implements Serializable {
     }
 
     /**
-     * 使用异常码构造错误响应，message 取异常码描述，数字码作为响应 code；
-     * 非数字的业务码统一按 500 处理。
+     * 使用异常码构造错误响应，message 取异常码描述，HTTP 状态码按 {@link ExceptionCode#httpStatus()} 推导。
      */
     public static <T> Response<T> error(ExceptionCode exceptionCode) {
-        return new Response<>(toHttpCode(exceptionCode.getCode()), exceptionCode.getDesc(), null);
-    }
-
-    private static int toHttpCode(String code) {
-        try {
-            int value = Integer.parseInt(code);
-            return value >= 400 && value < 600 ? value : ERROR_CODE;
-        } catch (NumberFormatException e) {
-            return ERROR_CODE;
-        }
+        return new Response<>(exceptionCode.httpStatus(), exceptionCode.getDesc(), null);
     }
 
     public boolean isOk() {

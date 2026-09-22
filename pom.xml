@@ -75,6 +75,10 @@
         <spring-boot.version>3.5.6</spring-boot.version>
         <spring-security.version>6.5.3</spring-security.version>
 
+        <!-- RocketMQ Versions（toolkit trace MQ 集成，optional 不向使用方传递） -->
+        <rocketmq.version>5.3.1</rocketmq.version>
+        <rocketmq-spring.version>2.3.3</rocketmq-spring.version>
+
         <!-- Jackson Versions -->
         <jackson.version>2.19.1</jackson.version>
 

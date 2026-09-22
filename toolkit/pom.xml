@@ -84,7 +84,28 @@
             <artifactId>jakarta.servlet-api</artifactId>
             <scope>provided</scope>
         </dependency>
-        
+
+        <!-- ============================ -->
+        <!-- MQ 支持，可选依赖 -->
+        <!-- 使用 support.trace.rocketmq 下的 Hook / 自动装配时需自行引入 -->
+        <!-- ============================ -->
+
+        <!-- RocketMQ Client：TraceSendMessageHook / TraceConsumeMessageHook -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client</artifactId>
+            <version>${rocketmq.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- RocketMQ Spring：识别 RocketMQTemplate 与 @RocketMQMessageListener 容器 -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-spring-boot</artifactId>
+            <version>${rocketmq-spring.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- ============================ -->
         <!-- 日志框架 -->
         <!-- ============================ -->
@@ -135,6 +156,11 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

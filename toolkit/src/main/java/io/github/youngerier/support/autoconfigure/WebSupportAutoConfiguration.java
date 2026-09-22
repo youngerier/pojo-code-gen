@@ -1,6 +1,7 @@
 package io.github.youngerier.support.autoconfigure;
 
 import io.github.youngerier.support.i18n.ExceptionMessageProvider;
+import io.github.youngerier.support.i18n.ResourceExceptionMessageProvider;
 import io.github.youngerier.support.trace.TraceContext;
 import io.github.youngerier.support.trace.TraceIdFilter;
 import io.github.youngerier.support.web.GlobalExceptionHandler;
@@ -19,6 +20,7 @@ import org.springframework.core.Ordered;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -45,6 +47,23 @@ public class WebSupportAutoConfiguration {
     @ConditionalOnMissingBean
     public SecurityExceptionHandler securityExceptionHandler() {
         return new SecurityExceptionHandler();
+    }
+
+    /**
+     * 配置文件异常消息来源：配置 youngerier.exception-message.basenames 后生效，
+     * basenames 为逗号分隔的多个 ResourceBundle 路径（不含 .properties 后缀），
+     * 如 youngerier.exception-message.basenames=exception-messages,config/other-messages。
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "youngerier.exception-message", name = "basenames")
+    @ConditionalOnMissingBean(ResourceExceptionMessageProvider.class)
+    public ResourceExceptionMessageProvider resourceExceptionMessageProvider(
+            @Value("${youngerier.exception-message.basenames}") String basenames) {
+        String[] names = Arrays.stream(basenames.split(","))
+                .map(String::trim)
+                .filter(name -> !name.isEmpty())
+                .toArray(String[]::new);
+        return new ResourceExceptionMessageProvider(names);
     }
 
     @Bean

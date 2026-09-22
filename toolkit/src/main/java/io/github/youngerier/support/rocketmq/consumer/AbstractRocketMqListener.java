@@ -11,6 +11,25 @@ import org.slf4j.LoggerFactory;
  * <p>
  * 需要消息元数据（msgId、keys、重试次数）时，泛型可直接使用 {@link MessageExt}。
  *
+ * <h3>订阅指定 topic / tag</h3>
+ * 订阅关系由子类上的 {@code @RocketMQMessageListener} 声明，本基类只负责消费逻辑：
+ * <pre>{@code
+ * @Component
+ * @RocketMQMessageListener(
+ *         topic = "order-topic",
+ *         selectorExpression = "created",          // tag 过滤；多个 tag 用 "created || paid"，全部 tag 用 "*"
+ *         consumerGroup = "order-created-consumer" // 必填；同一 topic 按不同 tag 拆分监听器时，consumerGroup 也必须不同
+ * )
+ * public class OrderCreatedListener extends AbstractRocketMqListener<OrderDTO> {
+ *
+ *     @Override
+ *     protected void consume(OrderDTO order) {
+ *         // 抛异常会触发 RocketMQ 重试，成功 / 失败日志由基类统一输出
+ *     }
+ * }
+ * }</pre>
+ * topic / selectorExpression 支持占位符，如 {@code topic = "${mq.order-topic}"}。
+ *
  * @param <T> 消息体类型
  */
 public abstract class AbstractRocketMqListener<T> implements RocketMQListener<T> {

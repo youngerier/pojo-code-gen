@@ -17,6 +17,7 @@ import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
@@ -176,5 +177,39 @@ class GlobalExceptionHandlerTest {
         Set<HttpMethod> allow = response.getHeaders().getAllow();
         assertTrue(allow != null && allow.containsAll(List.of(HttpMethod.GET, HttpMethod.POST)),
                 "405 响应必须携带 Allow 头，实际为 " + allow);
+    }
+
+    // ---------------- 正确性回归 ----------------
+
+    /**
+     * 回归：friendly(code, ...) 的文案曾被固定成 500「系统繁忙」，与实际异常码（HTTP 状态）脱节。
+     */
+    @Test
+    void friendlyExceptionWithCodeUsesCodeSpecificMessage() {
+        ResponseEntity<Response<Void>> response =
+                handler.handleBaseException(BaseException.friendly(DefaultExceptionCode.FORBIDDEN, "内部细节：xxx"));
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals(403, response.getBody().getCode());
+        assertEquals(DefaultExceptionCode.FORBIDDEN.getDesc(), response.getBody().getMessage());
+    }
+
+    @Test
+    void missingParameterReturnsLocalizedChineseMessage() {
+        ResponseEntity<Response<Void>> response = handler.handleMissingParameter(
+                new MissingServletRequestParameterException("name", "String"));
+
+        assertEquals("缺少必填参数: name", response.getBody().getMessage());
+    }
+
+    @Test
+    void frameworkExceptionRespectsEnglishLocale() {
+        LocaleContextHolder.setLocale(Locale.ENGLISH);
+        HttpRequestMethodNotSupportedException ex =
+                new HttpRequestMethodNotSupportedException("PATCH", List.of("GET", "POST"));
+
+        ResponseEntity<Response<Void>> response = handler.handleMethodNotSupported(ex);
+
+        assertEquals("Request method not supported: PATCH", response.getBody().getMessage());
     }
 }

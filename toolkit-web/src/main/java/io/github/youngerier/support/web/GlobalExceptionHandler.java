@@ -7,7 +7,6 @@ import io.github.youngerier.support.exception.ExceptionCode;
 import io.github.youngerier.support.exception.ExceptionLogLevel;
 import io.github.youngerier.support.i18n.ExceptionMessageProvider;
 import io.github.youngerier.support.i18n.ExceptionMessageResolver;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
@@ -55,6 +54,36 @@ public class GlobalExceptionHandler {
 
     private final ExceptionMessageResolver messageResolver;
 
+    /**
+     * 框架异常码：这类异常不携带 {@link ExceptionCode}，HTTP 状态由各 handler 决定，
+     * 这里仅用于按请求语言解析消息。消息键按约定由枚举名自动生成，desc 为 bundle 缺失时的兜底模板。
+     */
+    private enum FrameworkErrorCode implements ExceptionCode {
+
+        MISSING_PARAMETER("400", "缺少必填参数: {}"),
+        TYPE_MISMATCH("400", "参数类型错误: {}"),
+        MALFORMED_REQUEST("400", "请求体格式错误"),
+        METHOD_NOT_SUPPORTED("405", "请求方法不支持: {}");
+
+        private final String code;
+        private final String desc;
+
+        FrameworkErrorCode(String code, String desc) {
+            this.code = code;
+            this.desc = desc;
+        }
+
+        @Override
+        public String getCode() {
+            return code;
+        }
+
+        @Override
+        public String getDesc() {
+            return desc;
+        }
+    }
+
     public GlobalExceptionHandler(MessageSource messageSource) {
         this(messageSource, List.of());
     }
@@ -99,8 +128,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Response<Void>> handleConstraintViolation(ConstraintViolationException ex) {
+        Locale locale = requestLocale();
         String message = ex.getConstraintViolations().stream()
-                .map(ConstraintViolation::getMessage)
+                .map(violation -> resolveValidationMessage(violation.getMessage(), locale))
                 .collect(Collectors.joining("; "));
         return badRequest(message);
     }
@@ -110,7 +140,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<Response<Void>> handleMissingParameter(MissingServletRequestParameterException ex) {
-        return badRequest("缺少必填参数: " + ex.getParameterName());
+        return badRequest(resolveCodeMessage(
+                FrameworkErrorCode.MISSING_PARAMETER, requestLocale(), ex.getParameterName()));
     }
 
     /**
@@ -118,7 +149,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Response<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        return badRequest("参数类型错误: " + ex.getName());
+        return badRequest(resolveCodeMessage(
+                FrameworkErrorCode.TYPE_MISMATCH, requestLocale(), ex.getName()));
     }
 
     /**
@@ -126,7 +158,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Response<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
-        return badRequest("请求体格式错误");
+        return badRequest(resolveCodeMessage(FrameworkErrorCode.MALFORMED_REQUEST, requestLocale()));
     }
 
     /**
@@ -137,7 +169,7 @@ public class GlobalExceptionHandler {
         log.warn("Upload size exceeded: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(Response.error(HttpStatus.PAYLOAD_TOO_LARGE.value(),
-                        resolveCodeMessage(DefaultExceptionCode.PAYLOAD_TOO_LARGE, null, requestLocale())));
+                        resolveCodeMessage(DefaultExceptionCode.PAYLOAD_TOO_LARGE, requestLocale())));
     }
 
     /**
@@ -153,7 +185,7 @@ public class GlobalExceptionHandler {
             builder.allow(supported.toArray(new HttpMethod[0]));
         }
         return builder.body(Response.error(HttpStatus.METHOD_NOT_ALLOWED.value(),
-                "请求方法不支持: " + ex.getMethod()));
+                resolveCodeMessage(FrameworkErrorCode.METHOD_NOT_SUPPORTED, requestLocale(), ex.getMethod())));
     }
 
     /**
@@ -163,7 +195,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Response<Void>> handleNoResourceFound(NoResourceFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Response.error(HttpStatus.NOT_FOUND.value(),
-                        resolveCodeMessage(DefaultExceptionCode.NOT_FOUND, null, requestLocale())));
+                        resolveCodeMessage(DefaultExceptionCode.NOT_FOUND, requestLocale())));
     }
 
     /**
@@ -194,7 +226,7 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Response.error(resolveCodeMessage(
-                        DefaultExceptionCode.INTERNAL_SERVER_ERROR, null, requestLocale())));
+                        DefaultExceptionCode.INTERNAL_SERVER_ERROR, requestLocale())));
     }
 
     // ---------------- 两种视图 ----------------
@@ -209,12 +241,12 @@ public class GlobalExceptionHandler {
      */
     private String toUserMessage(BaseException ex) {
         if (ex.isFriendly()) {
-            // friendly：与具体异常码无关，用户只见统一通用提示（随请求语言），
-            // 异常码仅决定 HTTP 状态；真实细节只进系统日志
-            return resolveCodeMessage(DefaultExceptionCode.INTERNAL_SERVER_ERROR, null, requestLocale());
+            // friendly：用户只见异常码对应的通用文案（随请求语言），异常码同时决定 HTTP 状态；
+            // 真实细节只进系统日志
+            return resolveCodeMessage(ex.getCode(), requestLocale());
         }
         if (ex.isI18n()) {
-            return resolveCodeMessage(ex.getCode(), ex.getMessageArgs(), requestLocale());
+            return resolveCodeMessage(ex.getCode(), requestLocale(), ex.getMessageArgs());
         }
         return ex.getMessage();
     }
@@ -225,7 +257,7 @@ public class GlobalExceptionHandler {
      */
     private void logSystemView(BaseException ex) {
         String detail = ex.isI18n()
-                ? resolveCodeMessage(ex.getCode(), ex.getMessageArgs(), Locale.getDefault())
+                ? resolveCodeMessage(ex.getCode(), Locale.getDefault(), ex.getMessageArgs())
                 : ex.getMessage();
         String line = "Business exception [{}]: {}";
         switch (ex.getLogLevel()) {
@@ -251,14 +283,24 @@ public class GlobalExceptionHandler {
         return ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> {
                     // 校验注解 message 可写为消息键，由 MessageSource 解析；解析不了返回注解原文
-                    String resolved = messageResolver.resolve(
-                            error.getDefaultMessage(), null, locale, error.getDefaultMessage());
+                    String resolved = resolveValidationMessage(error.getDefaultMessage(), locale);
                     return error.getField() + ": " + resolved;
                 })
                 .collect(Collectors.joining("; "));
     }
 
-    private String resolveCodeMessage(ExceptionCode code, Object[] args, Locale locale) {
+    /**
+     * 解析校验注解上的消息（可能是消息键，也可能是字面量，解析不了时原样返回）。
+     * 字段校验与方法参数校验共用，保证两条路径行为一致。
+     */
+    private String resolveValidationMessage(String message, Locale locale) {
+        return messageResolver.resolve(message, null, locale, message);
+    }
+
+    /**
+     * 按请求语言解析异常码对应消息；无消息键或 bundle 未命中时回退 desc。
+     */
+    private String resolveCodeMessage(ExceptionCode code, Locale locale, Object... args) {
         String key = code.getMessageKey();
         if (key != null) {
             return messageResolver.resolve(key, args, locale, code.getDesc());
@@ -270,7 +312,8 @@ public class GlobalExceptionHandler {
         try {
             return Integer.parseInt(code.getCode());
         } catch (NumberFormatException e) {
-            return HttpStatus.INTERNAL_SERVER_ERROR.value();
+            // 非数字码：响应体 code 与实际返回的 HTTP 状态保持一致，避免两个视图自相矛盾
+            return code.httpStatus();
         }
     }
 
@@ -290,7 +333,7 @@ public class GlobalExceptionHandler {
             default -> null;
         };
         if (mapped != null) {
-            return resolveCodeMessage(mapped, null, requestLocale());
+            return resolveCodeMessage(mapped, requestLocale());
         }
         HttpStatus resolved = HttpStatus.resolve(statusCode.value());
         return resolved != null ? resolved.getReasonPhrase() : String.valueOf(statusCode.value());

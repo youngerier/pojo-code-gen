@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.youngerier</groupId>
+        <artifactId>java-codegen-toolkit</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>toolkit-spring-boot-starter</artifactId>
+    <packaging>pom</packaging>
+    <name>Java Code Generation Toolkit - Spring Boot Starter</name>
+    <description>常用组合：一次性引入核心层、i18n 与 Web 统一错误响应（含 traceId 过滤器）。不含 Office / RocketMQ / MyBatis-Flex，按需单独引入。</description>
+
+    <properties>
+        <!-- 纯依赖聚合，不含源码 -->
+        <maven.source.skip>true</maven.source.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.youngerier</groupId>
+            <artifactId>toolkit-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.youngerier</groupId>
+            <artifactId>toolkit-i18n</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.youngerier</groupId>
+            <artifactId>toolkit-trace</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.youngerier</groupId>
+            <artifactId>toolkit-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- ============================ -->
+        <!-- 测试依赖                       -->
+        <!-- ============================ -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

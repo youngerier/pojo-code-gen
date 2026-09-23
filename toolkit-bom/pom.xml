@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.youngerier</groupId>
+        <artifactId>java-codegen-toolkit</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>toolkit-bom</artifactId>
+    <packaging>pom</packaging>
+    <name>Java Code Generation Toolkit - BOM</name>
+    <description>统一管理 toolkit-* 各模块的版本，避免使用方逐个指定版本导致不匹配。</description>
+
+    <properties>
+        <!-- BOM 只有 pom，无需源码与 javadoc 附件 -->
+        <maven.source.skip>true</maven.source.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.install.skip>false</maven.install.skip>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-i18n</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-trace</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-mybatis-flex</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-office</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-web</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-rocketmq</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+</project>

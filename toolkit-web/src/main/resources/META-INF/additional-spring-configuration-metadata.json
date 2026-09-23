@@ -1,0 +1,9 @@
+{
+  "properties": [
+    {
+      "name": "youngerier.exception-message.basenames",
+      "type": "java.lang.String",
+      "description": "逗号分隔的 ResourceBundle 路径（不含 .properties 后缀），作为异常消息来源之一，例如 exception-messages,config/other-messages。配置后才会装配 ResourceExceptionMessageProvider。"
+    }
+  ]
+}

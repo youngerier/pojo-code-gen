@@ -10,7 +10,7 @@ import java.util.List;
 public class GeneratorConfig {
 
     /**
-     * 当前模块的名称 (例如 "example")
+     * 当前模块的名称 (例如 "order-service")
      */
     private final String moduleName;
 

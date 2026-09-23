@@ -39,8 +39,16 @@
     </scm>
 
     <modules>
+        <module>toolkit-core</module>
+        <module>toolkit-i18n</module>
+        <module>toolkit-trace</module>
+        <module>toolkit-mybatis-flex</module>
+        <module>toolkit-office</module>
+        <module>toolkit-web</module>
+        <module>toolkit-rocketmq</module>
+        <module>toolkit-bom</module>
+        <module>toolkit-spring-boot-starter</module>
         <module>codegen-core</module>
-        <module>toolkit</module>
         <module>generator-maven-plugin</module>
     </modules>
 
@@ -73,6 +81,8 @@
         <aspectj.version>1.9.24</aspectj.version>
         <!-- 仅 toolkit 自动装配使用，optional 不向使用方传递 -->
         <spring-boot.version>3.5.6</spring-boot.version>
+        <!-- 构建期注解处理器：版本可与运行时 Spring Boot 不同 -->
+        <spring-boot-configuration-processor.version>3.5.5</spring-boot-configuration-processor.version>
         <spring-security.version>6.5.3</spring-security.version>
 
         <!-- RocketMQ Versions（toolkit trace MQ 集成，optional 不向使用方传递） -->
@@ -97,6 +107,7 @@
 
         <!-- Maven Plugin Versions -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.10.1</maven-javadoc-plugin.version>
         <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
@@ -164,6 +175,11 @@
             <!-- Spring相关 -->
             <dependency>
                 <groupId>org.springframework</groupId>
+                <artifactId>spring-core</artifactId>
+                <version>${spring.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
                 <artifactId>spring-context</artifactId>
                 <version>${spring.version}</version>
             </dependency>
@@ -211,6 +227,50 @@
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-expression</artifactId>
                 <version>${spring.version}</version>
+            </dependency>
+
+            <!-- Spring Test -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-test</artifactId>
+                <version>${spring.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Spring Security（toolkit-web 可选集成） -->
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-core</artifactId>
+                <version>${spring-security.version}</version>
+            </dependency>
+
+            <!-- Spring Boot（自动装配、FilterRegistrationBean） -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-autoconfigure</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-configuration-processor</artifactId>
+                <version>${spring-boot-configuration-processor.version}</version>
+            </dependency>
+
+            <!-- RocketMQ -->
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-client</artifactId>
+                <version>${rocketmq.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-spring-boot</artifactId>
+                <version>${rocketmq-spring.version}</version>
             </dependency>
 
             <!-- Servlet API for web request handling -->
@@ -295,17 +355,47 @@
             </dependency>
             <dependency>
                 <groupId>io.github.youngerier</groupId>
-                <artifactId>toolkit</artifactId>
+                <artifactId>toolkit-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-i18n</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-trace</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-mybatis-flex</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-office</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-web</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-rocketmq</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.youngerier</groupId>
+                <artifactId>toolkit-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.youngerier</groupId>
                 <artifactId>codegen-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.youngerier</groupId>
-                <artifactId>example</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -332,10 +422,31 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
             </plugin>
+
+            <!-- 以下插件由所有子模块继承，配置见 pluginManagement -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
         </plugins>
 
         <pluginManagement>
             <plugins>
+                <!-- Jar 打包：声明 JPMS 自动模块名 -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven-jar-plugin.version}</version>
+                </plugin>
+
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -371,6 +482,11 @@
                                 <groupId>com.mybatis-flex</groupId>
                                 <artifactId>mybatis-flex-processor</artifactId>
                                 <version>${mybatis-flex.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.springframework.boot</groupId>
+                                <artifactId>spring-boot-configuration-processor</artifactId>
+                                <version>${spring-boot-configuration-processor.version}</version>
                             </path>
                         </annotationProcessorPaths>
                     </configuration>
@@ -520,16 +636,6 @@
     </build>
 
     <profiles>
-        <!-- 默认构建包含 example；显式激活其他 profile（如 -P release）时自动排除 -->
-        <profile>
-            <id>example</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <modules>
-                <module>example</module>
-            </modules>
-        </profile>
         <profile>
             <id>release</id>
             <properties>

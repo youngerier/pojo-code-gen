@@ -7,7 +7,7 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
-import io.github.youngerier.support.page.QueryWrapperHelper;
+import io.github.youngerier.support.page.flex.QueryWrapperHelper;
 import io.github.youngerier.generator.model.ClassMetadata;
 import io.github.youngerier.generator.model.GeneratedType;
 import io.github.youngerier.generator.model.PackageStructure;

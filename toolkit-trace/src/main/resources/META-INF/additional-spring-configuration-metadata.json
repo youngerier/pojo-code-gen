@@ -1,0 +1,22 @@
+{
+  "properties": [
+    {
+      "name": "youngerier.trace.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "是否注册 traceId 过滤器（仅在 Servlet Web 环境下生效）。"
+    },
+    {
+      "name": "youngerier.trace.header-name",
+      "type": "java.lang.String",
+      "defaultValue": "X-Request-ID",
+      "description": "上游传递 traceId 的请求头名称。取值必须匹配 [A-Za-z0-9._-]{1,128}，非法内容会被丢弃并重新生成，避免日志伪造与响应头污染。"
+    },
+    {
+      "name": "youngerier.trace.propagate-to-async",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "是否把 MdcTaskDecorator 注册为容器内唯一的 TaskDecorator，使 Spring Boot 自动配置的 applicationTaskExecutor 与 @Async 继承提交线程的 MDC（含 traceId）。"
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.youngerier</groupId>
+        <artifactId>java-codegen-toolkit</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>toolkit-rocketmq</artifactId>
+    <name>Java Code Generation Toolkit - RocketMQ</name>
+    <description>RocketMQ 集成：链路透传 Hook（发送端注入、消费端恢复 traceId）、消费端基类与信封式发送封装。</description>
+
+    <properties>
+        <automatic.module.name>io.github.youngerier.support.rocketmq</automatic.module.name>
+    </properties>
+
+    <dependencies>
+        <!-- ============================ -->
+        <!-- 必需依赖（会传递给使用方）      -->
+        <!-- ============================ -->
+
+        <!-- TraceContext / TracePropagator：链路 Hook 的数据结构 -->
+        <dependency>
+            <groupId>io.github.youngerier</groupId>
+            <artifactId>toolkit-trace</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- RocketMQ 客户端：Hook、生产者/消费者 API -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client</artifactId>
+        </dependency>
+        <!-- RocketMQ Spring：RocketMQTemplate、监听器容器（RocketMqProducer 的公共 API 依赖它） -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-spring-boot</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+
+        <!-- ============================ -->
+        <!-- 可选集成（optional，不向使用方传递） -->
+        <!-- ============================ -->
+
+        <!-- 自动装配（@AutoConfiguration / @ConditionalOnXxx） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ============================ -->
+        <!-- 测试依赖                       -->
+        <!-- ============================ -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- JPMS 自动模块名：显式声明，避免退化为 jar 文件名（toolkit-core 等）。
+         刻意逐模块声明而非放在父 pom：父 pom 的配置会作用于 codegen-core /
+         generator-maven-plugin 等模块，而带 Automatic-Module-Name 的 jar 会让
+         javadoc 插件切换到 JPMS 模块模式，破坏它们的依赖解析。 -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Automatic-Module-Name>${automatic.module.name}</Automatic-Module-Name>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

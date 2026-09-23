@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.youngerier</groupId>
+        <artifactId>java-codegen-toolkit</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>toolkit-office</artifactId>
+    <name>Java Code Generation Toolkit - Office</name>
+    <description>Excel 导出与模板渲染：单元格描述符、SpEL 取值（受限求值上下文，禁止 T() 与静态方法）、分页流式导出任务与模板渲染器。</description>
+
+    <properties>
+        <automatic.module.name>io.github.youngerier.support.office</automatic.module.name>
+    </properties>
+
+    <dependencies>
+        <!-- ============================ -->
+        <!-- 必需依赖（会传递给使用方）      -->
+        <!-- ============================ -->
+
+        <!-- 断言、异常体系、枚举与反射工具 -->
+        <dependency>
+            <groupId>io.github.youngerier</groupId>
+            <artifactId>toolkit-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Excel 读写。本模块的核心能力，必需而非 optional：
+             此前标为 optional 时，只引入 easyexcel 的使用方仍会在 ExportExcelTaskInfo 上踩到
+             commons-lang3 的 NoClassDefFoundError -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>easyexcel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
+        <!-- @Schema 标题解析（ExcelCellQuickBuilder 的默认行为） -->
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations-jakarta</artifactId>
+        </dependency>
+
+        <!-- Spring 表达式、Formatter/Printer、StringUtils -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+
+        <!-- Bean 校验注解 -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ============================ -->
+        <!-- 测试依赖                       -->
+        <!-- ============================ -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- JPMS 自动模块名：显式声明，避免退化为 jar 文件名（toolkit-core 等）。
+         刻意逐模块声明而非放在父 pom：父 pom 的配置会作用于 codegen-core /
+         generator-maven-plugin 等模块，而带 Automatic-Module-Name 的 jar 会让
+         javadoc 插件切换到 JPMS 模块模式，破坏它们的依赖解析。 -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Automatic-Module-Name>${automatic.module.name}</Automatic-Module-Name>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

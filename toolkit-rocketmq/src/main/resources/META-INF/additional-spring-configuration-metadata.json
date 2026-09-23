@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "youngerier.rocketmq.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "是否装配 RocketMQ 链路透传 Hook（发送端注入 / 消费端恢复 traceId）与便捷发送封装 RocketMqProducer。"
+    }
+  ]
+}

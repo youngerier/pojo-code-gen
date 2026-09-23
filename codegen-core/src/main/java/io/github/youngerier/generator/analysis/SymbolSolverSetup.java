@@ -34,7 +34,7 @@ final class SymbolSolverSetup {
         }
 
         try {
-            File sourceRoot = SourceFileLocator.findSrcMainJavaDir(sourceFile);
+            File sourceRoot = SourceFileLocator.findSourceRoot(sourceFile);
             if (registeredRoots.add(sourceRoot.getAbsolutePath())) {
                 cachedSolver.add(new JavaParserTypeSolver(sourceRoot));
                 log.debug("Registered source root: {}", sourceRoot.getAbsolutePath());

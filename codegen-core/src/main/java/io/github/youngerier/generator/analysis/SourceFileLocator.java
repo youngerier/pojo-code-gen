@@ -130,18 +130,28 @@ final class SourceFileLocator {
     }
 
     /**
-     * 从源文件向上查找所属模块的 src/main/java 目录。
+     * 从源文件向上查找真正**包含该文件**的源码根目录（{@code src/main/java} 或 {@code src/test/java}）。
+     *
+     * <p>必须识别两类源根：{@link #locate} 在 classpath 未命中时会从 {@code src/test/java}
+     * 定位源文件，若符号求解器只注册 {@code src/main/java}，测试源码中的实体其同包类型
+     * （如同包下的枚举字段）就无法解析，生成的代码会缺少 import 而无法编译。
+     *
+     * <p>同一个模块下两类源根可能同时存在（例如 {@code codegen-core}），因此不能只看目录是否存在，
+     * 还要判断源文件是否位于该根之下。
      */
-    static File findSrcMainJavaDir(File sourceFile) {
-        Path current = sourceFile.toPath().toAbsolutePath().normalize().getParent();
+    static File findSourceRoot(File sourceFile) {
+        Path file = sourceFile.toPath().toAbsolutePath().normalize();
+        Path current = file.getParent();
         while (current != null) {
-            File srcMainJava = current.resolve(SRC_MAIN_JAVA).toFile();
-            if (srcMainJava.exists()) {
-                return srcMainJava;
+            for (String sourceDir : new String[]{SRC_MAIN_JAVA, SRC_TEST_JAVA}) {
+                Path candidate = current.resolve(sourceDir);
+                if (Files.isDirectory(candidate) && file.startsWith(candidate)) {
+                    return candidate.toFile();
+                }
             }
             current = current.getParent();
         }
         throw new IllegalStateException(
-                "Cannot find src/main/java directory for source file: " + sourceFile.getAbsolutePath());
+                "Cannot find source root directory for source file: " + sourceFile.getAbsolutePath());
     }
 }

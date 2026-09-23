@@ -57,11 +57,7 @@ public final class TracePropagator {
         try {
             task.run();
         } finally {
-            if (previous != null) {
-                MDC.setContextMap(previous);
-            } else {
-                MDC.clear();
-            }
+            TraceContext.restore(previous);
         }
     }
 

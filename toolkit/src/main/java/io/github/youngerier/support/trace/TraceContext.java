@@ -4,6 +4,7 @@ import org.slf4j.MDC;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 /**
  * traceId 上下文工具：基于 SLF4J MDC 在同一请求线程内共享链路 ID。
@@ -27,7 +28,16 @@ public final class TraceContext {
         return MDC.get(TRACE_ID);
     }
 
+    /**
+     * 设置当前线程的 traceId。
+     *
+     * @throws IllegalArgumentException traceId 为 null 或空白（SLF4J MDC 不接受 null，
+     *                                  空白值也会让 ensureTraceId 等判断失效）
+     */
     public static void setTraceId(String traceId) {
+        if (traceId == null || traceId.isBlank()) {
+            throw new IllegalArgumentException("traceId must not be null or blank");
+        }
         MDC.put(TRACE_ID, traceId);
     }
 
@@ -40,13 +50,13 @@ public final class TraceContext {
     }
 
     /**
-     * 确保当前线程存在 traceId，没有则生成一个。适用于定时任务、消息消费者等非 HTTP 入口。
+     * 确保当前线程存在非空白 traceId，没有则生成一个。适用于定时任务、消息消费者等非 HTTP 入口。
      *
      * @return 当前（可能刚生成的）traceId
      */
     public static String ensureTraceId() {
         String traceId = getTraceId();
-        if (traceId == null || traceId.isEmpty()) {
+        if (traceId == null || traceId.isBlank()) {
             traceId = generateTraceId();
             setTraceId(traceId);
         }
@@ -67,12 +77,40 @@ public final class TraceContext {
             try {
                 task.run();
             } finally {
-                if (previous != null) {
-                    MDC.setContextMap(previous);
-                } else {
-                    MDC.clear();
-                }
+                restore(previous);
             }
         };
+    }
+
+    /**
+     * Callable 版本的 {@link #wrap(Runnable)}：提交时复制当前 MDC，执行线程上恢复。
+     *
+     * @return 提交到线程池的 Callable；执行时原样返回业务结果或抛出业务异常
+     */
+    public static <V> Callable<V> wrap(Callable<V> task) {
+        Map<String, String> context = MDC.getCopyOfContextMap();
+        return () -> {
+            Map<String, String> previous = MDC.getCopyOfContextMap();
+            if (context != null) {
+                MDC.setContextMap(context);
+            }
+            try {
+                return task.call();
+            } finally {
+                restore(previous);
+            }
+        };
+    }
+
+    /**
+     * 恢复 MDC 到任务执行前的状态：之前有内容则整体还原，之前为空则清空，
+     * 保证借用的池线程不会残留本次任务的上下文。供同包工具类共用。
+     */
+    static void restore(Map<String, String> previous) {
+        if (previous != null) {
+            MDC.setContextMap(previous);
+        } else {
+            MDC.clear();
+        }
     }
 }

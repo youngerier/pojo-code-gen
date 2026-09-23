@@ -1,5 +1,6 @@
 package io.github.youngerier.support.office.template;
 
+import io.github.youngerier.support.constants.Constants;
 import io.github.youngerier.support.office.ExportExcelDataFetcher;
 import io.github.youngerier.support.office.export.SpringExpressionRowDataFormatter;
 import io.github.youngerier.support.office.metadata.ExcelCellDescriptor;
@@ -38,28 +39,48 @@ abstract class SheetDataSupplier implements Supplier<List<List<String>>> {
     @Override
     public List<List<String>> get() {
         List<List<String>> result = new ArrayList<>();
-        // titles
-        List<String> titleRows = titles.stream()
-                .map(ExcelCellDescriptor::getTitle)
-                .filter(StringUtils::hasText)
-                .collect(Collectors.toList());
-        if (!titleRows.isEmpty()) {
-            result.add(titleRows);
-        }
         fetchers.forEach(fetcher -> {
             int queryPage = 1;
             while (true) {
                 List<?> records = fetcher.fetch(queryPage, fetchSize);
+                if (records == null) {
+                    throw new IllegalStateException(
+                            "ExportExcelDataFetcher.fetch must not return null, page = " + queryPage);
+                }
                 for (Object row : records) {
                     result.add(formatter.formatRows(row));
                 }
                 if (records.size() < fetchSize) {
                     break;
                 }
+                if (queryPage >= ExportExcelDataFetcher.MAX_FETCH_PAGES) {
+                    throw new IllegalStateException("导出行数超过安全上限 " + ExportExcelDataFetcher.MAX_FETCH_PAGES
+                            + " 页，请检查 ExportExcelDataFetcher 是否忽略了 page 参数");
+                }
                 queryPage++;
             }
         });
         return result;
+    }
+
+    /**
+     * 表头行：长度与列数严格一致，标题为空的列写空串。
+     *
+     * <p>此前表头会把空标题过滤掉，导致表头相对数据整体左移一列。
+     */
+    List<String> titleRow() {
+        return titles.stream()
+                .map(descriptor -> StringUtils.hasText(descriptor.getTitle())
+                        ? descriptor.getTitle()
+                        : Constants.EMPTY)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * @return 是否存在可展示的表头
+     */
+    boolean hasTitleRow() {
+        return titles.stream().anyMatch(descriptor -> StringUtils.hasText(descriptor.getTitle()));
     }
 
     static SheetDataSupplierBuilder row() {

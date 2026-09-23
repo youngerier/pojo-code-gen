@@ -8,14 +8,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 /**
  * 为每个 HTTP 请求准备 traceId：优先复用上游传入的合法请求头（默认 X-Request-ID，可配置），
- * 否则生成新的 traceId 放入 MDC，并回写到响应头，请求结束后清理。
+ * 否则生成新的 traceId 放入 MDC，并回写到响应头，请求结束后还原 MDC。
  * <p>
- * 上游 header 必须匹配 {@code [A-Za-z0-9_-]{1,128}}，非法内容（含换行、超长、特殊字符）
- * 一律丢弃并重新生成，避免日志伪造和响应头污染。
+ * 上游 header 必须匹配 {@code [A-Za-z0-9._-]{1,128}}（见 {@link TraceContext#sanitizeTraceId(String)}），
+ * 非法内容（含换行、超长、特殊字符）一律丢弃并重新生成，避免日志伪造和响应头污染。
  * <p>
  * 支持异步 Servlet（Callable / DeferredResult 等）：初始 REQUEST dispatch 的 traceId
  * 会存入 request 属性，ASYNC dispatch 时在新的执行线程上恢复 MDC。
@@ -24,14 +24,10 @@ public class TraceIdFilter extends OncePerRequestFilter {
 
     /**
      * 接受的上游 traceId 最大长度
+     *
+     * @see TraceContext#MAX_TRACE_ID_LENGTH
      */
-    public static final int MAX_TRACE_ID_LENGTH = 128;
-
-    /**
-     * 合法 traceId 字符集：字母、数字、下划线、短横线，长度 1~{@value #MAX_TRACE_ID_LENGTH}
-     */
-    private static final Pattern VALID_TRACE_ID =
-            Pattern.compile("[A-Za-z0-9_-]{1," + MAX_TRACE_ID_LENGTH + "}");
+    public static final int MAX_TRACE_ID_LENGTH = TraceContext.MAX_TRACE_ID_LENGTH;
 
     private static final String TRACE_ID_ATTRIBUTE = TraceIdFilter.class.getName() + ".TRACE_ID";
 
@@ -58,7 +54,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String traceId;
         if (request.getDispatcherType() == DispatcherType.ASYNC) {
-            // 初始 REQUEST dispatch 已结束、其线程 MDC 已清理，从 request 属性恢复；
+            // 初始 REQUEST dispatch 已结束、其线程 MDC 已还原，从 request 属性恢复；
             // 属性缺失（无前置 REQUEST dispatch 的非常规入口）时兜底按请求头解析
             traceId = (String) request.getAttribute(TRACE_ID_ATTRIBUTE);
             if (traceId == null) {
@@ -69,25 +65,26 @@ public class TraceIdFilter extends OncePerRequestFilter {
             request.setAttribute(TRACE_ID_ATTRIBUTE, traceId);
         }
 
+        // 快照后在 finally 中「还原」而非「删除」：不误删上游 agent 写入的 traceId 或业务 MDC 键
+        Map<String, String> previous = TraceContext.snapshot();
         TraceContext.setTraceId(traceId);
         response.setHeader(headerName, traceId);
         try {
             filterChain.doFilter(request, response);
         } finally {
-            TraceContext.clear();
+            TraceContext.restore(previous);
         }
     }
 
     private String resolveTraceId(HttpServletRequest request) {
         String header = request.getHeader(headerName);
-        if (header != null) {
-            String candidate = header.trim();
-            if (VALID_TRACE_ID.matcher(candidate).matches()) {
-                return candidate;
-            }
-            if (!candidate.isEmpty() && logger.isDebugEnabled()) {
-                logger.debug("Illegal incoming traceId header ignored, header=" + headerName);
-            }
+        String candidate = TraceContext.sanitizeTraceId(header);
+        if (candidate != null) {
+            return candidate;
+        }
+        if (header != null && !header.isBlank() && logger.isDebugEnabled()) {
+            // 注意：这里的 logger 是 commons-logging 的 Log，不支持 {} 占位符
+            logger.debug("Illegal incoming traceId header ignored, header=" + headerName);
         }
         return TraceContext.generateTraceId();
     }

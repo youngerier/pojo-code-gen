@@ -12,10 +12,14 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -23,10 +27,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -139,8 +145,15 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<Response<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(Response.error(HttpStatus.METHOD_NOT_ALLOWED.value(), "请求方法不支持: " + ex.getMethod()));
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+        Set<HttpMethod> supported = ex.getSupportedHttpMethods();
+        if (supported != null && !supported.isEmpty()) {
+            // RFC 7231 要求 405 必须携带 Allow 头。Spring 的 DefaultHandlerExceptionResolver 会设置，
+            // 但本处理器优先级更高，必须自己补上
+            builder.allow(supported.toArray(new HttpMethod[0]));
+        }
+        return builder.body(Response.error(HttpStatus.METHOD_NOT_ALLOWED.value(),
+                "请求方法不支持: " + ex.getMethod()));
     }
 
     /**
@@ -158,6 +171,26 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Response<Void>> handleException(Exception ex) {
+        // Spring 自带的 ErrorResponse（ResponseStatusException、HttpMediaTypeNotSupportedException(415)、
+        // HttpMediaTypeNotAcceptableException(406)、AsyncRequestTimeoutException(503)、
+        // MissingServletRequestPartException(400) 等）自带语义正确的状态码与响应头。
+        // 本处理器由 ExceptionHandlerExceptionResolver 执行，优先级高于
+        // ResponseStatusExceptionResolver 与 DefaultHandlerExceptionResolver，
+        // 若不在这里让位，消费方 throw new ResponseStatusException(CONFLICT) 会被统一吞成 500。
+        if (ex instanceof ErrorResponse errorResponse) {
+            HttpStatusCode statusCode = errorResponse.getStatusCode();
+            log.warn("Request rejected with status {}: {}", statusCode.value(), ex.getMessage());
+            ResponseEntity.BodyBuilder builder = ResponseEntity.status(statusCode);
+            errorResponse.getHeaders().forEach((name, values) ->
+                    values.forEach(value -> builder.header(name, value)));
+            // ResponseStatusException 的 reason 是调用方显式写给客户端看的，优先保留；
+            // 其余 ErrorResponse（415/406/503 等）按状态码映射内置文案
+            String message = ex instanceof ResponseStatusException statusException
+                    && StringUtils.hasText(statusException.getReason())
+                    ? statusException.getReason()
+                    : statusMessage(statusCode);
+            return builder.body(Response.error(statusCode.value(), message));
+        }
         log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Response.error(resolveCodeMessage(
@@ -239,5 +272,27 @@ public class GlobalExceptionHandler {
         } catch (NumberFormatException e) {
             return HttpStatus.INTERNAL_SERVER_ERROR.value();
         }
+    }
+
+    /**
+     * 把 HTTP 状态码映射到内置异常码文案；未覆盖的状态码回退到 Spring 的 reason phrase。
+     */
+    private String statusMessage(HttpStatusCode statusCode) {
+        DefaultExceptionCode mapped = switch (statusCode.value()) {
+            case 400 -> DefaultExceptionCode.BAD_REQUEST;
+            case 401 -> DefaultExceptionCode.UNAUTHORIZED;
+            case 403 -> DefaultExceptionCode.FORBIDDEN;
+            case 404 -> DefaultExceptionCode.NOT_FOUND;
+            case 409 -> DefaultExceptionCode.CONFLICT;
+            case 413 -> DefaultExceptionCode.PAYLOAD_TOO_LARGE;
+            case 429 -> DefaultExceptionCode.TOO_MANY_REQUESTS;
+            case 503 -> DefaultExceptionCode.SERVICE_UNAVAILABLE;
+            default -> null;
+        };
+        if (mapped != null) {
+            return resolveCodeMessage(mapped, null, requestLocale());
+        }
+        HttpStatus resolved = HttpStatus.resolve(statusCode.value());
+        return resolved != null ? resolved.getReasonPhrase() : String.valueOf(statusCode.value());
     }
 }

@@ -1,7 +1,5 @@
 package io.github.youngerier.support.trace;
 
-import org.slf4j.MDC;
-
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -52,7 +50,7 @@ public final class TracePropagator {
      * @param task    业务任务
      */
     public static void run(Function<String, String> carrier, Runnable task) {
-        Map<String, String> previous = MDC.getCopyOfContextMap();
+        Map<String, String> previous = TraceContext.snapshot();
         extract(carrier);
         try {
             task.run();
@@ -62,19 +60,13 @@ public final class TracePropagator {
     }
 
     /**
-     * 从载体读取 traceId，去除首尾空白，空白内容视为不存在。
+     * 从载体读取 traceId：去除首尾空白并做白名单校验（同 {@link TraceContext#sanitizeTraceId(String)}），
+     * 空白或非法内容（换行、控制字符、超长）一律视为不存在，由调用方改为生成新 id。
      *
      * @param carrier 载体读取函数
-     * @return traceId，不存在时返回 {@code null}
+     * @return traceId，不存在或非法时返回 {@code null}
      */
     public static String resolve(Function<String, String> carrier) {
-        String traceId = carrier.apply(TraceContext.TRACE_ID);
-        if (traceId != null) {
-            traceId = traceId.trim();
-            if (traceId.isEmpty()) {
-                return null;
-            }
-        }
-        return traceId;
+        return TraceContext.sanitizeTraceId(carrier.apply(TraceContext.TRACE_ID));
     }
 }

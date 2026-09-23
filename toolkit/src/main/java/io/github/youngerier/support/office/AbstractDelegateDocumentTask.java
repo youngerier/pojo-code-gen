@@ -74,8 +74,13 @@ public abstract class AbstractDelegateDocumentTask implements OfficeDocumentTask
         try {
             updateState(OfficeTaskState.EXECUTING);
             doTask();
-            updateState(OfficeTaskState.COMPLETED);
+            // 只在任务未被外部同步器置为终态时才推进到 COMPLETED，
+            // 否则会覆盖 CANCELED / INTERRUPT / FAILED
+            if (!OfficeTaskState.isFinished(getState())) {
+                updateState(OfficeTaskState.COMPLETED);
+            }
         } catch (Throwable throwable) {
+            log.error("office document task failed, id = {}, state = {}", getId(), getState(), throwable);
             updateState(OfficeTaskState.FAILED);
             throw throwable;
         }

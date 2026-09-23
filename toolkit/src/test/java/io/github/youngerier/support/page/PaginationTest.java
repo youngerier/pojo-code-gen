@@ -72,4 +72,54 @@ class PaginationTest {
                 io.github.youngerier.support.enums.QueryOrderType.ASC});
         assertTrue(query.requireOrderBy());
     }
+
+    /**
+     * 回归：页码/页大小必须在下界处拦截。
+     * MyBatis-Flex 的 Page 要求 {@code pageNumber >= 1}、{@code pageSize > 0}，
+     * 否则会在执行查询时抛异常并被兜底成 HTTP 500。
+     */
+    @Test
+    void rejectsNonPositivePageAndSize() {
+        TestQuery query = new TestQuery();
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.setQueryPage(0));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.setQueryPage(-1));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.setQuerySize(0));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.setQuerySize(-1));
+    }
+
+    /**
+     * 回归：pageNumber/pageSize 别名必须走同一套校验，不能绕过下界检查。
+     */
+    @Test
+    void trailingAliasesApplyTheSameValidation() {
+        TestQuery query = new TestQuery();
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.setPageNumber(0));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.setPageSize(0));
+
+        query.setPageNumber(2);
+        query.setPageSize(10);
+        assertEquals(2, query.getQueryPage());
+        assertEquals(10, query.getQuerySize());
+    }
+
+    @Test
+    void acceptsBoundaryValues() {
+        TestQuery query = new TestQuery();
+
+        query.setQueryPage(1);
+        query.setQuerySize(1);
+        assertEquals(1, query.getQueryPage());
+        assertEquals(1, query.getQuerySize());
+
+        query.setQuerySize(AbstractPageQuery.MAX_QUERY_SIZE);
+        assertEquals(AbstractPageQuery.MAX_QUERY_SIZE, query.getQuerySize());
+    }
 }

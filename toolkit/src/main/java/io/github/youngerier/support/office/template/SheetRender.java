@@ -25,14 +25,21 @@ record SheetRender(int index, String sheetName, List<SheetDataSupplier> supplier
     }
 
     void render(ExcelWriter excelWriter) {
-        List<List<String>> data = suppliers.stream()
+        boolean cellMode = CollectionUtils.firstElement(suppliers) instanceof SheetDataSupplier.CellSupplier;
+        List<List<String>> data = new ArrayList<>();
+        // 表头行不参与「列转置」：cells 模式下原实现会把表头当成第一列数据处理，
+        // 导致表头错位成数据
+        for (SheetDataSupplier supplier : suppliers) {
+            if (supplier.hasTitleRow()) {
+                data.add(supplier.titleRow());
+            }
+        }
+        List<List<String>> body = suppliers.stream()
                 .map(SheetDataSupplier::get)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
-        if (CollectionUtils.firstElement(suppliers) instanceof SheetDataSupplier.CellSupplier) {
-            // 列写入模式，列转行
-            data = convertColumnsToRows(data);
-        }
+        data.addAll(cellMode ? convertColumnsToRows(body) : body);
+
         WriteSheet sheet = EasyExcelFactory.writerSheet(sheetName).sheetNo(index).build();
         excelWriter.write(data, sheet);
     }

@@ -47,7 +47,20 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> {
      */
     private QueryOrderType[] orderTypes;
 
+    public void setQueryPage(@NonNull Integer queryPage) {
+        if (queryPage == null || queryPage < 1) {
+            // 在此处拦截：MyBatis-Flex 的 Page 要求 pageNumber >= 1，
+            // 否则会在执行查询时抛 IllegalArgumentException 并被兜底成 HTTP 500
+            throw new IllegalArgumentException("查询页码必须大于等于 1");
+        }
+        this.queryPage = queryPage;
+    }
+
     public void setQuerySize(@NonNull Integer querySize) {
+        if (querySize == null || querySize < 1) {
+            // 同理：Page 要求 pageSize > 0
+            throw new IllegalArgumentException("查询大小必须大于等于 1");
+        }
         if (querySize > MAX_QUERY_SIZE) {
             throw new IllegalArgumentException("查询大小不能超过" + MAX_QUERY_SIZE);
         }
@@ -67,7 +80,8 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> {
     }
 
     public void setPageNumber(Integer pageNumber) {
-        this.queryPage = pageNumber;
+        // 必须委托给 setQueryPage：直接赋值会绕过页码下界校验
+        setQueryPage(pageNumber);
     }
 
     /**

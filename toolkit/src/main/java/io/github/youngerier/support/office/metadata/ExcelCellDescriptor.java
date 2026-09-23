@@ -42,7 +42,10 @@ public final class ExcelCellDescriptor {
     private ExcelCellDescriptor(String title, String expression, Collection<ExcelCellAttribute<?>> attributes) {
         this.title = title;
         this.expression = expression;
-        this.attributes = attributes.stream().collect(Collectors.toMap(ExcelCellAttribute::getClass, Function.identity()));
+        // 按实现类为 key 收集；同类属性后者覆盖前者（如重复调用 width(...)），
+        // 不能使用无 merge 的 toMap，否则会抛不可读的 IllegalStateException: Duplicate key
+        this.attributes = attributes.stream().collect(Collectors.toMap(
+                ExcelCellAttribute::getClass, Function.identity(), (previous, current) -> current));
     }
 
     @NotNull
@@ -124,7 +127,8 @@ public final class ExcelCellDescriptor {
         }
 
         public <T> ExcelCellDescriptorBuilder parser(Parser<T> parser) {
-            AssertUtils.isTrue(attributes.stream().noneMatch(CellPrinter.class::isInstance), "Parser already exists");
+            // 原实现误判为 CellPrinter：连续两次 parser(...) 不会报错，而 parser(...).printer(...) 会误报
+            AssertUtils.isTrue(attributes.stream().noneMatch(CellParser.class::isInstance), "Parser already exists");
             this.attributes.add(new CellParser(parser));
             return this;
         }

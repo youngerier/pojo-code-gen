@@ -119,14 +119,22 @@ public final class ExcelCellQuickBuilder {
 
     @SuppressWarnings("unchecked")
     private static Printer<?> createDefaultPrinterByClass(Class<?> clazz) {
-        if (clazz.isAssignableFrom(DescriptiveEnum.class)) {
+        // 注意 isAssignableFrom 的方向：要判断的是「目标类型是否实现了 DescriptiveEnum / Collection」。
+        // 原实现写成 clazz.isAssignableFrom(DescriptiveEnum.class)，对 Object/Serializable 之类的
+        // 超类型恒为 true，会把整个 DTO 的构建带进 ofEnum 并抛异常；对真实枚举字段又恒为 false，
+        // 于是枚举永远打印 name() 而不是 getDesc()。
+        if (clazz.isEnum() && DescriptiveEnum.class.isAssignableFrom(clazz)) {
             return DefaultFormatterFactory.ofEnum((Class<? extends DescriptiveEnum>) clazz);
         }
         if (Objects.equals(clazz, Boolean.class) || Objects.equals(clazz, boolean.class)) {
             return DefaultFormatterFactory.ofBool("是", "否");
         }
-        if (Objects.equals(clazz, Date.class) || Objects.equals(clazz, LocalDateTime.class)) {
+        if (Objects.equals(clazz, LocalDateTime.class)) {
             return DefaultFormatterFactory.ofDateTime(DateFormatPatterns.YYYY_MM_DD_HH_MM_SS);
+        }
+        if (Objects.equals(clazz, Date.class)) {
+            // ofDateTime 只能处理 TemporalAccessor，把 java.util.Date 交给它会在 print 时 ClassCastException
+            return DefaultFormatterFactory.ofDate(DateFormatPatterns.YYYY_MM_DD_HH_MM_SS);
         }
         if (Objects.equals(clazz, LocalDate.class)) {
             return DefaultFormatterFactory.ofDateTime(DateFormatPatterns.YYYY_MM_DD);
@@ -134,7 +142,7 @@ public final class ExcelCellQuickBuilder {
         if (clazz.isArray()) {
             return DefaultFormatterFactory.ofArray();
         }
-        if (clazz.isAssignableFrom(Collection.class)) {
+        if (Collection.class.isAssignableFrom(clazz)) {
             return DefaultFormatterFactory.ofCollection();
         }
         return null;

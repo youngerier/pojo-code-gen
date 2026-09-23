@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class TraceSendMessageHookTest {
 
@@ -35,14 +36,16 @@ class TraceSendMessageHookTest {
     }
 
     @Test
-    void generatesTraceIdWhenMdcEmpty() {
+    void generatesTraceIdWithoutPollutingCallerMdc() {
         Message message = new Message("test-topic", "hello".getBytes());
 
         hook.sendMessageBefore(contextWith(message));
 
         String traceId = message.getUserProperty(TraceContext.TRACE_ID);
         assertEquals(32, traceId.length());
-        assertEquals(traceId, TraceContext.getTraceId());
+        // 不得把新生成的 traceId 写回调用线程 MDC：本 Hook 在业务调用线程上执行，
+        // 一旦写回，线程池复用时该线程后续发送的所有消息都会共用同一个 traceId
+        assertNull(TraceContext.getTraceId());
     }
 
     @Test

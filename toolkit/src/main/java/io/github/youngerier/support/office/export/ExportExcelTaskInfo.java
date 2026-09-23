@@ -1,5 +1,6 @@
 package io.github.youngerier.support.office.export;
 
+import io.github.youngerier.support.AssertUtils;
 import io.github.youngerier.support.office.ExcelDocumentWriter;
 import io.github.youngerier.support.office.OfficeDocumentTaskInfo;
 import io.github.youngerier.support.office.OfficeTaskState;
@@ -92,10 +93,19 @@ public class ExportExcelTaskInfo implements OfficeDocumentTaskInfo {
             this.beginTime.set(LocalDateTime.now());
         }
         if (OfficeTaskState.isFinished(newState)) {
-            if (Objects.equals(newState, OfficeTaskState.COMPLETED)) {
-                writer.finish();
+            try {
+                if (Objects.equals(newState, OfficeTaskState.COMPLETED)) {
+                    writer.finish();
+                } else {
+                    // 失败/中断/取消路径同样必须释放 writer 持有的 workbook 与输出流
+                    writer.abort();
+                }
+            } finally {
+                // 即使落盘/释放抛异常，也要推进状态与结束时间，否则任务会永远停在 EXECUTING
+                this.endTime.set(LocalDateTime.now());
+                this.state.set(newState);
             }
-            this.endTime.set(LocalDateTime.now());
+            return;
         }
         this.state.set(newState);
     }
@@ -113,6 +123,8 @@ public class ExportExcelTaskInfo implements OfficeDocumentTaskInfo {
     }
 
     public static ExportExcelTaskInfo of(Object id, String name, ExcelDocumentWriter writer, int batchSize) {
+        AssertUtils.notNull(writer, "writer must not be null");
+        AssertUtils.isTrue(batchSize > 0, "batchSize must be greater than 0, but was {}", batchSize);
         return ExportExcelTaskInfo.builder()
                 .id(String.valueOf(id))
                 .name(name)

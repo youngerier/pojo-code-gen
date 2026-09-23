@@ -47,15 +47,25 @@ public class SpringExpressionExportExcelTask extends AbstractDelegateDocumentTas
                 if (state != null) {
                     updateState(state);
                 }
-                List rows = fetcher.fetch(queryPage, taskInfo.getFetchSize());
-                this.addRows(rows);
+                // 终态判断必须放在取数之前：原实现先 fetch + addRows 再判断，
+                // 任务被取消时仍会多拉取并写入一整页数据
                 if (OfficeTaskState.isFinished(getState())) {
-                    log.info("excel task is finished，id = {}, state = {}", getId(), getState());
+                    log.info("excel task is finished, id = {}, state = {}", getId(), getState());
                     return;
                 }
+                List rows = fetcher.fetch(queryPage, taskInfo.getFetchSize());
+                if (rows == null) {
+                    throw new IllegalStateException(
+                            "ExportExcelDataFetcher.fetch must not return null, page = " + queryPage);
+                }
+                this.addRows(rows);
                 if (rows.size() < taskInfo.getFetchSize()) {
                     // 处理完成
                     break;
+                }
+                if (queryPage >= ExportExcelDataFetcher.MAX_FETCH_PAGES) {
+                    throw new IllegalStateException("导出行数超过安全上限 " + ExportExcelDataFetcher.MAX_FETCH_PAGES
+                            + " 页，请检查 ExportExcelDataFetcher 是否忽略了 page 参数");
                 }
                 queryPage++;
             }

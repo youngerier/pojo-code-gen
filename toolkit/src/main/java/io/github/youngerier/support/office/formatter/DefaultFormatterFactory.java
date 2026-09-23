@@ -12,6 +12,8 @@ import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
 import java.text.ParseException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.*;
@@ -53,8 +55,7 @@ public final class DefaultFormatterFactory {
     }
 
     public static Formatter<TemporalAccessor> ofDateTime(String pattern) {
-        DateTimeFormatter formatter = DEFAULT_FORMATTERS.containsKey(pattern) ? DEFAULT_FORMATTERS.get(pattern) :
-                DateTimeFormatter.ofPattern(pattern);
+        DateTimeFormatter formatter = resolveDateTimeFormatter(pattern);
         return new Formatter<TemporalAccessor>() {
 
             @Override
@@ -68,6 +69,44 @@ public final class DefaultFormatterFactory {
                 return formatter.format(time);
             }
         };
+    }
+
+    /**
+     * {@link java.util.Date} 专用 formatter。
+     *
+     * <p>{@link #ofDateTime(String)} 只能处理 {@link TemporalAccessor}，
+     * 把 {@code java.util.Date} 字段交给它会在 print 时抛 {@code ClassCastException}。
+     * 这里通过 {@link ZoneId#systemDefault()} 做转换，保持 {@link DateTimeFormatter} 的线程安全性。
+     *
+     * @param pattern 日期格式
+     */
+    public static Formatter<java.util.Date> ofDate(String pattern) {
+        DateTimeFormatter formatter = resolveDateTimeFormatter(pattern);
+        return new Formatter<java.util.Date>() {
+
+            @Override
+            public java.util.Date parse(String text, Locale locale) throws ParseException {
+                if (StringUtils.isEmpty(text)) {
+                    return null;
+                }
+                // 注意：pattern 需包含时间部分，否则请改用 ofDateTime 或自行解析
+                return java.util.Date.from(LocalDateTime.parse(text, formatter)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant());
+            }
+
+            @Override
+            @NonNull
+            public String print(@NonNull java.util.Date date, @Nullable Locale locale) {
+                return formatter.format(date.toInstant().atZone(ZoneId.systemDefault()));
+            }
+        };
+    }
+
+    private static DateTimeFormatter resolveDateTimeFormatter(String pattern) {
+        return DEFAULT_FORMATTERS.containsKey(pattern)
+                ? DEFAULT_FORMATTERS.get(pattern)
+                : DateTimeFormatter.ofPattern(pattern);
     }
 
     public static Formatter<Object[]> ofArray() {

@@ -64,15 +64,30 @@ public record ExcelTemplateRender(Path filepath, List<WriteHandler> writeHandler
      * 渲染 excel
      */
     public void render() {
-        ExcelWriterBuilder builder = EasyExcelFactory.write(newOutputStream());
-        for (WriteHandler writeHandler : writeHandlers) {
-            builder.registerWriteHandler(writeHandler);
-        }
-        try (ExcelWriter writer = builder.build()) {
-            for (SheetRender render : sheetRenders) {
-                render.render(writer);
+        OutputStream output = newOutputStream();
+        try {
+            ExcelWriterBuilder builder = EasyExcelFactory.write(output);
+            for (WriteHandler writeHandler : writeHandlers) {
+                builder.registerWriteHandler(writeHandler);
             }
-            writer.finish();
+            try (ExcelWriter writer = builder.build()) {
+                for (SheetRender render : sheetRenders) {
+                    render.render(writer);
+                }
+                writer.finish();
+            }
+        } finally {
+            // EasyExcel 默认 autoCloseStream=true 已在 finish 时关闭该流；
+            // 这里兜底，确保注册 handler / build 抛异常时输出流不会泄漏
+            closeQuietly(output);
+        }
+    }
+
+    private static void closeQuietly(OutputStream output) {
+        try {
+            output.close();
+        } catch (IOException ignored) {
+            // 关闭失败无需向上传播，避免掩盖真实异常
         }
     }
 
@@ -198,6 +213,7 @@ public record ExcelTemplateRender(Path filepath, List<WriteHandler> writeHandler
         }
 
         public ExcelTemplateRenderBuilder fetchSize(int fetchSize) {
+            AssertUtils.isTrue(fetchSize > 0, "fetchSize must be greater than 0, but was {}", fetchSize);
             this.fetchSize.set(fetchSize);
             return this;
         }

@@ -103,6 +103,34 @@ throw BaseException.friendly("下游返回了非预期结构");
 因此 `QueryOrderField.getOrderField()` 必须返回可信的、编译期确定的列名（推荐实现为封闭枚举）。
 库内另有标识符白名单作为兜底，非法字段抛 400 业务异常。
 
+## 代码生成
+
+在实体类上标注 `@GenModel`，然后用插件生成 DTO、Request、Response、Query、Service、
+ServiceImpl、Mapper、Repository、MapStruct 转换器与 Controller：
+
+```xml
+<plugin>
+    <groupId>io.github.youngerier</groupId>
+    <artifactId>generator-maven-plugin</artifactId>
+    <executions>
+        <execution>
+            <id>generate-code</id>
+            <phase>process-classes</phase>
+            <goals><goal>generate</goal></goals>
+        </execution>
+    </executions>
+    <configuration>
+        <scanPackages>
+            <package>com.acme.order.entity</package>
+            <package>com.acme.user.entity</package>
+        </scanPackages>
+    </configuration>
+</plugin>
+```
+
+`scanPackages` 是**真正的过滤器**：只有包名等于或嵌套于配置包之下的 `@GenModel` 类会被生成，
+编译期 classpath 上的依赖 jar 不会被顺带扫描。可配置多个包，均包含其子包。
+
 ## 构建
 
 ```bash

@@ -104,6 +104,16 @@
 | 导出表头 | 空标题被过滤导致表头整体左移一列；cells 模式表头被当数据转置 | 表头列数严格对齐，且不参与转置 |
 | HTTP 错误映射 | 兜底 `@ExceptionHandler(Exception.class)` 把 `ResponseStatusException`、415、406、503 一律吞成 500 | 按 `ErrorResponse` 的语义返回真实状态码，405 补 `Allow` 头 |
 
+## 4.1 代码生成器的行为变更
+
+| 变更 | 之前 | 现在 |
+|---|---|---|
+| `scanPackages` 过滤 | **完全不生效**：包名被交给 `Reflections` 的 `forPackages`，但该配置不影响 `getTypesAnnotatedWith`，插件实际扫描整个编译期 classpath（含依赖 jar），把其中的 `@GenModel` 类一并生成——即使包名配成不存在的值也一样 | 以显式包名前缀白名单作为权威过滤：只生成「包名等于或嵌套于」配置包之下的 `@GenModel` 类；配置了不存在的包则返回空 |
+| `scanPackages` 语义 | — | 逗号分隔多个包；**包含子包**；为空/全空白时告警并跳过生成 |
+| 生成顺序 | 取决于 `HashSet` 迭代顺序，输出不稳定 | 按类名排序，输出可复现 |
+| 测试源码中的实体 | 符号求解器只注册 `src/main/java`，`src/test/java` 下的实体其同包类型解析不到，生成代码缺少 import 而无法编译 | 注册「真正包含该源文件」的源码根（`src/main/java` 或 `src/test/java`） |
+
+
 ## 5. 迁移步骤
 
 1. 升级 `generator-maven-plugin` 与 `toolkit-*` 到新版本。

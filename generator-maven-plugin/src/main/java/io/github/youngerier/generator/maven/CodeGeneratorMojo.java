@@ -2,7 +2,6 @@ package io.github.youngerier.generator.maven;
 
 import io.github.youngerier.generator.GeneratorConfig;
 import io.github.youngerier.generator.GeneratorEngine;
-import io.github.youngerier.generator.annotation.GenModel;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -11,17 +10,12 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
-import org.reflections.Reflections;
-import org.reflections.scanners.Scanners;
-import org.reflections.util.ConfigurationBuilder;
 
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Mojo(name = "generate", defaultPhase = LifecyclePhase.PROCESS_CLASSES, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class CodeGeneratorMojo extends AbstractMojo {
@@ -35,7 +29,9 @@ public class CodeGeneratorMojo extends AbstractMojo {
     private MavenProject project;
 
     /**
-     * List of packages to scan for POJOs.
+     * List of packages to scan for POJOs. Only {@code @GenModel} classes whose package equals
+     * or is nested under one of these packages are generated — the compile classpath itself
+     * (including dependency jars) is never treated as a match.
      */
     @Parameter(property = "pojo.codegen.scanPackages", required = true)
     private List<String> scanPackages;
@@ -109,10 +105,10 @@ public class CodeGeneratorMojo extends AbstractMojo {
         ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             List<URL> urls = new ArrayList<>();
-            
+
             // 获取编译classpath元素并转换为URL
             List<String> classpathElements = getProjectClasspathElements();
-            
+
             for (String element : classpathElements) {
                 try {
                     File file = new File(element);
@@ -123,7 +119,7 @@ public class CodeGeneratorMojo extends AbstractMojo {
                     getLog().warn("Failed to convert classpath element to URL: " + element, e);
                 }
             }
-            
+
             // 如果没有找到任何URL，至少添加当前项目的输出目录
             if (urls.isEmpty()) {
                 File outputDir = new File(project.getBuild().getOutputDirectory());
@@ -131,25 +127,21 @@ public class CodeGeneratorMojo extends AbstractMojo {
                     urls.add(outputDir.toURI().toURL());
                 }
             }
-            
+
             // 创建自定义类加载器
             URLClassLoader customClassLoader = new URLClassLoader(
-                urls.toArray(new URL[0]), 
+                urls.toArray(new URL[0]),
                 this.getClass().getClassLoader()
             );
-            
+
             // 设置线程上下文类加载器
             Thread.currentThread().setContextClassLoader(customClassLoader);
 
-            // 使用Reflections扫描标注了@GenModel的类
-            Reflections reflections = new Reflections(new ConfigurationBuilder()
-                    .setUrls(urls)
-                    .setScanners(Scanners.TypesAnnotated)
-                    .forPackages(scanPackages.toArray(new String[0]))
-                    .addClassLoaders(customClassLoader));
-
-            Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(GenModel.class);
-            List<Class<?>> result = new ArrayList<>(annotatedClasses);
+            // 按配置的包扫描 @GenModel；包过滤由 PojoClassScanner 以白名单方式保证，
+            // 不能依赖 ConfigurationBuilder.forPackages（实测不生效）
+            PojoClassScanner scanner = new PojoClassScanner(scanPackages);
+            getLog().info("Scanning packages: " + scanner.configuredPackages());
+            List<Class<?>> result = new ArrayList<>(scanner.scan(urls, customClassLoader));
             getLog().info("Found " + result.size() + " classes annotated with @GenModel: " + result);
             return result;
         } catch (Exception e) {

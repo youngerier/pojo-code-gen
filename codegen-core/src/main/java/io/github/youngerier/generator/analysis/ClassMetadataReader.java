@@ -65,6 +65,7 @@ public final class ClassMetadataReader {
             ResolvedType resolvedType = variable.getType().resolve();
             fieldInfo.setFullType(resolvedType.describe());
             fieldInfo.setType(TypeMapper.map(resolvedType));
+            fieldInfo.setColumn(isMappedColumn(resolvedType));
         } catch (Exception e) {
             // 依赖缺失导致无法求解时，保留源码中的类型写法：先尝试剥离泛型参数生成原始类型
             String writtenType = variable.getTypeAsString();
@@ -72,6 +73,8 @@ public final class ClassMetadataReader {
                     fieldInfo.getName(), writtenType);
             fieldInfo.setFullType(writtenType);
             fieldInfo.setType(lenientClassName(writtenType));
+            // 无法求解时按源码写法兜底识别容器类型
+            fieldInfo.setColumn(!isContainerTypeName(writtenType));
         }
 
         fieldInfo.setComment(Comments.extract(fieldDeclaration));
@@ -135,6 +138,7 @@ public final class ClassMetadataReader {
                 ResolvedType fieldType = field.getType();
                 fieldInfo.setFullType(fieldType.describe());
                 fieldInfo.setType(TypeMapper.map(fieldType));
+                fieldInfo.setColumn(isMappedColumn(fieldType));
                 metadata.getFields().add(fieldInfo);
             }
         } catch (Exception e) {
@@ -149,4 +153,49 @@ public final class ClassMetadataReader {
             return TypeName.OBJECT;
         }
     }
+
+    /**
+     * 判断字段是否为 MyBatis-Flex APT 会生成 TableDef 列的字段：
+     * {@code Collection} / {@code Map} 及其子类型不是列，也不能作为等值查询条件。
+     * 祖先求解失败时保持「是列」假设——若 APT 实际未生成该列，编译期会快速暴露。
+     */
+    static boolean isMappedColumn(ResolvedType type) {
+        if (!type.isReference()) {
+            return true;
+        }
+        ResolvedReferenceType reference = type.asReferenceType();
+        if (isContainer(reference.getQualifiedName())) {
+            return false;
+        }
+        try {
+            for (ResolvedReferenceType ancestor : reference.getAllAncestors()) {
+                if (isContainer(ancestor.getQualifiedName())) {
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("无法求解字段类型祖先，按映射列处理: {}", type.describe(), e);
+        }
+        return true;
+    }
+
+    private static boolean isContainer(String qualifiedName) {
+        return "java.util.Collection".equals(qualifiedName) || "java.util.Map".equals(qualifiedName);
+    }
+
+    /**
+     * 类型无法求解时按源码写法兜底识别 JDK 容器类型；自定义容器此时识别不出，
+     * 编译期仍会快速失败。
+     */
+    private static boolean isContainerTypeName(String writtenType) {
+        String raw = writtenType.replaceAll("<.*>", "").trim();
+        String simple = raw.substring(raw.lastIndexOf('.') + 1);
+        return raw.startsWith("java.util.") && JDK_CONTAINER_SIMPLE_NAMES.contains(simple);
+    }
+
+    private static final Set<String> JDK_CONTAINER_SIMPLE_NAMES = Set.of(
+            "Collection", "List", "ArrayList", "LinkedList",
+            "Set", "HashSet", "LinkedHashSet", "TreeSet",
+            "Queue", "Deque", "ArrayDeque",
+            "Map", "HashMap", "LinkedHashMap", "TreeMap", "SortedMap", "NavigableMap");
 }

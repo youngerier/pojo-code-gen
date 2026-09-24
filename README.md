@@ -106,30 +106,60 @@ throw BaseException.friendly("下游返回了非预期结构");
 ## 代码生成
 
 在实体类上标注 `@GenModel`，然后用插件生成 DTO、Request、Response、Query、Service、
-ServiceImpl、Mapper、Repository、MapStruct 转换器与 Controller：
+ServiceImpl、Mapper、Repository、MapStruct 转换器与 Controller。插件默认绑定
+`generate-sources` 阶段，**直接读 `.java` 源码**生成，产物在同一次构建中随主代码一起编译，
+不需要先编译实体、也不需要任何子进程：
 
 ```xml
+<!-- 实体需要 import @GenModel，注解位于 codegen-core -->
+<dependency>
+    <groupId>io.github.youngerier</groupId>
+    <artifactId>codegen-core</artifactId>
+</dependency>
+
 <plugin>
     <groupId>io.github.youngerier</groupId>
     <artifactId>generator-maven-plugin</artifactId>
+    <version>${toolkit.version}</version>
     <executions>
         <execution>
             <id>generate-code</id>
-            <phase>process-classes</phase>
             <goals><goal>generate</goal></goals>
         </execution>
     </executions>
     <configuration>
         <scanPackages>
-            <package>com.acme.order.entity</package>
-            <package>com.acme.user.entity</package>
+            <scanPackage>com.acme.order.entity</scanPackage>
+            <scanPackage>com.acme.user.entity</scanPackage>
         </scanPackages>
+        <!-- 可选：默认 target/generated-sources/pojo-codegen -->
+        <outputDir>${project.build.directory}/generated-sources/pojo-codegen</outputDir>
     </configuration>
 </plugin>
 ```
 
 `scanPackages` 是**真正的过滤器**：只有包名等于或嵌套于配置包之下的 `@GenModel` 类会被生成，
 编译期 classpath 上的依赖 jar 不会被顺带扫描。可配置多个包，均包含其子包。
+也可以命令行直接调用（默认前缀由 artifactId 推导为 `generator`）：
+`mvn generator:generate -Dpojo.codegen.scanPackages=com.acme.user.entity`。
+
+实体需要是 MyBatis-Flex 实体（`@Table` + `@Id`）：生成的 Repository 引用 APT 产出的
+`XxxTableRefs`，主键字段的真实类型会传播到 Controller/Service 的 `id` 参数。
+Javadoc 注释会原样成为生成类/字段的注释。每个实体产出 10 个文件，
+以实体包的父包为根（`com.acme.user.entity.User` → 根包 `com.acme.user`）：
+
+| 包 | 产物 |
+|---|---|
+| `model.dto` | `UserDTO` |
+| `model.request` | `UserRequest`、`UserQuery` |
+| `model.response` | `UserResponse` |
+| `service` / `service.impl` | `UserService` / `UserServiceImpl` |
+| `dal.repository` / `dal.mapper` | `UserRepository` / `UserMapper` |
+| `convertor` | `UserConvertor`（MapStruct） |
+| `controller` | `UserController` |
+
+生成代码依赖 `toolkit-core`、`toolkit-mybatis-flex`、MyBatis-Flex、Spring Web 与 MapStruct，
+确保这些依赖及 Lombok / MapStruct / MyBatis-Flex 注解处理器在编译期可用。
 
 ## 构建
 

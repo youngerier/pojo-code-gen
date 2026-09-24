@@ -48,5 +48,11 @@ public class ClassMetadata {
         private String fullType;
         private String comment;
         private boolean primaryKey;
+
+        /**
+         * 是否为 MyBatis-Flex 的映射列：{@code Collection}/{@code Map} 类型字段
+         * APT 不会生成 TableDef 列，也不能作为等值查询条件。
+         */
+        private boolean column = true;
     }
 }

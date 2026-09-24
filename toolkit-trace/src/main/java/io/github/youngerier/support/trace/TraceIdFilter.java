@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -20,6 +21,7 @@ import java.util.Map;
  * 支持异步 Servlet（Callable / DeferredResult 等）：初始 REQUEST dispatch 的 traceId
  * 会存入 request 属性，ASYNC dispatch 时在新的执行线程上恢复 MDC。
  */
+@Slf4j
 public class TraceIdFilter extends OncePerRequestFilter {
 
     /**
@@ -82,9 +84,8 @@ public class TraceIdFilter extends OncePerRequestFilter {
         if (candidate != null) {
             return candidate;
         }
-        if (header != null && !header.isBlank() && logger.isDebugEnabled()) {
-            // 注意：这里的 logger 是 commons-logging 的 Log，不支持 {} 占位符
-            logger.debug("Illegal incoming traceId header ignored, header=" + headerName);
+        if (header != null && !header.isBlank() && log.isDebugEnabled()) {
+            log.debug("Illegal incoming traceId header ignored, header={}", headerName);
         }
         return TraceContext.generateTraceId();
     }

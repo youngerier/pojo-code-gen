@@ -27,6 +27,9 @@ public class ServiceGenerator extends BaseGenerator {
         String entityName = metadata.getClassName();
         String dtoParameter = metadata.getCamelClassName() + "DTO";
         ClassName dtoType = packages.dto();
+        // 主键类型以 @Id 字段实际类型为准；未标注 @Id 时回退 Long
+        ClassMetadata.FieldInfo primaryKey = metadata.getPrimaryKey();
+        TypeName idType = primaryKey != null ? primaryKey.getType() : TypeName.LONG;
 
         TypeSpec.Builder builder = TypeSpec.interfaceBuilder(getClassName())
                 .addModifiers(Modifier.PUBLIC);
@@ -43,7 +46,7 @@ public class ServiceGenerator extends BaseGenerator {
         builder.addMethod(MethodSpec.methodBuilder("get" + entityName + "ById")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(dtoType)
-                .addParameter(TypeName.LONG, "id")
+                .addParameter(idType, "id")
                 .addJavadoc("根据ID查询$L\n", entityName)
                 .addJavadoc("@param id 主键ID\n")
                 .addJavadoc("@return 对应的$L对象\n", entityName)
@@ -68,7 +71,7 @@ public class ServiceGenerator extends BaseGenerator {
         builder.addMethod(MethodSpec.methodBuilder("update" + entityName)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(dtoType)
-                .addParameter(TypeName.LONG, "id")
+                .addParameter(idType, "id")
                 .addParameter(dtoType, dtoParameter)
                 .addJavadoc("更新$L\n", entityName)
                 .addJavadoc("@param id 主键ID\n")
@@ -79,7 +82,7 @@ public class ServiceGenerator extends BaseGenerator {
         builder.addMethod(MethodSpec.methodBuilder("delete" + entityName)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(TypeName.BOOLEAN)
-                .addParameter(TypeName.LONG, "id")
+                .addParameter(idType, "id")
                 .addJavadoc("删除$L\n", entityName)
                 .addJavadoc("@param id 主键ID\n")
                 .addJavadoc("@return 是否删除成功\n")

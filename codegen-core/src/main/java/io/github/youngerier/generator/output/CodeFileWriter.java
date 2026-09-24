@@ -23,13 +23,12 @@ import java.util.Arrays;
 @Slf4j
 public class CodeFileWriter {
 
-    private static final Path SRC_MAIN_JAVA = Paths.get("src", "main", "java");
     private static final String DEFAULT_INDENT = "    ";
 
     private final Path sourceOutputRoot;
 
     public CodeFileWriter(String baseOutputDir) {
-        this.sourceOutputRoot = Paths.get(baseOutputDir).resolve(SRC_MAIN_JAVA);
+        this.sourceOutputRoot = Paths.get(baseOutputDir);
     }
 
     /**
@@ -57,7 +56,7 @@ public class CodeFileWriter {
     }
 
     /**
-     * 生成源码的根目录（baseOutputDir/src/main/java）。
+     * 生成源码的根目录，即配置的输出目录本身。
      */
     public Path sourceOutputRoot() {
         return sourceOutputRoot;

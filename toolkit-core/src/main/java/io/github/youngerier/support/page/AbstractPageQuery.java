@@ -2,6 +2,7 @@ package io.github.youngerier.support.page;
 
 import io.github.youngerier.support.enums.QueryOrderType;
 import io.github.youngerier.support.enums.QueryType;
+import io.github.youngerier.support.exception.BaseException;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.springframework.lang.NonNull;
@@ -96,12 +97,16 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> {
     }
 
     /**
-     * 是否需要处理排序：排序字段与排序类型都存在且长度一致
+     * 是否需要处理排序：排序字段与排序类型都存在且长度一致。
+     * 两者都传了但数量不匹配属于调用方传参错误，直接抛 400，而不是静默忽略排序条件。
      */
     public boolean requireOrderBy() {
         if (orderFields == null || orderTypes == null) {
             return false;
         }
-        return orderFields.length > 0 && orderFields.length == orderTypes.length;
+        if (orderFields.length > 0 && orderFields.length != orderTypes.length) {
+            throw BaseException.badRequest("排序字段与排序方向数量不一致");
+        }
+        return orderFields.length > 0;
     }
 }

@@ -1,7 +1,13 @@
 package io.github.youngerier.generator.maven;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import io.github.youngerier.generator.GeneratorConfig;
 import io.github.youngerier.generator.GeneratorEngine;
+import io.github.youngerier.generator.analysis.ModelInput;
+import io.github.youngerier.generator.analysis.PojoSourceScanner;
+import io.github.youngerier.generator.analysis.TypeSolverFactory;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -12,202 +18,115 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-@Mojo(name = "generate", defaultPhase = LifecyclePhase.PROCESS_CLASSES, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
+/**
+ * 从标注 {@code @GenModel} 的 POJO 源码生成 DTO、Service、Repository 等代码。
+ *
+ * <p>绑定 {@code generate-sources} 阶段，直接扫描 {@code .java} 源文件，生成产物在
+ * <strong>同一次构建</strong>中随主代码一起编译——不需要先编译，也不再递归启动
+ * {@code mvn compile} 子进程。
+ */
+@Mojo(name = "generate", defaultPhase = LifecyclePhase.GENERATE_SOURCES,
+        requiresDependencyResolution = ResolutionScope.COMPILE)
 public class CodeGeneratorMojo extends AbstractMojo {
-
-    /**
-     * Standard Maven source directory path.
-     */
-    private static final String SRC_MAIN_JAVA = "src" + File.separator + "main" + File.separator + "java";
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
 
     /**
-     * List of packages to scan for POJOs. Only {@code @GenModel} classes whose package equals
-     * or is nested under one of these packages are generated — the compile classpath itself
-     * (including dependency jars) is never treated as a match.
+     * 待扫描的包名白名单：只有包名等于或位于这些包之下的 {@code @GenModel} 类才会生成，
+     * 依赖 jar 中的类永远不会被当作来源。
      */
-    @Parameter(property = "pojo.codegen.scanPackages", required = true)
+    @Parameter(property = "pojo.codegen.scanPackages")
     private List<String> scanPackages;
 
     /**
-     * Base directory where the generated Java files will be saved.
-     * Note: The final output will be inside a 'src/main/java' subdirectory of this path.
-     * Defaults to ${project.build.directory}/generated-sources/
+     * 生成代码的根输出目录，产物直接写入该目录下对应包路径。
      */
-    @Parameter(property = "pojo.codegen.outputDir", defaultValue = "${project.build.directory}/generated-sources/")
+    @Parameter(property = "pojo.codegen.outputDir",
+            defaultValue = "${project.build.directory}/generated-sources/pojo-codegen")
     private File outputDir;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        getLog().info("Starting POJO code generation...");
-        getLog().info("Output directory: " + outputDir.getAbsolutePath());
-
         if (scanPackages == null || scanPackages.isEmpty()) {
-            getLog().warn("No packages to scan configured. Skipping code generation.");
+            getLog().warn("未配置 scanPackages，跳过代码生成。"
+                    + "示例: <scanPackages><scanPackage>com.acme.entity</scanPackage></scanPackages>");
             return;
         }
 
-        // 检查项目是否已编译，如果没有则尝试编译
-        File outputDirectory = new File(project.getBuild().getOutputDirectory());
-        if (!outputDirectory.exists() || outputDirectory.listFiles() == null || outputDirectory.listFiles().length == 0) {
-            getLog().info("Project classes not found, attempting to compile project first...");
-            try {
-                compileProject();
-            } catch (Exception e) {
-                throw new MojoExecutionException("Failed to compile project before code generation", e);
-            }
+        List<Path> sourceRoots = project.getCompileSourceRoots().stream()
+                .map(Path::of)
+                .filter(Files::isDirectory)
+                .toList();
+        if (sourceRoots.isEmpty()) {
+            getLog().warn("项目没有可扫描的源码根目录，跳过代码生成。");
+            return;
         }
 
-        // The GeneratorEngine works inside the specified output directory.
-        if (!outputDir.exists()) {
-            outputDir.mkdirs();
-        }
-
+        URLClassLoader dependencyClassLoader = buildDependencyClassLoader();
         try {
-            List<Class<?>> pojoClasses = findPojoClasses();
-            if (pojoClasses.isEmpty()) {
-                getLog().warn("No POJOs with @GenModel annotation found in specified packages. Skipping code generation.");
+            ParserConfiguration parserConfiguration = new ParserConfiguration();
+            parserConfiguration.setSymbolResolver(new JavaSymbolSolver(
+                    TypeSolverFactory.combined(sourceRoots, dependencyClassLoader)));
+            JavaParser javaParser = new JavaParser(parserConfiguration);
+
+            List<ModelInput> models = new PojoSourceScanner(scanPackages, javaParser)
+                    .scan(sourceRoots);
+            if (models.isEmpty()) {
+                getLog().warn("扫描包 " + scanPackages + " 内未找到标注 @GenModel 的类，跳过代码生成。");
                 return;
             }
 
-            // 1. Create GeneratorConfig using the builder
+            Files.createDirectories(outputDir.toPath());
             GeneratorConfig config = GeneratorConfig.builder()
-                    .moduleName(project.getArtifactId())
                     .outputBaseDir(outputDir.getAbsolutePath())
-                    .pojoClasses(pojoClasses)
+                    .models(models)
                     .build();
+            new GeneratorEngine(config).execute();
 
-            // 2. Create and run the GeneratorEngine
-            GeneratorEngine engine = new GeneratorEngine(config);
-            engine.execute();
-
-            // 3. Add the generated sources to the project's compile source roots
-            File generatedSourcesDir = new File(outputDir, SRC_MAIN_JAVA);
-            project.addCompileSourceRoot(generatedSourcesDir.getAbsolutePath());
-
-            getLog().info("Code generation completed successfully.");
-            getLog().info("Generated sources added to project: " + generatedSourcesDir.getAbsolutePath());
-
+            project.addCompileSourceRoot(outputDir.getAbsolutePath());
+            getLog().info("代码生成完成，产物目录已加入编译源: " + outputDir.getAbsolutePath());
         } catch (Exception e) {
-            getLog().error("Error during code generation", e);
-            throw new MojoExecutionException("Error during code generation", e);
+            throw new MojoExecutionException("代码生成失败", e);
+        } finally {
+            closeQuietly(dependencyClassLoader);
         }
     }
 
-    private List<Class<?>> findPojoClasses() throws MojoExecutionException {
-        ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+    /**
+     * 用项目编译期 classpath 构建依赖类加载器，供符号求解器解析第三方库中的字段类型；
+     * 父加载器使用插件自身的 ClassLoader，结束后在 finally 中关闭。
+     */
+    private URLClassLoader buildDependencyClassLoader() throws MojoExecutionException {
         try {
             List<URL> urls = new ArrayList<>();
-
-            // 获取编译classpath元素并转换为URL
-            List<String> classpathElements = getProjectClasspathElements();
-
-            for (String element : classpathElements) {
-                try {
-                    File file = new File(element);
-                    if (file.exists()) {
-                        urls.add(file.toURI().toURL());
-                    }
-                } catch (Exception e) {
-                    getLog().warn("Failed to convert classpath element to URL: " + element, e);
+            for (String element : project.getCompileClasspathElements()) {
+                File file = new File(element);
+                if (file.exists()) {
+                    urls.add(file.toURI().toURL());
                 }
             }
-
-            // 如果没有找到任何URL，至少添加当前项目的输出目录
-            if (urls.isEmpty()) {
-                File outputDir = new File(project.getBuild().getOutputDirectory());
-                if (outputDir.exists()) {
-                    urls.add(outputDir.toURI().toURL());
-                }
-            }
-
-            // 创建自定义类加载器
-            URLClassLoader customClassLoader = new URLClassLoader(
-                urls.toArray(new URL[0]),
-                this.getClass().getClassLoader()
-            );
-
-            // 设置线程上下文类加载器
-            Thread.currentThread().setContextClassLoader(customClassLoader);
-
-            // 按配置的包扫描 @GenModel；包过滤由 PojoClassScanner 以白名单方式保证，
-            // 不能依赖 ConfigurationBuilder.forPackages（实测不生效）
-            PojoClassScanner scanner = new PojoClassScanner(scanPackages);
-            getLog().info("Scanning packages: " + scanner.configuredPackages());
-            List<Class<?>> result = new ArrayList<>(scanner.scan(urls, customClassLoader));
-            getLog().info("Found " + result.size() + " classes annotated with @GenModel: " + result);
-            return result;
+            return new URLClassLoader(urls.toArray(new URL[0]), this.getClass().getClassLoader());
         } catch (Exception e) {
-            throw new MojoExecutionException("Error scanning for POJO classes", e);
-        } finally {
-            // 恢复原始的类加载器
-            Thread.currentThread().setContextClassLoader(originalClassLoader);
-        }
-    }
-    
-    /**
-     * 安全地获取项目classpath元素
-     */
-    @SuppressWarnings("unchecked")
-    private List<String> getProjectClasspathElements() throws MojoExecutionException {
-        try {
-            // 使用反射来调用getCompileClasspathElements方法，避免直接依赖异常类型
-            Object result = project.getClass().getMethod("getCompileClasspathElements").invoke(project);
-            return (List<String>) result;
-        } catch (Exception e) {
-            getLog().warn("Failed to get compile classpath elements, falling back to output directory", e);
-            // 回退方案：只使用项目的输出目录
-            List<String> fallback = new ArrayList<>();
-            String outputDirectory = project.getBuild().getOutputDirectory();
-            if (outputDirectory != null) {
-                fallback.add(outputDirectory);
-            }
-            return fallback;
+            throw new MojoExecutionException("无法构建项目依赖类加载器", e);
         }
     }
 
-    /**
-     * 编译项目以确保类文件存在
-     */
-    private void compileProject() throws Exception {
-        getLog().info("Compiling project to ensure class files exist...");
-        
-        // 使用 Maven 的内部 API 来编译项目
-        try {
-            // 构建简单的编译命令
-            ProcessBuilder pb = new ProcessBuilder("mvn", "compile");
-            pb.directory(project.getBasedir());
-            pb.redirectErrorStream(true);
-            
-            Process process = pb.start();
-            
-            // 读取输出但不打印（避免干扰）
-            java.io.BufferedReader reader = new java.io.BufferedReader(
-                new java.io.InputStreamReader(process.getInputStream()));
-            String line;
-            StringBuilder output = new StringBuilder();
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
+    private static void closeQuietly(URLClassLoader classLoader) {
+        if (classLoader != null) {
+            try {
+                classLoader.close();
+            } catch (IOException e) {
+                // 关闭失败不影响构建结果
             }
-            
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                getLog().warn("Compilation process returned non-zero exit code: " + exitCode);
-                getLog().debug("Compilation output: " + output.toString());
-            } else {
-                getLog().info("Project compiled successfully");
-            }
-        } catch (Exception e) {
-            getLog().warn("Failed to compile project automatically: " + e.getMessage());
-            getLog().warn("Please run 'mvn compile' manually before using this plugin");
-            throw e;
         }
     }
 }

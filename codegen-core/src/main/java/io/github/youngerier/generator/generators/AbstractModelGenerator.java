@@ -67,7 +67,7 @@ abstract class AbstractModelGenerator extends BaseGenerator {
         FieldSpec.Builder fieldBuilder = FieldSpec.builder(field.getType(), field.getName(), Modifier.PRIVATE);
         String comment = field.getComment();
         if (comment != null && !comment.isEmpty()) {
-            fieldBuilder.addJavadoc(comment + "\n");
+            fieldBuilder.addJavadoc(Javadocs.escapeLiteral(comment) + "\n");
         }
         appendFieldJavadoc(field, fieldBuilder);
         return fieldBuilder.build();

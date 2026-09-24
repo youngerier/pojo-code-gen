@@ -5,14 +5,13 @@ import com.mybatisflex.annotation.Table;
 import io.github.youngerier.generator.annotation.GenModel;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
  * 集成测试夹具实体：{@code @GenModel} 标注的 POJO，用于驱动一次完整的代码生成。
  *
- * <p>刻意不继承父类：{@code SourceFileLocator.findSrcMainJavaDir} 只会注册
- * {@code src/main/java} 作为 JavaParser 的源根，测试源码里的父类字段解析不到，
- * 会让断言依赖不确定行为。
+ * <p>刻意不继承父类：避免父类字段解析依赖不确定行为，断言全部字段都在本类声明。
  */
 @Table(value = FixtureUser.TABLE_NAME)
 @Data
@@ -36,6 +35,11 @@ public class FixtureUser {
      * 用户类型
      */
     private FixtureUserTypeEnum userType;
+
+    /**
+     * 标价（美元，如 $5：注释中的 $ 必须转义，否则 JavaPoet 崩溃）
+     */
+    private BigDecimal price;
 
     /**
      * 创建时间

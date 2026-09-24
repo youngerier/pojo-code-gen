@@ -38,6 +38,11 @@ public class ServiceImplGenerator extends BaseGenerator {
 
         ClassName entityType = ClassName.get(metadata.getPackageName(), entityName);
         ClassName dtoType = packages.dto();
+        // 主键类型与 setter 名以 @Id 字段为准；未标注 @Id 时回退 Long / setId
+        ClassMetadata.FieldInfo primaryKey = metadata.getPrimaryKey();
+        TypeName idType = primaryKey != null ? primaryKey.getType() : TypeName.LONG;
+        String idSetter = "set" + (primaryKey != null
+                ? capitalize(primaryKey.getName()) : "Id");
 
         TypeSpec.Builder builder = TypeSpec.classBuilder(getClassName())
                 .addModifiers(Modifier.PUBLIC)
@@ -71,7 +76,7 @@ public class ServiceImplGenerator extends BaseGenerator {
         builder.addMethod(MethodSpec.methodBuilder("get" + entityName + "ById")
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .addParameter(TypeName.LONG, "id")
+                .addParameter(idType, "id")
                 .returns(dtoType)
                 .addStatement("$T entity = $N.getById(id)", entityType, repositoryField)
                 .addStatement("return $N.toDto(entity)", convertorField)
@@ -100,7 +105,7 @@ public class ServiceImplGenerator extends BaseGenerator {
         builder.addMethod(MethodSpec.methodBuilder("update" + entityName)
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .addParameter(TypeName.LONG, "id")
+                .addParameter(idType, "id")
                 .addParameter(dtoType, dtoParameter)
                 .returns(dtoType)
                 .addStatement("$T existingEntity = $N.getById(id)", entityType, repositoryField)
@@ -108,7 +113,7 @@ public class ServiceImplGenerator extends BaseGenerator {
                 .addStatement("return null")
                 .endControlFlow()
                 .addStatement("$T updatedEntity = $N.toEntity($N)", entityType, convertorField, dtoParameter)
-                .addStatement("updatedEntity.setId(id)")
+                .addStatement("updatedEntity.$L(id)", idSetter)
                 .addStatement("$N.updateById(updatedEntity)", repositoryField)
                 .addStatement("return $N.toDto(updatedEntity)", convertorField)
                 .build());
@@ -116,12 +121,16 @@ public class ServiceImplGenerator extends BaseGenerator {
         builder.addMethod(MethodSpec.methodBuilder("delete" + entityName)
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .addParameter(TypeName.LONG, "id")
+                .addParameter(idType, "id")
                 .returns(TypeName.BOOLEAN)
                 .addStatement("return $N.removeById(id)", repositoryField)
                 .build());
 
         Javadocs.appendClassComment(builder, metadata, "服务实现类");
         return builder.build();
+    }
+
+    private static String capitalize(String name) {
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 }

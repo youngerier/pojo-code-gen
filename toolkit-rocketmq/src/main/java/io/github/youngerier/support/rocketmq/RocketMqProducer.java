@@ -10,6 +10,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * RocketMQ 便捷发送封装：屏蔽 {@code "topic:tag"} destination 拼接、keys/属性头设置与
@@ -60,6 +61,11 @@ public class RocketMqProducer {
         if (!StringUtils.hasText(message.getHashKey())) {
             throw new IllegalArgumentException("RocketMqMessage.hashKey must have text for orderly send");
         }
+        // 顺序发送底层只支持 delayLevel，不支持 delayTimeMs 定时消息：显式失败而非静默忽略
+        if (message.getDelayTimeMs() != null) {
+            throw new IllegalArgumentException(
+                    "orderly send does not support delayTimeMs; use delayLevel instead");
+        }
         String destination = destination(message.getTopic(), message.getTag());
         Message<?> springMessage = toSpringMessage(message);
 
@@ -80,16 +86,27 @@ public class RocketMqProducer {
 
     /**
      * 按信封配置异步发送，发送结果通过回调通知。
+     * 支持透传 {@code delayLevel}；异步通道不支持 {@code delayTimeMs} 定时消息（底层 API 缺失），
+     * 此时直接 fail-fast，绝不静默降级成立即投递。
      */
     public void async(RocketMqMessage message, MqSendCallback callback) {
         validate(message);
+        Objects.requireNonNull(callback, "MqSendCallback must not be null");
+        if (message.getDelayTimeMs() != null) {
+            throw new IllegalArgumentException(
+                    "async send does not support delayTimeMs; use send() for timed messages");
+        }
         String destination = destination(message.getTopic(), message.getTag());
-        Message<?> springMessage = toSpringMessage(message);
-        if (message.getTimeoutMs() != null) {
-            template.asyncSend(destination, springMessage, adapt(message.getTag(), callback),
-                    message.getTimeoutMs());
+        SendCallback adapted = adapt(message.getTag(), callback);
+        long timeout = message.getTimeoutMs() != null
+                ? message.getTimeoutMs() : template.getProducer().getSendMsgTimeout();
+        if (message.getDelayLevel() != null) {
+            template.asyncSend(destination, toSpringMessage(message), adapted,
+                    timeout, message.getDelayLevel());
+        } else if (message.getTimeoutMs() != null) {
+            template.asyncSend(destination, toSpringMessage(message), adapted, timeout);
         } else {
-            template.asyncSend(destination, springMessage, adapt(message.getTag(), callback));
+            template.asyncSend(destination, toSpringMessage(message), adapted);
         }
     }
 
@@ -172,6 +189,7 @@ public class RocketMqProducer {
      */
     public void async(String topic, String tag, Object payload, MqSendCallback callback) {
         validate(topic, payload);
+        Objects.requireNonNull(callback, "MqSendCallback must not be null");
         template.asyncSend(destination(topic, tag), build(payload, null), adapt(tag, callback));
     }
 

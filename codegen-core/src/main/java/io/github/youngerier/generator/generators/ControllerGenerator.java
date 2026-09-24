@@ -37,6 +37,9 @@ public class ControllerGenerator extends BaseGenerator {
 
         ClassName dtoType = packages.dto();
         ClassName queryType = packages.query();
+        // 主键类型以 @Id 字段实际类型为准；未标注 @Id 时回退 Long（保持历史约定）
+        ClassMetadata.FieldInfo primaryKey = metadata.getPrimaryKey();
+        TypeName idType = primaryKey != null ? primaryKey.getType() : TypeName.LONG;
         ClassName responseType = ClassName.get(Response.class);
         ClassName paginationType = ClassName.get(Pagination.class);
         ParameterizedTypeName responseOfDto = ParameterizedTypeName.get(responseType, dtoType);
@@ -75,7 +78,7 @@ public class ControllerGenerator extends BaseGenerator {
                 .addAnnotation(AnnotationSpec.builder(web("GetMapping"))
                         .addMember("value", "$S", "/{id}")
                         .build())
-                .addParameter(annotatedParameter(TypeName.LONG, "id", "PathVariable"))
+                .addParameter(annotatedParameter(idType, "id", "PathVariable"))
                 .addJavadoc("根据ID查询$L\n", entityName)
                 .addJavadoc("@param id 主键ID\n")
                 .addJavadoc("@return 对应的$L对象\n", entityName)
@@ -143,7 +146,7 @@ public class ControllerGenerator extends BaseGenerator {
                 .addAnnotation(AnnotationSpec.builder(web("DeleteMapping"))
                         .addMember("value", "$S", "/{id}")
                         .build())
-                .addParameter(annotatedParameter(TypeName.LONG, "id", "PathVariable"))
+                .addParameter(annotatedParameter(idType, "id", "PathVariable"))
                 .addJavadoc("删除$L\n", entityName)
                 .addJavadoc("@param id 主键ID\n")
                 .addJavadoc("@return 是否删除成功\n")

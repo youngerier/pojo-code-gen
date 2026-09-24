@@ -10,16 +10,18 @@ import lombok.Getter;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * sheet 数据 提供者
  *
  **/
 @Getter
-abstract class SheetDataSupplier implements Supplier<List<List<String>>> {
+abstract class SheetDataSupplier implements Iterable<List<String>> {
 
     private final List<ExcelCellDescriptor> titles;
 
@@ -36,31 +38,96 @@ abstract class SheetDataSupplier implements Supplier<List<List<String>>> {
         this.formatter = SpringExpressionRowDataFormatter.of(titles);
     }
 
+    /**
+     * 惰性迭代：每次只抓取并格式化当前页，不在内存中累积全部数据行。
+     * 每次调用返回全新的迭代器，可重复迭代。
+     */
     @Override
-    public List<List<String>> get() {
-        List<List<String>> result = new ArrayList<>();
-        fetchers.forEach(fetcher -> {
-            int queryPage = 1;
+    public Iterator<List<String>> iterator() {
+        return new PagedRowIterator();
+    }
+
+    /**
+     * 把全部数据行收集到 List；仅在确实需要全量数据时使用（例如 cells 模式转置）。
+     */
+    List<List<String>> collectAll() {
+        return StreamSupport.stream(spliterator(), false).collect(Collectors.toList());
+    }
+
+    /**
+     * 跨多个 fetcher 的分页行迭代器。
+     */
+    private final class PagedRowIterator implements Iterator<List<String>> {
+
+        private final Iterator<ExportExcelDataFetcher<?>> fetcherIterator = fetchers.iterator();
+
+        private ExportExcelDataFetcher<?> currentFetcher;
+
+        private int queryPage;
+
+        private List<?> pageRecords = List.of();
+
+        private int pageIndex;
+
+        @Override
+        public boolean hasNext() {
+            while (pageIndex >= pageRecords.size()) {
+                if (!loadNextPage()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public List<String> next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return formatter.formatRows(pageRecords.get(pageIndex++));
+        }
+
+        /**
+         * 当前页耗尽时加载下一页，并在 fetcher 之间切换。
+         *
+         * @return 是否成功加载到数据；false 表示所有 fetcher 都已结束
+         */
+        private boolean loadNextPage() {
             while (true) {
-                List<?> records = fetcher.fetch(queryPage, fetchSize);
+                if (currentFetcher == null) {
+                    if (!fetcherIterator.hasNext()) {
+                        return false;
+                    }
+                    currentFetcher = fetcherIterator.next();
+                    queryPage = 1;
+                } else {
+                    // 上一页是当前 fetcher 的最后一页（页大小不足）→ 切换下一个 fetcher
+                    if (pageRecords.size() < fetchSize) {
+                        currentFetcher = null;
+                        continue;
+                    }
+                    if (queryPage >= ExportExcelDataFetcher.MAX_FETCH_PAGES) {
+                        throw new IllegalStateException("导出行数超过安全上限 " + ExportExcelDataFetcher.MAX_FETCH_PAGES
+                                + " 页，请检查 ExportExcelDataFetcher 是否忽略了 page 参数");
+                    }
+                    queryPage++;
+                }
+
+                List<?> records = currentFetcher.fetch(queryPage, fetchSize);
                 if (records == null) {
                     throw new IllegalStateException(
                             "ExportExcelDataFetcher.fetch must not return null, page = " + queryPage);
                 }
-                for (Object row : records) {
-                    result.add(formatter.formatRows(row));
+                pageRecords = records;
+                pageIndex = 0;
+                if (records.isEmpty()) {
+                    // 空页等价于页大小不足 → 当前 fetcher 结束
+                    currentFetcher = null;
+                    continue;
                 }
-                if (records.size() < fetchSize) {
-                    break;
-                }
-                if (queryPage >= ExportExcelDataFetcher.MAX_FETCH_PAGES) {
-                    throw new IllegalStateException("导出行数超过安全上限 " + ExportExcelDataFetcher.MAX_FETCH_PAGES
-                            + " 页，请检查 ExportExcelDataFetcher 是否忽略了 page 参数");
-                }
-                queryPage++;
+                return true;
             }
-        });
-        return result;
+        }
     }
 
     /**

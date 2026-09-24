@@ -53,12 +53,6 @@
             <groupId>io.github.youngerier</groupId>
             <artifactId>codegen-core</artifactId>
         </dependency>
-        
-        <!-- 反射工具 - 用于扫描注解类 -->
-        <dependency>
-            <groupId>org.reflections</groupId>
-            <artifactId>reflections</artifactId>
-        </dependency>
 
         <!-- ============================ -->
         <!-- 测试依赖                       -->

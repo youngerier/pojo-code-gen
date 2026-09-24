@@ -3,7 +3,6 @@ package io.github.youngerier.generator.generators;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -77,29 +76,39 @@ public class RepositoryGenerator extends BaseGenerator {
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(packages.query(), "query")
                 .returns(QueryWrapper.class)
-                .addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableField);
+                .addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableField)
+                .addStatement("$T wrapper = $T.withOrder(query).from($L)",
+                        QueryWrapper.class, QueryWrapperHelper.class, tableVarName);
 
-        CodeBlock.Builder queryWrapper = CodeBlock.builder()
-                .add("return $T.withOrder(query)\n", QueryWrapperHelper.class)
-                .indent()
-                .add(".from($L)\n", tableVarName);
-
-        boolean firstField = true;
+        // 等值条件按字段逐一判空后拼接：未传的查询条件绝不能以 = null 进入 SQL
         for (ClassMetadata.FieldInfo field : metadata.getFields()) {
-            String getter = "get" + Character.toUpperCase(field.getName().charAt(0))
-                    + field.getName().substring(1);
-            String connector = firstField ? ".where" : ".and";
-            firstField = false;
-            queryWrapper.add("$L($L.$L.eq(query.$L()))\n", connector, tableVarName, field.getName(), getter);
+            String getter = getterName(field.getName());
+            method.beginControlFlow("if (query.$L() != null)", getter)
+                    .addStatement("wrapper.and($L.$L.eq(query.$L()))",
+                            tableVarName, field.getName(), getter)
+                    .endControlFlow();
         }
 
-        queryWrapper.add(".and($L.gmtCreate.ge(query.getMinGmtCreate()))\n", tableVarName);
-        queryWrapper.add(".and($L.gmtCreate.le(query.getMaxGmtCreate()))\n", tableVarName);
-        queryWrapper.add(".and($L.gmtModified.ge(query.getMinGmtModified()))\n", tableVarName);
-        queryWrapper.add(".and($L.gmtModified.le(query.getMaxGmtModified()));\n", tableVarName);
-        queryWrapper.unindent();
+        // 时间范围条件只在实体存在对应审计字段时生成
+        if (hasField(metadata, "gmtCreate")) {
+            method.addStatement("wrapper.and($L.gmtCreate.ge(query.getMinGmtCreate()))", tableVarName);
+            method.addStatement("wrapper.and($L.gmtCreate.le(query.getMaxGmtCreate()))", tableVarName);
+        }
+        if (hasField(metadata, "gmtModified")) {
+            method.addStatement("wrapper.and($L.gmtModified.ge(query.getMinGmtModified()))", tableVarName);
+            method.addStatement("wrapper.and($L.gmtModified.le(query.getMaxGmtModified()))", tableVarName);
+        }
 
-        return method.addCode(queryWrapper.build()).build();
+        method.addStatement("return wrapper");
+        return method.build();
+    }
+
+    private static String getterName(String fieldName) {
+        return "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+    }
+
+    private static boolean hasField(ClassMetadata metadata, String fieldName) {
+        return metadata.getFields().stream().anyMatch(field -> fieldName.equals(field.getName()));
     }
 
     private ClassName entityType(ClassMetadata metadata) {

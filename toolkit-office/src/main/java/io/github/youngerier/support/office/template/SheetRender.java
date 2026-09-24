@@ -20,28 +20,73 @@ import java.util.stream.Collectors;
  **/
 record SheetRender(int index, String sheetName, List<SheetDataSupplier> suppliers) {
 
+    /**
+     * row 模式下每批刷入工作簿的行数
+     */
+    private static final int WRITE_BATCH_SIZE = 500;
+
     static SheetRenderBuilder builder(int index, String sheetName) {
         return new SheetRenderBuilder(index, sheetName);
     }
 
     void render(ExcelWriter excelWriter) {
         boolean cellMode = CollectionUtils.firstElement(suppliers) instanceof SheetDataSupplier.CellSupplier;
-        List<List<String>> data = new ArrayList<>();
-        // 表头行不参与「列转置」：cells 模式下原实现会把表头当成第一列数据处理，
-        // 导致表头错位成数据
-        for (SheetDataSupplier supplier : suppliers) {
-            if (supplier.hasTitleRow()) {
-                data.add(supplier.titleRow());
-            }
-        }
-        List<List<String>> body = suppliers.stream()
-                .map(SheetDataSupplier::get)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
-        data.addAll(cellMode ? convertColumnsToRows(body) : body);
 
         WriteSheet sheet = EasyExcelFactory.writerSheet(sheetName).sheetNo(index).build();
-        excelWriter.write(data, sheet);
+
+        // 表头单独前置写入：既不参与 row 模式累积，也不参与 cells 模式「列转置」
+        List<List<String>> head = new ArrayList<>();
+        for (SheetDataSupplier supplier : suppliers) {
+            if (supplier.hasTitleRow()) {
+                head.add(supplier.titleRow());
+            }
+        }
+        if (!head.isEmpty()) {
+            excelWriter.write(head, sheet);
+        }
+
+        if (cellMode) {
+            renderCellMode(excelWriter, sheet);
+        } else {
+            renderRowMode(excelWriter, sheet);
+        }
+    }
+
+    /**
+     * row 模式：逐 supplier 迭代，按 {@link #WRITE_BATCH_SIZE} 分批直写，不在内存中累积数据。
+     */
+    private void renderRowMode(ExcelWriter excelWriter, WriteSheet sheet) {
+        for (SheetDataSupplier supplier : suppliers) {
+            List<List<String>> batch = new ArrayList<>(WRITE_BATCH_SIZE);
+            for (List<String> row : supplier) {
+                batch.add(row);
+                if (batch.size() >= WRITE_BATCH_SIZE) {
+                    excelWriter.write(batch, sheet);
+                    batch = new ArrayList<>(WRITE_BATCH_SIZE);
+                }
+            }
+            if (!batch.isEmpty()) {
+                excelWriter.write(batch, sheet);
+            }
+        }
+    }
+
+    /**
+     * cells 模式：每个 supplier 提供的是「列」数据，必须收齐全部列才能按行转置。
+     *
+     * <p>该模式无法流式：输出第 0 行就需要每一列的第 0 个单元格，而列按顺序到达，
+     * 最后一列的首个单元格只能在全部取数完成后才可知。大数据量导出请走 row 模式或
+     * {@code SpringExpressionExportExcelTask} 任务路径。
+     */
+    private void renderCellMode(ExcelWriter excelWriter, WriteSheet sheet) {
+        List<List<String>> columns = suppliers.stream()
+                .map(SheetDataSupplier::collectAll)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+        List<List<String>> rows = convertColumnsToRows(columns);
+        if (!rows.isEmpty()) {
+            excelWriter.write(rows, sheet);
+        }
     }
 
     /**

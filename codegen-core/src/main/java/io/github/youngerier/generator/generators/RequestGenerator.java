@@ -12,17 +12,20 @@ import java.util.Set;
 public class RequestGenerator extends AbstractModelGenerator {
 
     /**
-     * 通常不需要包含在请求对象中的字段名（主键、审计时间字段）。
+     * 通常不由请求方传入的审计时间字段（各命名风格）。
      */
-    private static final Set<String> EXCLUDED_FIELDS =
-            Set.of("id", "gmtCreate", "gmtModified", "createTime", "updateTime", "createdAt", "updatedAt");
+    private static final Set<String> AUDIT_FIELDS =
+            Set.of("gmtCreate", "gmtModified", "createTime", "updateTime", "createdAt", "updatedAt");
 
     public RequestGenerator(PackageStructure packageStructure) {
         super(packageStructure, GeneratedType.REQUEST, "请求参数对象");
     }
 
+    /**
+     * 主键（按 {@code @Id} 识别，而非固定字段名 "id"）与审计时间字段不进入请求对象。
+     */
     @Override
     protected boolean includeField(ClassMetadata.FieldInfo field) {
-        return !EXCLUDED_FIELDS.contains(field.getName());
+        return !field.isPrimaryKey() && !AUDIT_FIELDS.contains(field.getName());
     }
 }

@@ -1,8 +1,9 @@
 package io.github.youngerier.support.exception;
 
-import io.github.youngerier.support.message.MessageFormatter;
 import io.github.youngerier.support.message.MessagePlaceholder;
 import lombok.Getter;
+import org.slf4j.helpers.FormattingTuple;
+import org.slf4j.helpers.MessageFormatter;
 
 import java.io.Serial;
 
@@ -30,8 +31,6 @@ public class BaseException extends RuntimeException {
 
     @Serial
     private static final long serialVersionUID = 1L;
-
-    private static final MessageFormatter MESSAGE_FORMATTER = MessageFormatter.slf4j();
 
     private final ExceptionCode code;
 
@@ -107,33 +106,37 @@ public class BaseException extends RuntimeException {
     // ---------------- 字面量消息工厂 ----------------
 
     /**
-     * 基于消息占位符构造（slf4j 风格 {} 语法）
+     * 基于消息占位符构造（slf4j 风格 {} 语法）。
+     * 若末尾实参是 {@link Throwable} 且占位符不足，会自动作为本异常的 cause 保留堆栈。
      */
     public static BaseException of(ExceptionCode code, String pattern, Object... args) {
-        return new BaseException(code, format(pattern, args));
+        return formatted(code, pattern, args);
     }
 
     /**
      * 基于消息占位符构造通用异常
      */
     public static BaseException common(String pattern, Object... args) {
-        return new BaseException(format(pattern, args));
+        return formatted(DefaultExceptionCode.INTERNAL_SERVER_ERROR, pattern, args);
     }
 
     public static BaseException common(MessagePlaceholder placeholder) {
-        return new BaseException(format(placeholder.pattern(), placeholder.args()));
+        return placeholder == null
+                ? new BaseException(DefaultExceptionCode.INTERNAL_SERVER_ERROR, (String) null)
+                : formatted(DefaultExceptionCode.INTERNAL_SERVER_ERROR,
+                        placeholder.pattern(), placeholder.args());
     }
 
     public static BaseException badRequest(String pattern, Object... args) {
-        return new BaseException(DefaultExceptionCode.BAD_REQUEST, format(pattern, args));
+        return formatted(DefaultExceptionCode.BAD_REQUEST, pattern, args);
     }
 
     public static BaseException unauthorized(String pattern, Object... args) {
-        return new BaseException(DefaultExceptionCode.UNAUTHORIZED, format(pattern, args));
+        return formatted(DefaultExceptionCode.UNAUTHORIZED, pattern, args);
     }
 
     public static BaseException forbidden(String pattern, Object... args) {
-        return new BaseException(DefaultExceptionCode.FORBIDDEN, format(pattern, args));
+        return formatted(DefaultExceptionCode.FORBIDDEN, pattern, args);
     }
 
     public static BaseException forbidden(ExceptionLogLevel level, String message) {
@@ -141,26 +144,26 @@ public class BaseException extends RuntimeException {
     }
 
     public static BaseException notFound(String pattern, Object... args) {
-        return new BaseException(DefaultExceptionCode.NOT_FOUND, format(pattern, args));
+        return formatted(DefaultExceptionCode.NOT_FOUND, pattern, args);
     }
 
     public static BaseException conflict(String pattern, Object... args) {
-        return new BaseException(DefaultExceptionCode.CONFLICT, format(pattern, args));
+        return formatted(DefaultExceptionCode.CONFLICT, pattern, args);
     }
 
     public static BaseException tooManyRequests(String pattern, Object... args) {
-        return new BaseException(DefaultExceptionCode.TOO_MANY_REQUESTS, format(pattern, args));
+        return formatted(DefaultExceptionCode.TOO_MANY_REQUESTS, pattern, args);
     }
 
     public static BaseException serviceUnavailable(String pattern, Object... args) {
-        return new BaseException(DefaultExceptionCode.SERVICE_UNAVAILABLE, format(pattern, args));
+        return formatted(DefaultExceptionCode.SERVICE_UNAVAILABLE, pattern, args);
     }
 
     /**
      * 使用自定义业务码构造字面量异常
      */
     public static BaseException business(ExceptionCode code, String pattern, Object... args) {
-        return new BaseException(code, format(pattern, args));
+        return formatted(code, pattern, args);
     }
 
     /**
@@ -187,10 +190,17 @@ public class BaseException extends RuntimeException {
         return code.getCode();
     }
 
-    private static String format(String pattern, Object... args) {
+    /**
+     * 用 slf4j 风格格式化消息并构造异常。关键：当末尾实参是 Throwable 且占位符数量不足时，
+     * slf4j 不会把它拼进消息，而是放进 {@link FormattingTuple#getThrowable()}；这里将其挂为
+     * cause，避免 {@code of(code, "处理失败 {}", dto, ex)} 永久丢失根因堆栈。
+     */
+    private static BaseException formatted(ExceptionCode code, String pattern, Object[] args) {
         if (pattern == null) {
-            return null;
+            return new BaseException(code, (String) null);
         }
-        return args == null || args.length == 0 ? pattern : MESSAGE_FORMATTER.format(pattern, args);
+        FormattingTuple tuple = MessageFormatter.arrayFormat(
+                pattern, args == null ? new Object[0] : args);
+        return new BaseException(code, tuple.getMessage(), tuple.getThrowable());
     }
 }

@@ -29,17 +29,29 @@ public class QueryGenerator extends AbstractModelGenerator {
                 ClassName.get(AbstractPageQuery.class), ClassName.get(DefaultOrderField.class)));
     }
 
+    /**
+     * 时间范围查询字段按实体中实际存在的审计字段生成，不再无条件假设
+     * {@code gmtCreate} / {@code gmtModified} 一定存在。
+     */
     @Override
     protected void appendExtraFields(ClassMetadata metadata, TypeSpec.Builder builder) {
-        builder.addField(timeRangeField("minGmtCreate", "最小创建时间"));
-        builder.addField(timeRangeField("maxGmtCreate", "最大创建时间"));
-        builder.addField(timeRangeField("minGmtModified", "最小修改时间"));
-        builder.addField(timeRangeField("maxGmtModified", "最大修改时间"));
+        if (hasField(metadata, "gmtCreate")) {
+            builder.addField(timeRangeField("minGmtCreate", "最小创建时间"));
+            builder.addField(timeRangeField("maxGmtCreate", "最大创建时间"));
+        }
+        if (hasField(metadata, "gmtModified")) {
+            builder.addField(timeRangeField("minGmtModified", "最小修改时间"));
+            builder.addField(timeRangeField("maxGmtModified", "最大修改时间"));
+        }
+    }
+
+    private static boolean hasField(ClassMetadata metadata, String fieldName) {
+        return metadata.getFields().stream().anyMatch(field -> fieldName.equals(field.getName()));
     }
 
     private FieldSpec timeRangeField(String name, String comment) {
         return FieldSpec.builder(LOCAL_DATE_TIME, name, Modifier.PRIVATE)
-                .addJavadoc(comment + "\n")
+                .addJavadoc(Javadocs.escapeLiteral(comment) + "\n")
                 .build();
     }
 }

@@ -1,6 +1,11 @@
 package io.github.youngerier.generator;
 
-import io.github.youngerier.generator.fixture.entity.FixtureUser;
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.symbolsolver.JavaSymbolSolver;
+import io.github.youngerier.generator.analysis.ModelInput;
+import io.github.youngerier.generator.analysis.PojoSourceScanner;
+import io.github.youngerier.generator.analysis.TypeSolverFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -26,25 +31,25 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 生成器端到端集成测试：对夹具实体跑一次完整生成，然后把生成产物<strong>真正编译一遍</strong>。
+ * 生成器端到端集成测试：直接扫描夹具实体源码跑一次完整生成，然后把生成产物
+ * <strong>真正编译一遍</strong>。
  *
- * <p>这是本仓库里唯一覆盖「生成器 + toolkit 各模块」接缝的地方，替代了原先只能靠人工
- * 执行 {@code example} 模块来完成的验证。它能在编译期发现：
+ * <p>这是本仓库里唯一覆盖「生成器 + toolkit 各模块」接缝的地方，能在编译期发现：
  *
  * <ul>
  *     <li>生成代码引用的 toolkit 类型被移动或改名（例如
  *     {@code QueryWrapperHelper} 从 {@code support.page} 移到 {@code support.page.flex}）；</li>
  *     <li>生成代码引用的方法签名变化（例如 {@code Pagination.of}、{@code BaseException.badRequest}）；</li>
- *     <li>生成器自身产出的代码语法/类型错误。</li>
+ *     <li>生成器自身产出的代码语法/类型错误，包括泛型字段、含 {@code $} 的注释等边界。</li>
  * </ul>
  *
  * <p>注解处理不显式指定处理器，交由 javac 从 classpath 自动发现 Lombok、MapStruct 与
- * MyBatis-Flex 的处理器——生成的 {@code @Data} 访问器、{@code UserConvertor} 实现和
- * {@code TableRefs} 都依赖它们，这与使用方项目的实际编译方式一致。
+ * MyBatis-Flex 的处理器，这与使用方项目的实际编译方式一致。
  */
 class GeneratedCodeIntegrationTest {
 
     private static final String BASE_PACKAGE = "io.github.youngerier.generator.fixture";
+    private static final String ENTITY_PACKAGE = BASE_PACKAGE + ".entity";
 
     /** 夹具实体源码：必须作为编译输入，MyBatis-Flex 处理器才会产出 TableRefs */
     private static final List<String> FIXTURE_SOURCES = List.of(
@@ -59,7 +64,10 @@ class GeneratedCodeIntegrationTest {
 
     @Test
     void generatesAllArtifactsAndTheyCompileAgainstToolkitModules() throws IOException {
-        generate();
+        List<ModelInput> models = scanFixtureSources();
+        assertEquals(1, models.size(), "应当只扫描到 FixtureUser 一个 @GenModel 实体");
+
+        generate(models);
 
         List<Path> generated = collectGeneratedSources();
         assertEquals(10, generated.size(),
@@ -69,22 +77,36 @@ class GeneratedCodeIntegrationTest {
         compileFixtureAndGeneratedCode(generated);
     }
 
+    // ---------------- 扫描 ----------------
+
+    /**
+     * 与插件 Mojo 相同的方式：以测试源码目录为源根、当前测试 ClassLoader 为依赖加载器，
+     * 直接扫描 .java 源文件，不依赖任何编译产物。
+     */
+    private List<ModelInput> scanFixtureSources() throws IOException {
+        List<Path> sourceRoots = List.of(Path.of("src", "test", "java"));
+        ParserConfiguration configuration = new ParserConfiguration();
+        configuration.setSymbolResolver(new JavaSymbolSolver(TypeSolverFactory.combined(
+                sourceRoots, Thread.currentThread().getContextClassLoader())));
+        JavaParser javaParser = new JavaParser(configuration);
+        return new PojoSourceScanner(List.of(ENTITY_PACKAGE), javaParser).scan(sourceRoots);
+    }
+
     // ---------------- 生成 ----------------
 
-    private void generate() {
+    private void generate(List<ModelInput> models) throws IOException {
+        Files.createDirectories(outputBaseDir);
         GeneratorConfig config = GeneratorConfig.builder()
-                .moduleName("codegen-core-it")
                 .outputBaseDir(outputBaseDir.toString())
-                .pojoClasses(List.of(FixtureUser.class))
+                .models(models)
                 .build();
 
         new GeneratorEngine(config).execute();
     }
 
     private List<Path> collectGeneratedSources() throws IOException {
-        Path sourceRoot = outputBaseDir.resolve("src").resolve("main").resolve("java");
-        assertTrue(Files.isDirectory(sourceRoot), "未生成源码目录: " + sourceRoot);
-        try (Stream<Path> walk = Files.walk(sourceRoot)) {
+        assertTrue(Files.isDirectory(outputBaseDir), "未生成输出目录: " + outputBaseDir);
+        try (Stream<Path> walk = Files.walk(outputBaseDir)) {
             return walk.filter(path -> path.toString().endsWith(".java")).sorted().toList();
         }
     }
@@ -107,6 +129,10 @@ class GeneratedCodeIntegrationTest {
                 "Repository 必须通过 QueryWrapperHelper.withOrder 构造排序:\n" + repository);
         assertTrue(repository.contains("extends ServiceImpl<FixtureUserMapper, FixtureUser>"),
                 "Repository 必须继承 MyBatis-Flex 的 ServiceImpl:\n" + repository);
+
+        // 等值条件必须判空，不能把未传条件以 = null 拼进 SQL
+        assertTrue(repository.contains("if (query.getUsername() != null)"),
+                "Repository 必须逐字段判空:\n" + repository);
 
         String query = readGenerated("model", "request", "FixtureUserQuery.java");
         assertTrue(query.contains("import io.github.youngerier.support.enums.DefaultOrderField;"),
@@ -133,11 +159,15 @@ class GeneratedCodeIntegrationTest {
                 "Query 必须包含枚举字段类型:\n" + query);
         assertTrue(query.contains("import " + BASE_PACKAGE + ".entity.FixtureUserTypeEnum;"),
                 "Query 必须导入实体包下的枚举:\n" + query);
+
+        // 注释中的 $ 经转义后，生成产物里必须仍可读且不导致生成崩溃
+        String dto = readGenerated("model", "dto", "FixtureUserDTO.java");
+        assertTrue(dto.contains("标价（美元，如 $5"),
+                "DTO Javadoc 必须原样保留含 $ 的注释:\n" + dto);
     }
 
     private String readGenerated(String... pathSegments) throws IOException {
-        Path file = outputBaseDir.resolve("src").resolve("main").resolve("java")
-                .resolve(BASE_PACKAGE.replace('.', '/'));
+        Path file = outputBaseDir.resolve(BASE_PACKAGE.replace('.', '/'));
         for (String segment : pathSegments) {
             file = file.resolve(segment);
         }

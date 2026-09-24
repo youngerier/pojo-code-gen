@@ -62,7 +62,11 @@ public final class ReflectUtils {
             return false;
         }
         boolean getter = name.startsWith("get") && name.length() > 3;
-        boolean booleanGetter = name.startsWith("is") && name.length() > 2;
+        // is 前缀只有返回 boolean/Boolean 才是合法布尔 getter，
+        // 否则 String isName() 这类普通方法会被误判产出错误属性元数据
+        boolean booleanGetter = name.startsWith("is") && name.length() > 2
+                && (method.getReturnType() == boolean.class
+                || method.getReturnType() == Boolean.class);
         return Modifier.isPublic(method.getModifiers())
                 && !Modifier.isStatic(method.getModifiers())
                 && method.getParameterCount() == 0

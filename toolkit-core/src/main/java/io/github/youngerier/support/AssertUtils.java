@@ -1,7 +1,6 @@
 package io.github.youngerier.support;
 
 import io.github.youngerier.support.exception.BaseException;
-import io.github.youngerier.support.message.MessagePlaceholder;
 import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -27,15 +26,19 @@ public final class AssertUtils {
         }
     }
 
+    /**
+     * 参数断言：失败抛 400（{@link BaseException#badRequest}）。
+     * 用于校验调用方入参，区别于服务内部状态错误（500）。
+     */
     public static void isTrue(boolean expression, String message, Object... args) {
         if (!expression) {
-            throw BaseException.common(MessagePlaceholder.of(message, args));
+            throw BaseException.badRequest(message, args);
         }
     }
 
     public static void isTrue(boolean expression, Supplier<String> messageSupplier) {
         if (!expression) {
-            throw BaseException.common(nullSafeGet(messageSupplier));
+            throw BaseException.badRequest(nullSafeGet(messageSupplier));
         }
     }
 

@@ -12,7 +12,8 @@
     </parent>
 
     <artifactId>toolkit-spring-boot-starter</artifactId>
-    <packaging>pom</packaging>
+    <!-- 默认 jar 打包（与官方 spring-boot-starter 一致）：纯依赖聚合会产出空 jar，
+         使用方按常规依赖声明即可引入，无需 <type>pom</type> -->
     <name>Java Code Generation Toolkit - Spring Boot Starter</name>
     <description>常用组合：一次性引入核心层、i18n 与 Web 统一错误响应（含 traceId 过滤器）。不含 Office / RocketMQ / MyBatis-Flex，按需单独引入。</description>
 

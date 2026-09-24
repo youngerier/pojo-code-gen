@@ -32,6 +32,13 @@ public class ClassMetadata {
     }
 
     /**
+     * @return 主键字段（标注 {@code @Id} 的字段），未标注时返回 null
+     */
+    public FieldInfo getPrimaryKey() {
+        return fields.stream().filter(FieldInfo::isPrimaryKey).findFirst().orElse(null);
+    }
+
+    /**
      * 字段信息
      */
     @Data

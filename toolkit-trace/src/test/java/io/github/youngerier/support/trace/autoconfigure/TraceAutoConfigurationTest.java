@@ -21,11 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 验证 {@link TraceAutoConfiguration}：
  *
  * <ul>
- *     <li>Servlet 环境下注册 traceId 过滤器（此前由 toolkit-web 的代配置注册，
- *     现在由 trace 模块自注册，只引入 trace 的使用方也能获得）。</li>
- *     <li>把 {@link MdcTaskDecorator} 装配为容器内的 {@link TaskDecorator}——
- *     此前它从未被装配，是死代码，导致 {@code @Async} 丢失 traceId。</li>
- *     <li>使用方自定义 {@link TaskDecorator} 时必须让位。</li>
+ *     <li>Servlet 环境下注册 traceId 过滤器。</li>
+ *     <li>装配 {@link MdcTaskDecorator}，使异步任务继承 traceId。</li>
+ *     <li>使用方自定义 {@link TaskDecorator} 时让位。</li>
  * </ul>
  */
 class TraceAutoConfigurationTest {

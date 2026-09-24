@@ -81,7 +81,7 @@ public abstract class AbstractPageQuery<OrderField extends QueryOrderField> {
     }
 
     public void setPageNumber(Integer pageNumber) {
-        // 必须委托给 setQueryPage：直接赋值会绕过页码下界校验
+        // 委托 setQueryPage 执行页码下界校验
         setQueryPage(pageNumber);
     }
 

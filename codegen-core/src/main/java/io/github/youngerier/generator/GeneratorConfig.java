@@ -12,7 +12,6 @@ public class GeneratorConfig {
 
     /**
      * 生成代码的根输出目录，例如 {@code target/generated-sources/pojo-codegen}。
-     * 生成产物直接写入该目录下对应包路径，不再追加 {@code src/main/java}。
      */
     private final String outputBaseDir;
 

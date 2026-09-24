@@ -21,8 +21,7 @@ import java.util.Set;
  * 类元数据读取器：把 {@link ModelInput} 转换为 {@link ClassMetadata}。
  *
  * <p>字段包含本类与直接父类（非 Object，仅一层）的实例字段，按出现顺序去重；
- * 字段类型经符号求解后由 {@link TypeMapper} 映射，无法求解时保留源码写法并告警，
- * 不再让整个生成过程崩溃。
+ * 字段类型经符号求解后由 {@link TypeMapper} 映射，无法求解时保留源码写法并告警。
  */
 @Slf4j
 public final class ClassMetadataReader {

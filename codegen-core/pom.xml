@@ -122,13 +122,8 @@
             <scope>test</scope>
         </dependency>
 
-        <!--
-          集成测试会真正编译一遍生成的代码，因此需要生成产物所依赖的编译期 classpath：
-          - spring-web/webmvc：生成的 Controller 使用 @RestController / @PostMapping 等注解
-          - mybatis-flex-spring：生成的 Repository 继承 com.mybatisflex.spring.service.impl.ServiceImpl
-          - lombok / mapstruct-processor / mybatis-flex-processor 已在前面的 compile 依赖中，
-            会被 javac 通过 classpath 自动发现为注解处理器（生成的 @Data、@Mapper、UserTableRefs 都依赖它们）
-        -->
+        <!-- 集成测试会真正编译生成的代码：Controller 需要 spring-web/webmvc；
+             Lombok / MapStruct / MyBatis-Flex 处理器由 javac 从 classpath 自动发现 -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
@@ -137,11 +132,6 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.mybatis-flex</groupId>
-            <artifactId>mybatis-flex-spring</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -7,6 +7,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 集成测试夹具实体：{@code @GenModel} 标注的 POJO，用于驱动一次完整的代码生成。
@@ -40,6 +41,12 @@ public class FixtureUser {
      * 标价（美元，如 $5：注释中的 $ 必须转义，否则 JavaPoet 崩溃）
      */
     private BigDecimal price;
+
+    /**
+     * 标签：集合字段不是 MyBatis-Flex 映射列，APT 不会生成 TableRef 列。
+     * Repository/Query 必须跳过它，但 DTO/Request 仍应保留。
+     */
+    private List<String> tags;
 
     /**
      * 创建时间

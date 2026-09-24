@@ -28,10 +28,7 @@ import java.util.List;
 
 /**
  * 从标注 {@code @GenModel} 的 POJO 源码生成 DTO、Service、Repository 等代码。
- *
- * <p>绑定 {@code generate-sources} 阶段，直接扫描 {@code .java} 源文件，生成产物在
- * <strong>同一次构建</strong>中随主代码一起编译——不需要先编译，也不再递归启动
- * {@code mvn compile} 子进程。
+ * 绑定 {@code generate-sources} 阶段，直接扫描 {@code .java} 源文件。
  */
 @Mojo(name = "generate", defaultPhase = LifecyclePhase.GENERATE_SOURCES,
         requiresDependencyResolution = ResolutionScope.COMPILE)
@@ -53,6 +50,12 @@ public class CodeGeneratorMojo extends AbstractMojo {
     @Parameter(property = "pojo.codegen.outputDir",
             defaultValue = "${project.build.directory}/generated-sources/pojo-codegen")
     private File outputDir;
+
+    /**
+     * 是否把 MyBatis-Flex APT 的 TableDef 属性名切换为小驼峰。默认开启。
+     */
+    @Parameter(property = "pojo.codegen.camelCaseTableDef", defaultValue = "true")
+    private boolean camelCaseTableDef;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -92,6 +95,10 @@ public class CodeGeneratorMojo extends AbstractMojo {
                     .build();
             new GeneratorEngine(config).execute();
 
+            if (camelCaseTableDef) {
+                writeCamelTableDefConfig();
+            }
+
             project.addCompileSourceRoot(outputDir.getAbsolutePath());
             getLog().info("代码生成完成，产物目录已加入编译源: " + outputDir.getAbsolutePath());
         } catch (Exception e) {
@@ -99,6 +106,45 @@ public class CodeGeneratorMojo extends AbstractMojo {
         } finally {
             closeQuietly(dependencyClassLoader);
         }
+    }
+
+    /**
+     * 在编译输出目录写入 mybatis-flex.config，把 APT 生成的 TableDef 属性名切换为小驼峰。
+     * 处理器从输出目录向上查找该文件；文件属于构建产物，不污染源码工程。
+     * 项目自身已提供 mybatis-flex.config 时不覆盖。
+     */
+    private void writeCamelTableDefConfig() throws MojoExecutionException {
+        File classOutput = new File(project.getBuild().getOutputDirectory());
+        if (findExistingConfig(classOutput)) {
+            getLog().info("项目已提供 mybatis-flex.config，跳过 TableDef 命名风格配置。");
+            return;
+        }
+        try {
+            Path configFile = new File(classOutput, "mybatis-flex.config").toPath();
+            Files.createDirectories(configFile.getParent());
+            Files.writeString(configFile,
+                    "processor.tableDef.propertiesNameStyle = lowerCamelCase" + System.lineSeparator());
+        } catch (IOException e) {
+            throw new MojoExecutionException("写入 mybatis-flex.config 失败", e);
+        }
+    }
+
+    /**
+     * 从编译输出目录向上到项目根目录之间是否已存在 mybatis-flex.config。
+     */
+    private boolean findExistingConfig(File classOutput) {
+        File basedir = project.getBasedir();
+        File current = classOutput;
+        while (current != null) {
+            if (new File(current, "mybatis-flex.config").isFile()) {
+                return true;
+            }
+            if (current.equals(basedir)) {
+                break;
+            }
+            current = current.getParentFile();
+        }
+        return false;
     }
 
     /**

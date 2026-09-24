@@ -13,13 +13,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 回归（放在 template 包内以访问包私有类型）：
+ * 包内可见类型的单元测试（故置于 template 包下）：
  *
  * <ul>
- *     <li>表头行不再过滤空标题——过滤会让表头相对数据整体左移一列。</li>
- *     <li>迭代器只产出数据行，表头由 {@link SheetRender} 单独前置，
- *         避免 cells 模式下表头被当成第一列数据参与转置。</li>
- *     <li>取数实现返回 null 或分页永不缩小时要有明确异常/安全上限。</li>
+ *     <li>表头行长度与列数一致，空标题写空串。</li>
+ *     <li>迭代器只产出数据行，表头由 {@link SheetRender} 单独前置。</li>
+ *     <li>取数返回 null 或分页永不缩小时抛出明确异常，并设安全上限。</li>
  * </ul>
  */
 class SheetDataSupplierTest {

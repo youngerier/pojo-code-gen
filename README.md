@@ -7,7 +7,7 @@
 
 ## 模块一览
 
-按需引入，不要整体依赖。每个模块的依赖都是**诚实的**：用得到就声明为必需，不再靠 `optional` 把 `NoClassDefFoundError` 推到运行期。
+按需引入，不要整体依赖。每个模块的依赖都是**诚实的**：用得到就声明为必需，不靠 `optional` 把 `NoClassDefFoundError` 推到运行期。
 
 | 模块 | 内容 | 关键依赖 | 什么时候引入 |
 |---|---|---|---|
@@ -144,9 +144,17 @@ ServiceImpl、Mapper、Repository、MapStruct 转换器与 Controller。插件�
 `mvn generator:generate -Dpojo.codegen.scanPackages=com.acme.user.entity`。
 
 实体需要是 MyBatis-Flex 实体（`@Table` + `@Id`）：生成的 Repository 引用 APT 产出的
-`XxxTableRefs`，主键字段的真实类型会传播到 Controller/Service 的 `id` 参数。
+`XxxTableDef`，主键字段的真实类型会传播到 Controller/Service 的 `id` 参数。
 Javadoc 注释会原样成为生成类/字段的注释。每个实体产出 10 个文件，
 以实体包的父包为根（`com.acme.user.entity.User` → 根包 `com.acme.user`）：
+
+**零特殊配置**：插件自动把 APT 的 TableDef 命名风格切换为小驼峰（静态实例与列名均为
+小驼峰，如 `userTableDef.username`），配置写入 `target/classes/mybatis-flex.config`，
+不污染源码工程；项目根目录自带 `mybatis-flex.config` 时以项目为准。
+`mybatis-flex-spring`（Repository 父类 `ServiceImpl` 所在）由 `toolkit-mybatis-flex`
+传递引入；APT 处理器随 `mybatis-flex-core` 传递，由 javac 自动发现。
+
+如需 APT 默认的大写下划线风格，配置 `<camelCaseTableDef>false</camelCaseTableDef>`。
 
 | 包 | 产物 |
 |---|---|

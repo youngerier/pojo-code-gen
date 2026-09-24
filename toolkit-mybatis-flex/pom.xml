@@ -31,11 +31,16 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- MyBatis-Flex：本模块的存在意义就是适配它，因此是必需而非 optional
-             （此前 toolkit 把它标为 optional，使用方 import 后才会在运行期踩到 NoClassDefFoundError） -->
+        <!-- MyBatis-Flex：本模块即其适配层 -->
         <dependency>
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-core</artifactId>
+        </dependency>
+
+        <!-- 生成的 Repository 继承 com.mybatisflex.spring.service.impl.ServiceImpl -->
+        <dependency>
+            <groupId>com.mybatis-flex</groupId>
+            <artifactId>mybatis-flex-spring</artifactId>
         </dependency>
 
         <dependency>

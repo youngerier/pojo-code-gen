@@ -37,7 +37,7 @@ public class ControllerGenerator extends BaseGenerator {
 
         ClassName dtoType = packages.dto();
         ClassName queryType = packages.query();
-        // 主键类型以 @Id 字段实际类型为准；未标注 @Id 时回退 Long（保持历史约定）
+        // 主键类型以 @Id 字段实际类型为准，未标注 @Id 时回退 Long
         ClassMetadata.FieldInfo primaryKey = metadata.getPrimaryKey();
         TypeName idType = primaryKey != null ? primaryKey.getType() : TypeName.LONG;
         ClassName responseType = ClassName.get(Response.class);

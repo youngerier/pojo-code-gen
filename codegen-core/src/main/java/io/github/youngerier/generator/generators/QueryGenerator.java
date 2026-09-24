@@ -30,8 +30,15 @@ public class QueryGenerator extends AbstractModelGenerator {
     }
 
     /**
-     * 时间范围查询字段按实体中实际存在的审计字段生成，不再无条件假设
-     * {@code gmtCreate} / {@code gmtModified} 一定存在。
+     * Collection/Map 字段不是映射列，不能作为等值查询条件。
+     */
+    @Override
+    protected boolean includeField(ClassMetadata.FieldInfo field) {
+        return field.isColumn();
+    }
+
+    /**
+     * 时间范围查询字段：仅在实体存在对应审计字段时生成。
      */
     @Override
     protected void appendExtraFields(ClassMetadata metadata, TypeSpec.Builder builder) {

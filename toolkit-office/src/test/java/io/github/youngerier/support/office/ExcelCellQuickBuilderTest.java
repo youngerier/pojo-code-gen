@@ -78,15 +78,14 @@ class ExcelCellQuickBuilderTest {
     }
 
     /**
-     * 回归：{@code java.util.Date} 与 {@code LocalDateTime} 共用 {@code ofDateTime}，
-     * 而后者在 print 时会把参数强转成 {@code TemporalAccessor} → ClassCastException。
+     * {@code java.util.Date} 使用专用 formatter，不能按 {@code TemporalAccessor} 处理。
      */
     @Test
     void dateFieldDoesNotThrowClassCastException() {
         ExcelCellDescriptor descriptor = descriptorOf("gmtCreate");
         Date date = new Date(0L);
 
-        // 不断言具体时刻（依赖默认时区），只断言不再抛 ClassCastException 且格式正确
+        // 不断言具体时刻（依赖默认时区），只断言不抛异常且格式正确
         String printed = assertDoesNotThrow(() -> descriptor.getPrinter().print(date, Locale.CHINA));
         assertTrue(printed.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}"),
                 "java.util.Date 应被格式化为 yyyy-MM-dd HH:mm:ss，实际为 " + printed);

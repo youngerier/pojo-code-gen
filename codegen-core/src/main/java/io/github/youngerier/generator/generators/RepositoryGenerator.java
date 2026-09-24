@@ -67,21 +67,24 @@ public class RepositoryGenerator extends BaseGenerator {
     }
 
     private MethodSpec buildQueryWrapperMethod(ClassMetadata metadata) {
-        ClassName tableRefs = ClassName.get(
-                metadata.getPackageName() + ".table", metadata.getClassName() + "TableRefs");
-        String tableVarName = metadata.getCamelClassName() + "TableRefs";
-        String staticTableField = metadata.getCamelClassName();
+        ClassName tableDef = ClassName.get(
+                metadata.getPackageName() + ".table", metadata.getClassName() + "TableDef");
+        String tableVarName = metadata.getCamelClassName() + "TableDef";
+        String tableInstance = metadata.getCamelClassName();
 
         MethodSpec.Builder method = MethodSpec.methodBuilder("buildQueryWrapper")
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(packages.query(), "query")
                 .returns(QueryWrapper.class)
-                .addStatement("$T $L = $T.$L", tableRefs, tableVarName, tableRefs, staticTableField)
+                .addStatement("$T $L = $T.$L", tableDef, tableVarName, tableDef, tableInstance)
                 .addStatement("$T wrapper = $T.withOrder(query).from($L)",
                         QueryWrapper.class, QueryWrapperHelper.class, tableVarName);
 
-        // 等值条件按字段逐一判空后拼接：未传的查询条件绝不能以 = null 进入 SQL
+        // 未传条件不拼入 SQL；Collection/Map 字段没有 TableDef 列，跳过
         for (ClassMetadata.FieldInfo field : metadata.getFields()) {
+            if (!field.isColumn()) {
+                continue;
+            }
             String getter = getterName(field.getName());
             method.beginControlFlow("if (query.$L() != null)", getter)
                     .addStatement("wrapper.and($L.$L.eq(query.$L()))",
@@ -89,7 +92,6 @@ public class RepositoryGenerator extends BaseGenerator {
                     .endControlFlow();
         }
 
-        // 时间范围条件只在实体存在对应审计字段时生成
         if (hasField(metadata, "gmtCreate")) {
             method.addStatement("wrapper.and($L.gmtCreate.ge(query.getMinGmtCreate()))", tableVarName);
             method.addStatement("wrapper.and($L.gmtCreate.le(query.getMaxGmtCreate()))", tableVarName);

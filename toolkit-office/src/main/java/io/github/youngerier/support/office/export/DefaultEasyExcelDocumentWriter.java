@@ -20,10 +20,9 @@ import java.util.stream.Collectors;
 /**
  * 基于 EasyExcel 的流式 Excel Writer。
  *
- * <p>{@code write} 的每一批数据立即通过 {@link ExcelWriter#write} 刷入 SXSS 流式工作簿，
- * 不再在内存中累积全部行；单个 Sheet 写满 Excel 行数上限时自动拆分到下一个 Sheet
- * （表头随每个 Sheet 自动输出）。底层 workbook 与输出流由 {@link #finish()} /
- * {@link #abort()} 释放。
+ * <p>每批数据立即通过 {@link ExcelWriter#write} 刷入 SXSS 流式工作簿；写满 Sheet
+ * 行数上限时自动拆分到下一个 Sheet（表头随每个 Sheet 输出）。底层 workbook 与输出流
+ * 由 {@link #finish()} / {@link #abort()} 释放。
  *
  * @github https://github.com/alibaba/easyexcel
  **/

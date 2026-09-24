@@ -22,13 +22,11 @@ import org.springframework.core.task.TaskDecorator;
  *     <li>{@link TraceIdFilter}：Servlet Web 环境下为每个请求准备 traceId，
  *     需要 spring-web 与 spring-boot（{@code FilterRegistrationBean}）。</li>
  *     <li>{@link MdcTaskDecorator}：注册为容器内唯一的 {@link TaskDecorator}，
- *     让 Spring Boot 自动配置的 {@code applicationTaskExecutor} 与 {@code @Async}
- *     继承提交线程的 MDC。此前 {@code MdcTaskDecorator} 从未被装配，是死代码。</li>
+ *     让异步任务继承提交线程的 MDC。</li>
  * </ul>
  *
- * <p>两类能力拆成独立嵌套配置类，并用 {@code name} 字符串形式声明可选类条件：
- * 方法级 {@code @ConditionalOnClass} 在注解元数据以反射方式读取时会被静默跳过，
- * 进而把缺失的可选依赖变成 {@code NoClassDefFoundError}。
+ * <p>两类能力拆成独立嵌套配置类，可选类条件使用 {@code name} 字符串形式：方法级
+ * {@code @ConditionalOnClass} 以反射读取注解元数据时会被静默跳过。
  */
 @AutoConfiguration
 public class TraceAutoConfiguration {

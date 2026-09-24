@@ -27,40 +27,28 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 生成器端到端集成测试：直接扫描夹具实体源码跑一次完整生成，然后把生成产物
- * <strong>真正编译一遍</strong>。
+ * 生成器端到端测试：扫描夹具实体完成一次完整生成，并把产物真正编译一遍。
  *
- * <p>这是本仓库里唯一覆盖「生成器 + toolkit 各模块」接缝的地方，能在编译期发现：
- *
- * <ul>
- *     <li>生成代码引用的 toolkit 类型被移动或改名（例如
- *     {@code QueryWrapperHelper} 从 {@code support.page} 移到 {@code support.page.flex}）；</li>
- *     <li>生成代码引用的方法签名变化（例如 {@code Pagination.of}、{@code BaseException.badRequest}）；</li>
- *     <li>生成器自身产出的代码语法/类型错误，包括泛型字段、含 {@code $} 的注释等边界。</li>
- * </ul>
- *
- * <p>注解处理不显式指定处理器，交由 javac 从 classpath 自动发现 Lombok、MapStruct 与
- * MyBatis-Flex 的处理器，这与使用方项目的实际编译方式一致。
+ * <p>注解处理器不显式指定，由 javac 从 classpath 自动发现 Lombok、MapStruct 与
+ * MyBatis-Flex 处理器，与使用方项目的编译方式一致。
  */
 class GeneratedCodeIntegrationTest {
 
     private static final String BASE_PACKAGE = "io.github.youngerier.generator.fixture";
     private static final String ENTITY_PACKAGE = BASE_PACKAGE + ".entity";
 
-    /** 夹具实体源码：必须作为编译输入，MyBatis-Flex 处理器才会产出 TableRefs */
+    /** 夹具实体源码：必须作为编译输入，MyBatis-Flex 处理器才会产出 TableDef */
     private static final List<String> FIXTURE_SOURCES = List.of(
             "io/github/youngerier/generator/fixture/entity/FixtureUser.java",
             "io/github/youngerier/generator/fixture/entity/FixtureUserTypeEnum.java");
 
     @TempDir
     Path outputBaseDir;
-
-    @TempDir
-    Path classesDir;
 
     @Test
     void generatesAllArtifactsAndTheyCompileAgainstToolkitModules() throws IOException {
@@ -118,8 +106,7 @@ class GeneratedCodeIntegrationTest {
     // ---------------- 内容断言 ----------------
 
     /**
-     * 逐条钉住生成代码与 toolkit 的契约。相比「能编译」，这些断言还能发现
-     * 「编译得过去但语义已漂移」的情况（例如 Repository 不再走 ORDER BY 适配层）。
+     * 钉住生成代码与 toolkit 的契约：仅能编译不足以发现语义漂移。
      */
     private void assertGeneratedContent() throws IOException {
         String repository = readGenerated("dal", "repository", "FixtureUserRepository.java");
@@ -130,9 +117,24 @@ class GeneratedCodeIntegrationTest {
         assertTrue(repository.contains("extends ServiceImpl<FixtureUserMapper, FixtureUser>"),
                 "Repository 必须继承 MyBatis-Flex 的 ServiceImpl:\n" + repository);
 
+        // 引用 APT 产出的 FixtureUserTableDef，静态实例与列均为小驼峰
+        assertTrue(repository.contains(
+                        "import io.github.youngerier.generator.fixture.entity.table.FixtureUserTableDef;"),
+                "Repository 必须引用 FixtureUserTableDef:\n" + repository);
+        assertTrue(repository.contains("FixtureUserTableDef.fixtureUser"),
+                "TableDef 静态实例必须为小驼峰:\n" + repository);
+
         // 等值条件必须判空，不能把未传条件以 = null 拼进 SQL
         assertTrue(repository.contains("if (query.getUsername() != null)"),
                 "Repository 必须逐字段判空:\n" + repository);
+        assertTrue(repository.contains("fixtureUserTableDef.username.eq(query.getUsername())"),
+                "TableDef 列引用必须为小驼峰:\n" + repository);
+        assertTrue(repository.contains("fixtureUserTableDef.gmtCreate.ge(query.getMinGmtCreate())"),
+                "时间范围列引用必须为小驼峰:\n" + repository);
+
+        // 集合字段不是映射列：Repository 不得引用不存在的 TableDef 列
+        assertFalse(repository.contains("tags"),
+                "Repository 必须跳过 Collection 字段 tags:\n" + repository);
 
         String query = readGenerated("model", "request", "FixtureUserQuery.java");
         assertTrue(query.contains("import io.github.youngerier.support.enums.DefaultOrderField;"),
@@ -141,6 +143,10 @@ class GeneratedCodeIntegrationTest {
                 "Query 必须继承 toolkit-core 的 AbstractPageQuery:\n" + query);
         assertTrue(query.contains("extends AbstractPageQuery<DefaultOrderField>"),
                 "Query 必须继承 AbstractPageQuery<DefaultOrderField>:\n" + query);
+
+        // 集合字段不能作为等值查询条件
+        assertFalse(query.contains("tags"),
+                "Query 必须跳过 Collection 字段 tags:\n" + query);
 
         String serviceImpl = readGenerated("service", "impl", "FixtureUserServiceImpl.java");
         assertTrue(serviceImpl.contains("import io.github.youngerier.support.page.Pagination;"),
@@ -164,6 +170,11 @@ class GeneratedCodeIntegrationTest {
         String dto = readGenerated("model", "dto", "FixtureUserDTO.java");
         assertTrue(dto.contains("标价（美元，如 $5"),
                 "DTO Javadoc 必须原样保留含 $ 的注释:\n" + dto);
+
+        // 集合字段在 DTO/Request 中保留：它们是实体的真实属性，只是不是数据库列
+        assertTrue(dto.contains("tags"), "DTO 必须保留集合字段 tags:\n" + dto);
+        String request = readGenerated("model", "request", "FixtureUserRequest.java");
+        assertTrue(request.contains("tags"), "Request 必须保留集合字段 tags:\n" + request);
     }
 
     private String readGenerated(String... pathSegments) throws IOException {
@@ -189,12 +200,19 @@ class GeneratedCodeIntegrationTest {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         assertNotNull(compiler, "当前 JDK 未提供 javac，无法执行编译断言");
 
+        // 模拟真实 Maven 布局：处理器要求沿 CLASS_OUTPUT 向上找到 pom.xml 才会读取配置
+        Path projectDir = Files.createDirectories(outputBaseDir.resolve("project"));
+        Path classOutput = Files.createDirectories(projectDir.resolve("target/classes"));
+        Files.writeString(projectDir.resolve("pom.xml"), "");
+
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-        // javac 要求 SOURCE_OUTPUT 目录已存在
         Path aptOutputDir = Files.createDirectories(outputBaseDir.resolve("apt"));
+        // 模拟插件：在 CLASS_OUTPUT 写入 APT 命名风格配置
+        Files.writeString(classOutput.resolve("mybatis-flex.config"),
+                "processor.tableDef.propertiesNameStyle = lowerCamelCase" + System.lineSeparator());
         try (StandardJavaFileManager fileManager =
                      compiler.getStandardFileManager(diagnostics, Locale.ROOT, StandardCharsets.UTF_8)) {
-            fileManager.setLocationFromPaths(StandardLocation.CLASS_OUTPUT, List.of(classesDir));
+            fileManager.setLocationFromPaths(StandardLocation.CLASS_OUTPUT, List.of(classOutput));
             fileManager.setLocationFromPaths(StandardLocation.SOURCE_OUTPUT, List.of(aptOutputDir));
 
             Iterable<? extends JavaFileObject> units = fileManager.getJavaFileObjectsFromPaths(sources);
@@ -212,8 +230,20 @@ class GeneratedCodeIntegrationTest {
         }
 
         // 生成产物确实被编译成了 class 文件
-        assertTrue(Files.exists(classesDir.resolve(BASE_PACKAGE.replace('.', '/') + "/dal/repository/FixtureUserRepository.class")),
+        assertTrue(Files.exists(classOutput.resolve(BASE_PACKAGE.replace('.', '/') + "/dal/repository/FixtureUserRepository.class")),
                 "未产出 FixtureUserRepository.class");
+
+        // APT 按配置生成小驼峰风格 TableDef
+        Path aptTableDef = aptOutputDir.resolve(
+                BASE_PACKAGE.replace('.', '/') + "/entity/table/FixtureUserTableDef.java");
+        assertTrue(Files.exists(aptTableDef), "APT 未生成 FixtureUserTableDef");
+        String tableDefSource = Files.readString(aptTableDef);
+        assertTrue(tableDefSource.contains("public static final FixtureUserTableDef fixtureUser"),
+                "TableDef 静态实例必须为小驼峰:\n" + tableDefSource);
+        assertTrue(tableDefSource.contains("public final QueryColumn username"),
+                "TableDef 列必须为小驼峰:\n" + tableDefSource);
+        assertFalse(tableDefSource.contains("QueryColumn tags"),
+                "TableDef 不得为集合字段生成列:\n" + tableDefSource);
     }
 
     private static String format(List<Diagnostic<? extends JavaFileObject>> diagnostics) {

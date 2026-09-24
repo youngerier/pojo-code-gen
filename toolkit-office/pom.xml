@@ -31,9 +31,7 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Excel 读写。本模块的核心能力，必需而非 optional：
-             此前标为 optional 时，只引入 easyexcel 的使用方仍会在 ExportExcelTaskInfo 上踩到
-             commons-lang3 的 NoClassDefFoundError -->
+        <!-- Excel 读写，本模块核心能力 -->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>easyexcel</artifactId>

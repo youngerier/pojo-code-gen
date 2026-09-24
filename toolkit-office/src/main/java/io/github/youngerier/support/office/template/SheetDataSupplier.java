@@ -132,8 +132,6 @@ abstract class SheetDataSupplier implements Iterable<List<String>> {
 
     /**
      * 表头行：长度与列数严格一致，标题为空的列写空串。
-     *
-     * <p>此前表头会把空标题过滤掉，导致表头相对数据整体左移一列。
      */
     List<String> titleRow() {
         return titles.stream()

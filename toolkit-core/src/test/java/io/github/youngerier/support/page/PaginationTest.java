@@ -93,7 +93,7 @@ class PaginationTest {
     }
 
     /**
-     * 回归：pageNumber/pageSize 别名必须走同一套校验，不能绕过下界检查。
+     * pageNumber/pageSize 别名与主字段共用同一套校验。
      */
     @Test
     void trailingAliasesApplyTheSameValidation() {
